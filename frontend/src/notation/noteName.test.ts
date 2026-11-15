@@ -24,6 +24,10 @@ test("every alteration has a distinct symbol", () => {
   expect(new Set(symbols).size).toBe(9);
 });
 
+test("continuous positions are rounded to two decimals", () => {
+  expect(formatVirtualFret(7.400000000000001)).toBe("3.7");
+});
+
 test("virtual fret is position / 2", () => {
   expect([0, 3, 4, 14].map(formatVirtualFret)).toEqual(["0", "1.5", "2", "7"]);
 });
