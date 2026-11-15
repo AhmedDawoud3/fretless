@@ -43,3 +43,7 @@ def test_other_lines_keep_their_alignment_relative_to_each_other() -> None:
 def test_a_cell_running_past_the_end_widens_the_system() -> None:
     result = widen(3, (), _cells((1, 2, "12")))
     assert result.width == 4
+
+
+def test_two_cells_on_one_line_index_do_not_crash() -> None:
+    assert widen(5, (), _cells((1, 2, "1"), (1, 2, "2"))).cell == {2: 2}

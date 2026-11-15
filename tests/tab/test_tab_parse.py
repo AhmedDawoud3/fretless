@@ -107,3 +107,13 @@ def test_seven_string_system_is_accepted() -> None:
 
 def test_never_raises_on_arbitrary_text() -> None:
     parse_tab("|\n||\n:\n\x00\n-|-|-")
+
+
+def test_rejected_run_after_a_system_joins_the_text_around_it() -> None:
+    system = "\n".join(["e|--0--|"] * 4)
+    short = "\n".join(["e|--0--|"] * 3)
+    text = f"{system}\nwords\n{short}\nmore"
+    assert parse_tab(text).blocks == (
+        parse_tab(system).blocks[0],
+        TextBlock(f"words\n{short}\nmore"),
+    )

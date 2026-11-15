@@ -54,3 +54,7 @@ def test_techniques_and_dead_notes_are_content() -> None:
 )
 def test_not_tab_lines(text: str) -> None:
     assert parse_tab_line(text) is None
+
+
+def test_comment_after_a_double_closing_bar_keeps_the_inner_bar() -> None:
+    assert parse_tab_line("e|--0--||  Am") == TabLine("e", "--0--|")
