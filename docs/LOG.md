@@ -187,3 +187,25 @@ Unit C, explorer page:
   large empty band around the oud at 390 px; voicing list still shows
   near-duplicates. Custom tuning, capo, and arpeggio highlight were exercised
   by tests only, not in the browser. Sound unheard.
+
+## 2026-11-15: phase 3, unit G (tab parser and renderer)
+
+- New pure package `src/fretless/tab/`: model, line classifier, column
+  extraction, parser, widening, renderer. No API and no conversion yet.
+- Parsing never raises. Runs of 4 to 7 tab lines become systems; everything
+  else stays verbatim as text; CRLF handled.
+- Fret rule lives in one function, `split_frets`, marked `ponytail:`: two
+  adjacent digits are one fret only if the first is 1 or 2 and the value is at
+  most 24.
+- Widening is a pure function inserting dashes in every line at once, so cells
+  never overlap and columns stay aligned. Hypothesis round trip (render, parse,
+  same notes, labels, bar count) holds.
+- Deviations: a line needs at least 2 dashes to count as tab; `render_document`
+  accepts text, tab, and render blocks; `render_model.py` and `widen.py` split
+  out to keep files small.
+- Mutator covered all six files; only survivors are 3 equivalent mutants in
+  `widen.py`.
+- Not handled: two systems pasted with no blank line between them stay as text
+  (queued for the next unit); repeat marks; comments glued to the last bar;
+  technique symbols are dropped rather than preserved. Only the two example
+  systems were tried, no tab pasted from a real site.
