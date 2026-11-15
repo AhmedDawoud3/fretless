@@ -65,3 +65,12 @@ Every change, in this order:
 - Body says why, what changed, and how it was proved.
 - No `Co-Authored-By`, no session links, no other AI attribution lines.
 - No pre-commit hooks; CI on GitHub Actions is the gate.
+
+## Orchestration
+
+- The lead agent plans and assigns; it does not implement. Each plan is a
+  self-contained unit handed to a subagent (Sonnet) to finish.
+- A subagent owns only the paths named in its plan, commits only those paths,
+  and does not push or edit `docs/LOG.md`. It reports log lines back; the lead
+  appends them, runs `just check`, and pushes.
+- Units that touch disjoint paths may run in parallel; otherwise in sequence.
