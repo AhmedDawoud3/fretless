@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { renderPluck } from "./pluck";
 
 const SAMPLE_RATE = 22050;
+/** Browsers run audio at 44.1 or 48 kHz; the averaging filter darkens high notes more at 22 kHz. */
+const BROWSER_RATE = 44100;
 
 /** Small deterministic random source in [0, 1). */
 function seeded(seed: number): () => number {
@@ -49,6 +51,16 @@ function estimateFrequency(xs: Float32Array, sampleRate: number): number {
   return sampleRate / (lags[k] + offset);
 }
 
+/** Time of the last 50 ms window whose energy is within 40 dB of the loudest window. */
+function secondsAboveMinus40dB(xs: Float32Array, sampleRate: number): number {
+  const window = Math.round(sampleRate * 0.05);
+  const energies = Array.from({ length: Math.floor(xs.length / window) }, (_, i) =>
+    energy(xs.subarray(i * window, (i + 1) * window)),
+  );
+  const floor = Math.max(...energies) * 1e-4;
+  return (energies.findLastIndex((e) => e >= floor) + 1) * 0.05;
+}
+
 describe("renderPluck", () => {
   it("returns sampleRate * seconds samples", () => {
     expect(render(220, 1.5)).toHaveLength(SAMPLE_RATE * 1.5);
@@ -89,4 +101,16 @@ describe("renderPluck", () => {
     const tail = (xs: Float32Array) => energy(xs.subarray(xs.length / 2)) / energy(xs);
     expect(tail(render(100))).toBeGreaterThan(tail(render(600)));
   });
+
+  it.each([
+    [65, 1.5, 2.2],
+    [880, 0.8, 1.3],
+  ])(
+    "a %i Hz pluck (browser sample rate) falls to -40 dB in %f to %f seconds",
+    (hz, earliest, latest) => {
+      const t = secondsAboveMinus40dB(renderPluck(hz, BROWSER_RATE, 3, seeded(7)), BROWSER_RATE);
+      expect(t).toBeGreaterThanOrEqual(earliest);
+      expect(t).toBeLessThanOrEqual(latest);
+    },
+  );
 });

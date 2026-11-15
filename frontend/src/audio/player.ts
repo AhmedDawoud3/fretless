@@ -4,6 +4,8 @@ import { noteStartTimes } from "./schedule";
 
 const NOTE_SECONDS = 2.5;
 const MAX_CACHED = 64;
+/** Stopping fades notes out over this long, since cutting a ringing string at once clicks. */
+const FADE_SECONDS = 0.03;
 
 let context: AudioContext | undefined;
 const buffers = new Map<number, AudioBuffer>();
@@ -33,12 +35,21 @@ function bufferFor(ctx: AudioContext, steps: number): AudioBuffer {
   return buffer;
 }
 
-function startNote(ctx: AudioContext, steps: number, when: number): AudioBufferSourceNode {
+type Note = { source: AudioBufferSourceNode; gain: GainNode };
+
+function startNote(ctx: AudioContext, steps: number, when: number): Note {
   const source = ctx.createBufferSource();
   source.buffer = bufferFor(ctx, steps);
-  source.connect(ctx.destination);
+  const gain = ctx.createGain();
+  source.connect(gain);
+  gain.connect(ctx.destination);
   source.start(when);
-  return source;
+  return { source, gain };
+}
+
+function fadeOut(ctx: AudioContext, { source, gain }: Note): void {
+  gain.gain.setTargetAtTime(0, ctx.currentTime, FADE_SECONDS / 4);
+  source.stop(ctx.currentTime + FADE_SECONDS);
 }
 
 /** Pluck one pitch (steps, fractional allowed) now, or at AudioContext time `when`. */
@@ -59,7 +70,7 @@ export function playSequence(
 ): { stop(): void; done: Promise<void> } {
   const ctx = audioContext();
   const starts = noteStartTimes(steps.length, notesPerMinute);
-  const sources = steps.map((s, i) => startNote(ctx, s, ctx.currentTime + starts[i]));
+  const notes = steps.map((s, i) => startNote(ctx, s, ctx.currentTime + starts[i]));
   const timers = starts.map((t, i) => setTimeout(() => onNote?.(i), t * 1000));
   let finish: () => void = () => {};
   const done = new Promise<void>((resolve) => {
@@ -70,7 +81,7 @@ export function playSequence(
     done,
     stop() {
       for (const t of timers) clearTimeout(t);
-      for (const s of sources) s.stop();
+      for (const note of notes) fadeOut(ctx, note);
       finish();
     },
   };
