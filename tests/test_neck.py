@@ -17,8 +17,8 @@ tunings = st.sampled_from(list(TUNINGS.values()))
 def test_tunings_are_listed_high_to_low() -> None:
     assert TUNINGS["cc"].courses == (96, 86, 76, 66, 58, 48)
     assert TUNINGS["ff"].courses == (106, 96, 86, 76, 66, 58)
-    assert TUNINGS["cc"].label == "C2013C"
-    assert TUNINGS["ff"].label == "F2013F"
+    assert TUNINGS["cc"].label == "C–C"  # noqa: RUF001 (en dash in label)
+    assert TUNINGS["ff"].label == "F–F"  # noqa: RUF001 (en dash in label)
 
 
 def test_max_position_octave_on_course_one_fifth_elsewhere() -> None:

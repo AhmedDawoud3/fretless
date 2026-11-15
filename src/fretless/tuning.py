@@ -17,7 +17,7 @@ def _from_low(id: str, label: str, low_to_high: tuple[int, ...]) -> Tuning:
 TUNINGS: dict[str, Tuning] = {
     t.id: t
     for t in (
-        _from_low("cc", "C2013C", (48, 58, 66, 76, 86, 96)),  # C2 F2 A2 D3 G3 C4
-        _from_low("ff", "F2013F", (58, 66, 76, 86, 96, 106)),  # F2 A2 D3 G3 C4 F4
+        _from_low("cc", "C–C", (48, 58, 66, 76, 86, 96)),  # noqa: RUF001 (en dash in label)
+        _from_low("ff", "F–F", (58, 66, 76, 86, 96, 106)),  # noqa: RUF001 (en dash in label)
     )
 }
