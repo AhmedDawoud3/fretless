@@ -72,3 +72,32 @@ Unit B, audio:
 
 Owner added a rule to AGENTS.md: small files, SOLID. `api.py` (220 lines) is
 queued for a split.
+
+## 2026-11-15: phase 1, units A2 (API split) and C (oud neck UI)
+
+Unit A2, refactor:
+- Split `api.py` into the `fretless/api/` package: `schemas.py`, `mappers.py`,
+  `routes.py`, `__init__.py`. Import path `fretless.api:app` unchanged.
+- `_scale_out` broken into degrees, scale-locations, and playback helpers.
+- Proved unchanged: tests unmodified (39 pass), OpenAPI JSON byte-identical
+  before and after, `schema.d.ts` regenerates with no diff.
+
+Unit C, explorer page:
+- Typed API client, note naming (C D E / Do Re Mi) with one accidental symbol
+  map, virtual fret text, fretless string geometry, whole-oud SVG split into
+  small drawing parts, press-to-play with snap or continuous pitch, readout
+  with nearest note and cents, tuning switch, label modes, short "why" note,
+  and a "run `just api`" message when the backend is down.
+- Pure logic written test first; component tests mock only `fetch` and audio.
+- Deviation: no inline-SVG accidentals. The Unicode half-flat and half-sharp
+  render on this Windows machine (Segoe UI Symbol); other machines may show boxes.
+- Deviation: added optional `rulerLabel` prop on `OudNeck` for fret numbers
+  above guide marks, so the page never prints 100 labels.
+- Fixed float artefact in fret text ("3.700000000000001") by rounding to two
+  decimals, with a test that failed first.
+- Checked in a real browser at 1700 px and 390 px. The saved screenshot predates
+  the last small edits (peg colour, favicon, fret rounding).
+- Lead reviewed the screenshot: reads as an oud. To polish: only 10 pegs drawn,
+  fret label 7 hidden behind the body edge, awkward step at the neck joint,
+  strings parallel with no taper.
+- Not built: keyboard play of strings. Not verified: sound (nobody listened).
