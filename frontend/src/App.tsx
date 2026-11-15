@@ -1,5 +1,6 @@
 import { Controls } from "./explorer/Controls";
 import { MaqamControls } from "./explorer/MaqamControls";
+import { MaqamPanel } from "./explorer/MaqamPanel";
 import { ReadoutLine } from "./explorer/ReadoutLine";
 import { useExplorer } from "./explorer/useExplorer";
 import { WhyNote } from "./explorer/WhyNote";
@@ -59,7 +60,16 @@ function App() {
               rulerLabel={showRuler ? formatVirtualFret : undefined}
             />
           </div>
-          <WhyNote />
+          {x.maqam.maqam ? (
+            <MaqamPanel
+              maqam={x.maqam.maqam}
+              scale={x.maqam.scale}
+              failed={x.maqam.scaleFailed}
+              system={x.system}
+            />
+          ) : (
+            <WhyNote />
+          )}
         </>
       )}
     </main>
