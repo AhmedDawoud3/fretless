@@ -13,11 +13,12 @@ export function useMaqam(initial: MaqamChoice, tuningId: string | null) {
   const [maqamat, setMaqamat] = useState<Maqam[]>([]);
   const [maqamId, setMaqamId] = useState(initial.maqamId);
   const [rootChoice, setRootChoice] = useState(initial.root);
+  const [listFailed, setListFailed] = useState(false);
 
   useEffect(() => {
     fetchMaqamat()
       .then(setMaqamat)
-      .catch(() => setMaqamat([]));
+      .catch(() => setListFailed(true));
   }, []);
 
   const selection = useMemo(
@@ -26,7 +27,14 @@ export function useMaqam(initial: MaqamChoice, tuningId: string | null) {
   );
   const { scale, failed } = useScale(selection, tuningId);
   return {
-    ...{ maqamat, maqam: selection?.maqam ?? null, selection, scale, scaleFailed: failed },
+    ...{
+      maqamat,
+      listFailed,
+      maqam: selection?.maqam ?? null,
+      selection,
+      scale,
+      scaleFailed: failed,
+    },
     chosen: { maqamId, root: rootChoice },
     choose: (next: string | null) => {
       setMaqamId(next);

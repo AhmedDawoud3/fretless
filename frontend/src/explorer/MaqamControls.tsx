@@ -23,6 +23,13 @@ export function MaqamControls({
   tempo,
   onTempo,
 }: MaqamControlsProps) {
+  if (maqam.listFailed) {
+    return (
+      <p className="status status-error" role="alert">
+        Could not load the maqam list. Reload the page to try again.
+      </p>
+    );
+  }
   if (maqam.maqamat.length === 0) return null;
   return (
     <div className="controls maqam-controls">

@@ -1,11 +1,8 @@
+import { PageTabs } from "./app/PageTabs";
+import { useSharedSettings } from "./app/useSharedSettings";
+import { ChordsPage } from "./chords/ChordsPage";
 import { Controls } from "./explorer/Controls";
-import { MaqamControls } from "./explorer/MaqamControls";
-import { MaqamPanel } from "./explorer/MaqamPanel";
-import { ReadoutLine } from "./explorer/ReadoutLine";
-import { useExplorer } from "./explorer/useExplorer";
-import { WhyNote } from "./explorer/WhyNote";
-import { OudNeck } from "./neck/OudNeck";
-import { formatVirtualFret } from "./notation/virtualFret";
+import { MaqamPage } from "./explorer/MaqamPage";
 import "./app.css";
 
 function Status({ kind }: { kind: "loading" | "error" }) {
@@ -18,57 +15,34 @@ function Status({ kind }: { kind: "loading" | "error" }) {
 }
 
 function App() {
-  const x = useExplorer();
-  const showRuler = x.guides && (x.labelMode === "frets" || x.labelMode === "both");
+  const shared = useSharedSettings();
+  const { data } = shared;
   return (
     <main>
       <h1>Fretless</h1>
       <p className="tagline">Oud learning tools for guitarists.</p>
-      {x.data.status !== "ready" ? (
-        <Status kind={x.data.status} />
+      <PageTabs page={shared.page} onPage={shared.setPage} />
+      {data.status !== "ready" ? (
+        <Status kind={data.status} />
       ) : (
         <>
           <Controls
-            tunings={x.data.tunings}
-            tuningId={x.tuningId}
-            onTuning={x.changeTuning}
-            snap={x.snap}
-            onSnap={x.setSnap}
-            guides={x.guides}
-            onGuides={x.setGuides}
-            labelMode={x.labelMode}
-            onLabelMode={x.setLabelMode}
-            system={x.system}
-            onSystem={x.setSystem}
+            tunings={data.tunings}
+            tuningId={shared.tuningId}
+            onTuning={shared.setTuningId}
+            snap={shared.snap}
+            onSnap={shared.setSnap}
+            guides={shared.guides}
+            onGuides={shared.setGuides}
+            labelMode={shared.labelMode}
+            onLabelMode={shared.setLabelMode}
+            system={shared.system}
+            onSystem={shared.setSystem}
           />
-          <MaqamControls
-            maqam={x.maqam}
-            neck={x.data.neck}
-            system={x.system}
-            playback={x.playback}
-            tempo={x.tempo}
-            onTempo={x.setTempo}
-          />
-          <ReadoutLine readout={x.readout} />
-          <div className="neck-scroll">
-            <OudNeck
-              neck={x.data.neck}
-              markers={x.markers}
-              showGuides={x.guides}
-              snap={x.snap}
-              onPlay={x.play}
-              rulerLabel={showRuler ? formatVirtualFret : undefined}
-            />
-          </div>
-          {x.maqam.maqam ? (
-            <MaqamPanel
-              maqam={x.maqam.maqam}
-              scale={x.maqam.scale}
-              failed={x.maqam.scaleFailed}
-              system={x.system}
-            />
+          {shared.page === "maqam" ? (
+            <MaqamPage shared={shared} neck={data.neck} />
           ) : (
-            <WhyNote />
+            <ChordsPage shared={shared} neck={data.neck} />
           )}
         </>
       )}

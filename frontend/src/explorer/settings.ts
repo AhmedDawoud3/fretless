@@ -2,7 +2,11 @@ import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
 import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
+export const PAGE_IDS = ["maqam", "chords"] as const;
+export type PageId = (typeof PAGE_IDS)[number];
+
 export type Settings = {
+  page: PageId;
   tuningId: string | null;
   snap: boolean;
   guides: boolean;
@@ -15,6 +19,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
+  page: "maqam",
   tuningId: null,
   snap: true,
   guides: true,
@@ -59,6 +64,7 @@ export function parseSettings(raw: string | null): Settings {
   const d = DEFAULT_SETTINGS;
   const s = source as Record<string, unknown>;
   return {
+    page: field(s, "page", oneOf(PAGE_IDS), d.page),
     tuningId: field(s, "tuningId", isText, d.tuningId),
     snap: field(s, "snap", isBoolean, d.snap),
     guides: field(s, "guides", isBoolean, d.guides),
@@ -79,9 +85,10 @@ export function loadSettings(): Settings {
   }
 }
 
-export function saveSettings(settings: Settings): void {
+/** Each part of the app saves only the settings it owns; the rest stay as stored. */
+export function saveSettings(patch: Partial<Settings>): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loadSettings(), ...patch }));
   } catch {
     // Nowhere to save: the settings last for this visit only.
   }

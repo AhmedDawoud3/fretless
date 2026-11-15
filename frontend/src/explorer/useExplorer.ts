@@ -1,19 +1,18 @@
 import { useState } from "react";
+import type { NeckOut } from "../api/client";
+import type { SharedSettings } from "../app/useSharedSettings";
 import { playSteps } from "../audio";
 import type { Marker } from "../neck/OudNeck";
 import type { Play } from "../neck/play";
-import type { NamingSystem } from "../notation/noteName";
 import { describePlay, type LabelMode, markerLabel, type Readout } from "./readout";
+import { roundTrip } from "./roundTrip";
 import { highlightAt, scaleMarkers, withMarker } from "./scaleOverlay";
 import { loadSettings } from "./settings";
 import { useMaqam } from "./useMaqam";
-import { type NeckData, useNeckData } from "./useNeckData";
 import { usePlayback } from "./usePlayback";
-import { useSaveSettings } from "./useSaveSettings";
+import { useSaveMaqamSettings } from "./useSaveMaqamSettings";
 
-function describeLast(data: NeckData, last: Play | null, system: NamingSystem): Readout | null {
-  return data.status === "ready" && last ? describePlay(data.neck, last, system) : null;
-}
+type Last = { tuningId: string | null; play: Play };
 
 function lastMarker(last: Play | null, readout: Readout | null, mode: LabelMode): Marker | null {
   if (!last || !readout) return null;
@@ -25,54 +24,30 @@ function lastMarker(last: Play | null, readout: Readout | null, mode: LabelMode)
   };
 }
 
-/** All explorer page state: loaded data, display options, and the last played note. */
-export function useExplorer() {
+/** Maqam page state: the chosen maqam and its scale, playback, and the last played note. */
+export function useExplorer(shared: SharedSettings, neck: NeckOut) {
+  const { tuningId, system, labelMode } = shared;
   const [saved] = useState(loadSettings);
-  const { data, tuningId, setTuningId } = useNeckData(saved.tuningId);
-  const [snap, setSnap] = useState(saved.snap);
-  const [guides, setGuides] = useState(saved.guides);
-  const [labelMode, setLabelMode] = useState<LabelMode>(saved.labelMode);
-  const [system, setSystem] = useState<NamingSystem>(saved.system);
-  const [last, setLast] = useState<Play | null>(null);
+  const [lastPlayed, setLastPlayed] = useState<Last | null>(null);
   const maqam = useMaqam({ maqamId: saved.maqamId, root: saved.root }, tuningId);
   const [tempo, setTempo] = useState(saved.tempo);
-  useSaveSettings({
-    ...{ tuningId, snap, guides, labelMode, system, tempo },
-    ...maqam.chosen,
-  });
-  const playback = usePlayback(
-    maqam.scale,
-    tempo,
-    `${maqam.maqam?.id}|${maqam.selection?.root}|${tuningId}`,
-  );
+  useSaveMaqamSettings({ ...maqam.chosen, tempo });
+  const playback = usePlayback(`${maqam.maqam?.id}|${maqam.selection?.root}|${tuningId}`);
 
-  const changeTuning = (id: string) => {
-    setLast(null);
-    setTuningId(id);
-  };
   const play = (hit: Play) => {
     playSteps(hit.pitch);
-    setLast(hit);
+    setLastPlayed({ tuningId, play: hit });
+  };
+  const togglePlayback = () => {
+    if (playback.playing) playback.stop();
+    else if (maqam.scale) playback.start(roundTrip(maqam.scale.playback), tempo);
   };
 
-  const readout = describeLast(data, last, system);
+  // A note played on another tuning no longer says anything about this one.
+  const last = lastPlayed?.tuningId === tuningId ? lastPlayed.play : null;
+  const readout = last ? describePlay(neck, last, system) : null;
   const shown = maqam.scale ? scaleMarkers(maqam.scale.locations, labelMode, system) : [];
   const overlay = highlightAt(shown, playback.location);
   const markers = withMarker(overlay, lastMarker(last, readout, labelMode));
-  return {
-    ...{ data, tuningId, changeTuning, snap, setSnap, guides, setGuides },
-    ...{
-      labelMode,
-      setLabelMode,
-      system,
-      setSystem,
-      play,
-      readout,
-      markers,
-      maqam,
-      playback,
-      tempo,
-      setTempo,
-    },
-  };
+  return { play, readout, markers, maqam, playback, togglePlayback, tempo, setTempo };
 }
