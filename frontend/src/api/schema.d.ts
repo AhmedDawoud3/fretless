@@ -21,14 +21,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tunings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tunings */
+        get: operations["tunings_api_tunings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/neck/{tuning_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Neck */
+        get: operations["neck_api_neck__tuning_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maqamat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Maqamat */
+        get: operations["maqamat_api_maqamat_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maqamat/{maqam_id}/scale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scale */
+        get: operations["scale_api_maqamat__maqam_id__scale_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CourseOut */
+        CourseOut: {
+            /** Course */
+            course: number;
+            /** Open Pitch */
+            open_pitch: number;
+            /** Max Position */
+            max_position: number;
+        };
+        /** DegreeOut */
+        DegreeOut: {
+            /** Degree */
+            degree: number;
+            /** Pitch Class */
+            pitch_class: number;
+            /**
+             * Letter
+             * @enum {string}
+             */
+            letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
+            /** Alter */
+            alter: number;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** Health */
         Health: {
             /** Status */
             status: string;
+        };
+        /** LocationOut */
+        LocationOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+        };
+        /** MaqamOut */
+        MaqamOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Arabic Name */
+            arabic_name: string;
+            /** Intervals */
+            intervals: number[];
+            /** Default Root */
+            default_root: number;
+            /** Description */
+            description: string;
+        };
+        /** NeckLocationOut */
+        NeckLocationOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+        };
+        /** NeckOut */
+        NeckOut: {
+            tuning: components["schemas"]["TuningOut"];
+            /** Courses */
+            courses: components["schemas"]["CourseOut"][];
+            /** Locations */
+            locations: components["schemas"]["NeckLocationOut"][];
+        };
+        /** NoteNameOut */
+        NoteNameOut: {
+            /**
+             * Letter
+             * @enum {string}
+             */
+            letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
+            /** Alter */
+            alter: number;
+            /** Octave */
+            octave: number;
+        };
+        /** PlaybackOut */
+        PlaybackOut: {
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+            location: components["schemas"]["LocationOut"] | null;
+        };
+        /** ScaleLocationOut */
+        ScaleLocationOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+            /** Degree */
+            degree: number;
+        };
+        /** ScaleOut */
+        ScaleOut: {
+            maqam: components["schemas"]["MaqamOut"];
+            /** Root */
+            root: number;
+            /** Degrees */
+            degrees: components["schemas"]["DegreeOut"][];
+            /** Locations */
+            locations: components["schemas"]["ScaleLocationOut"][];
+            /** Playback */
+            playback: components["schemas"]["PlaybackOut"][];
+        };
+        /** TuningOut */
+        TuningOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -55,6 +254,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    tunings_api_tunings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TuningOut"][];
+                };
+            };
+        };
+    };
+    neck_api_neck__tuning_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tuning_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    maqamat_api_maqamat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaqamOut"][];
+                };
+            };
+        };
+    };
+    scale_api_maqamat__maqam_id__scale_get: {
+        parameters: {
+            query?: {
+                root?: number | null;
+                tuning?: string;
+            };
+            header?: never;
+            path: {
+                maqam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScaleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
