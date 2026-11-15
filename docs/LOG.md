@@ -101,3 +101,33 @@ Unit C, explorer page:
   fret label 7 hidden behind the body edge, awkward step at the neck joint,
   strings parallel with no taper.
 - Not built: keyboard play of strings. Not verified: sound (nobody listened).
+
+## 2026-11-15: phase 1, unit D (maqam explorer). Phase 1 feature-complete.
+
+- Maqam picker (free play plus 8 maqamat, Arabic names), root picker with 24
+  names taken from the neck, traditional-root button; scale refetched per
+  maqam, root, and tuning.
+- Overlay: pill markers, root in its own tone. A label that would overlap its
+  neighbour on the same course falls back to the bare name, then to the dot.
+- Playback up then down without repeating the top note, 60 to 240 notes per
+  minute, active marker follows the note; stops on maqam/root/tuning change and
+  on unmount. Stop fades over 30 ms.
+- Explanation panel: description, note names, and gaps in guitar frets from one
+  pure tested function (`stepsToFrets`).
+- Settings (tuning, toggles, label mode, naming, maqam, root, tempo) stored
+  under one `localStorage` key, validated field by field on read. This was the
+  lead's addition, not an owner request.
+- Oud drawing polish: 11 pegs on a tapering pegbox, fret numbers on dark pills,
+  smooth shoulder. String taper skipped: hit-testing assumes fixed y per course.
+- Pluck ring time left unchanged, deviating from the plan: at 44.1 and 48 kHz it
+  already reaches -40 dB at about 1.9 s (65 Hz) and 1.0 s (880 Hz). The earlier
+  short figures came from the 22.05 kHz rate used in unit tests. New tests at
+  44.1 kHz pin the target; they were shown to fail when ring time was cut.
+- Verified in headless Edge through the DevTools protocol (Playwright tools
+  would not connect): Rast on C in C-C, and Hijaz playing in F-F. Lead checked
+  every Rast marker in the screenshot against the scale by hand: all correct.
+- Lead's remaining visual note: the half-flat glyph is hard to tell from a flat
+  at marker size.
+- Not verified: sound and stop fade (nobody listened), 390 px layout with the
+  new controls. If the maqam list fails to load, maqam controls silently do
+  not appear.
