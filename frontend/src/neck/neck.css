@@ -140,6 +140,25 @@
     sans-serif;
   text-anchor: middle;
 }
+.marker-compact rect {
+  fill: #f4c15d;
+  stroke: #1b120d;
+  stroke-width: 1.5;
+}
+.marker-compact.marker-root rect {
+  fill: #e4572e;
+}
+.marker-compact.marker-active rect {
+  fill: #5fd0c3;
+  stroke: #fff;
+}
+.marker-compact text {
+  fill: #1b120d;
+  font-size: 11px;
+}
+.marker-compact.marker-root text {
+  fill: #fff;
+}
 .markers {
   pointer-events: none;
 }

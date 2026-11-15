@@ -4,6 +4,7 @@ import type { Marker } from "../neck/OudNeck";
 import type { Play } from "../neck/play";
 import type { NamingSystem } from "../notation/noteName";
 import { describePlay, type LabelMode, markerLabel, type Readout } from "./readout";
+import { scaleMarkers, withMarker } from "./scaleOverlay";
 import { useMaqam } from "./useMaqam";
 import { type NeckData, useNeckData } from "./useNeckData";
 
@@ -11,16 +12,14 @@ function describeLast(data: NeckData, last: Play | null, system: NamingSystem): 
   return data.status === "ready" && last ? describePlay(data.neck, last, system) : null;
 }
 
-function markersFor(last: Play | null, readout: Readout | null, mode: LabelMode): Marker[] {
-  if (!last || !readout) return [];
-  return [
-    {
-      course: last.course,
-      position: last.position,
-      label: markerLabel(readout, mode),
-      tone: "active",
-    },
-  ];
+function lastMarker(last: Play | null, readout: Readout | null, mode: LabelMode): Marker | null {
+  if (!last || !readout) return null;
+  return {
+    course: last.course,
+    position: last.position,
+    label: markerLabel(readout, mode),
+    tone: "active",
+  };
 }
 
 /** All explorer page state: loaded data, display options, and the last played note. */
@@ -43,7 +42,8 @@ export function useExplorer() {
   };
 
   const readout = describeLast(data, last, system);
-  const markers = markersFor(last, readout, labelMode);
+  const overlay = maqam.scale ? scaleMarkers(maqam.scale.locations, labelMode, system) : [];
+  const markers = withMarker(overlay, lastMarker(last, readout, labelMode));
   return {
     ...{ data, tuningId, changeTuning, snap, setSnap, guides, setGuides },
     ...{ labelMode, setLabelMode, system, setSystem, play, readout, markers, maqam },
