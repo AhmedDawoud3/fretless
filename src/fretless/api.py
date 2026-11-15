@@ -120,16 +120,10 @@ def _maqam_out(maqam: Maqam) -> MaqamOut:
     )
 
 
-def _find_tuning(tuning_id: str) -> Tuning:
-    if tuning_id not in TUNINGS:
-        raise HTTPException(status_code=404, detail=f"unknown tuning: {tuning_id}")
-    return TUNINGS[tuning_id]
-
-
-def _find_maqam(maqam_id: str) -> Maqam:
-    if maqam_id not in MAQAMAT:
-        raise HTTPException(status_code=404, detail=f"unknown maqam: {maqam_id}")
-    return MAQAMAT[maqam_id]
+def _find[T](table: dict[str, T], key: str, kind: str) -> T:
+    if key not in table:
+        raise HTTPException(status_code=404, detail=f"unknown {kind}: {key}")
+    return table[key]
 
 
 def _location_out(location: Location) -> LocationOut:
@@ -206,7 +200,7 @@ def tunings() -> list[TuningOut]:
 
 @app.get("/api/neck/{tuning_id}")
 def neck(tuning_id: str) -> NeckOut:
-    return _neck_out(_find_tuning(tuning_id))
+    return _neck_out(_find(TUNINGS, tuning_id, "tuning"))
 
 
 @app.get("/api/maqamat")
@@ -220,5 +214,7 @@ def scale(
     root: Annotated[int | None, Query(ge=0, le=23)] = None,
     tuning: str = DEFAULT_TUNING,
 ) -> ScaleOut:
-    maqam = _find_maqam(maqam_id)
-    return _scale_out(maqam, maqam.default_root if root is None else root, _find_tuning(tuning))
+    maqam = _find(MAQAMAT, maqam_id, "maqam")
+    return _scale_out(
+        maqam, maqam.default_root if root is None else root, _find(TUNINGS, tuning, "tuning")
+    )
