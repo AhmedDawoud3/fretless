@@ -40,7 +40,14 @@ function App() {
             system={x.system}
             onSystem={x.setSystem}
           />
-          <MaqamControls maqam={x.maqam} neck={x.data.neck} system={x.system} />
+          <MaqamControls
+            maqam={x.maqam}
+            neck={x.data.neck}
+            system={x.system}
+            playback={x.playback}
+            tempo={x.tempo}
+            onTempo={x.setTempo}
+          />
           <ReadoutLine readout={x.readout} />
           <div className="neck-scroll">
             <OudNeck
