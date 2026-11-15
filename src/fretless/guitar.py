@@ -15,7 +15,7 @@ class GuitarTuning:
 def _pitch(note: str) -> int:
     """Parse "E2", "Eb2", "F#3" into a pitch (a flat or sharp is one semitone, 2 steps)."""
     letter, octave = next(le for le in LETTERS if le == note[0]), int(note[-1])
-    alter = {"b": -2, "#": 2}.get(note[1], 0) if len(note) == 3 else 0
+    alter = {"b": -2, "#": 2}[note[1]] if len(note) == 3 else 0
     return name_to_pitch(NoteName(letter, alter, octave))
 
 

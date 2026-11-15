@@ -37,3 +37,7 @@ def test_one_finger_can_bar_adjacent_courses_at_the_same_position() -> None:
 def test_same_position_on_separated_courses_is_not_a_bar() -> None:
     assert not is_fingerable(stopped((1, 4), (2, 6), (3, 4), (4, 6)))
     assert not is_fingerable(stopped((1, 4), (2, 6), (3, 8), (4, 4)))
+
+
+def test_a_quarter_tone_position_counts_as_stopped() -> None:
+    assert stopped_span(stopped((1, 1), (2, 5))) == 4

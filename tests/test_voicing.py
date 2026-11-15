@@ -5,7 +5,7 @@ from fretless.chord import QUALITIES, Chord, ChordQuality, chord_pitch_classes, 
 from fretless.fingering import is_fingerable
 from fretless.neck import Location, max_position, pitch_at
 from fretless.tuning import TUNINGS, Tuning
-from fretless.voicing import Voicing, bass_is_root, open_courses, voicings
+from fretless.voicing import Voicing, bass_is_root, open_courses, score, voicings
 
 CC = TUNINGS["cc"]
 FF = TUNINGS["ff"]
@@ -90,3 +90,40 @@ def test_results_are_deterministic_and_limited() -> None:
 
     assert voicings(CC, chord, 5) == voicings(CC, chord, 5)
     assert len(voicings(CC, chord, 5)) == 5
+
+
+def everything(chord: Chord) -> tuple[Voicing, ...]:
+    return voicings(CC, chord, limit=100_000)
+
+
+def test_two_notes_with_root_and_third_are_enough_for_a_triad() -> None:
+    # C3 = course 4 position 6, E3 = course 3 position 4
+    assert Voicing((Location(4, 6), Location(3, 4))) in everything(Chord(0, QUALITIES["maj"]))
+
+
+def test_open_courses_need_no_finger() -> None:
+    # C3, E3, C4 stopped at 6, 4, 10 (three fingers) plus the open C4 course.
+    shape = Voicing((Location(4, 6), Location(3, 4), Location(2, 10), Location(1, 0)))
+
+    assert shape in everything(Chord(0, QUALITIES["maj"]))
+
+
+def test_position_14_is_the_last_one_offered() -> None:
+    top = max(loc.position for v in everything(Chord(0, QUALITIES["maj"])) for loc in v.locations)
+
+    assert top == 14
+
+
+def test_seventh_is_required_only_from_three_notes() -> None:
+    g7 = Chord(14, QUALITIES["7"])
+    # CC: G2 = course 5 position 4, B2 = course 4 position 4, D3 = course 3 open.
+    assert Voicing((Location(5, 4), Location(4, 4))) in everything(g7)
+    assert Voicing((Location(5, 4), Location(4, 4), Location(3, 0))) not in everything(g7)
+
+
+def test_score_prefers_the_smaller_span() -> None:
+    wide = Voicing((Location(4, 6), Location(3, 2), Location(2, 0)))
+    tight = Voicing((Location(4, 6), Location(3, 6), Location(2, 0)))
+    chord = Chord(0, QUALITIES["maj"])
+
+    assert score(CC, chord, tight) < score(CC, chord, wide)
