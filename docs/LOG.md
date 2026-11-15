@@ -131,3 +131,29 @@ Unit C, explorer page:
 - Not verified: sound and stop fade (nobody listened), 390 px layout with the
   new controls. If the maqam list fails to load, maqam controls silently do
   not appear.
+
+## 2026-11-15: phase 2, unit E (chords backend)
+
+- Chord model (16 qualities, spelling, essential roles, arpeggio), guitar
+  tunings and shapes with capo, chord identification from a shape, oud
+  voicings, and four endpoints: `/api/chords/qualities`,
+  `/api/chords/{root}/{quality_id}`, `/api/guitar/tunings`,
+  `POST /api/guitar/identify`. Existing endpoint shapes unchanged.
+- Letter-stepping speller moved from `maqam` to `pitch.spell_above`, shared by
+  scales and chords. Maqam tests unchanged.
+- API package gained `names`, `playback` (scale playback and arpeggio share one
+  mapping), and `lookup`. `fingering.py` split out of `voicing.py`.
+- Voicing rules: 2 to 4 notes on contiguous courses, root and colour tone
+  required, seventh required from 3 notes up, stopped notes within 8 steps,
+  same-position notes on adjacent courses count as one finger. Score is
+  hand-tuned and marked with a `ponytail:` comment.
+- `/identify` takes strings and frets string 1 (highest) first, the reverse of
+  a chord chart read left to right.
+- Mutation testing showed the property tests proved returned voicings valid but
+  not that valid ones are returned; completeness tests added. Remaining
+  survivors are equivalent mutants.
+- Lead checked the top voicings for C, Am, G7, D (C-C) and C (F-F) by hand
+  against the tunings: notes correct, shapes within a 3-fret reach.
+- Known weakness: top results are often near-duplicates (one note moved an
+  octave); no diversity rule yet. Barre model is stricter than a real hand.
+  No player has tried the voicings on an instrument.
