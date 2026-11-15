@@ -28,3 +28,7 @@ What was done and why. Newest entry at the bottom.
   suspected path-matching problem in crapper on Windows). CRAP scores are
   therefore pessimistic until that is fixed. Both functions score 2.0.
 - dryer: no duplicates. mutator: no mutation sites yet.
+- Fix: `just check` failed once `frontend/coverage/` and `frontend/openapi.json`
+  existed, because Biome linted generated files. Biome now reads the root
+  `.gitignore`, so "generated, do not check" is decided in one place.
+  Proved by running `just check` with both generated files present: exit 0.
