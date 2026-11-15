@@ -157,10 +157,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tab/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert Tab */
+        post: operations["convert_tab_api_tab_convert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AlterationOut */
+        AlterationOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "transposed" | "octave_shifted" | "chord_reduced" | "unsupported_system";
+            /** System */
+            system: number | null;
+            /** Column */
+            column: number | null;
+            /** Message */
+            message: string;
+        };
         /** ChordInfoOut */
         ChordInfoOut: {
             /** Root */
@@ -197,6 +228,32 @@ export interface components {
             /** Role */
             role: string;
         };
+        /** ConvertIn */
+        ConvertIn: {
+            /** Text */
+            text: string;
+            guitar: components["schemas"]["GuitarIn"];
+            /** Oud Tuning */
+            oud_tuning: string;
+            /**
+             * Mode
+             * @default frets
+             * @enum {string}
+             */
+            mode: "frets" | "names" | "both";
+        };
+        /** ConvertOut */
+        ConvertOut: {
+            /** Text */
+            text: string;
+            /** Systems */
+            systems: components["schemas"]["PlacedSystemOut"][];
+            /** Alterations */
+            alterations: components["schemas"]["AlterationOut"][];
+            /** Playback */
+            playback: components["schemas"]["PlaybackEventOut"][];
+            summary: components["schemas"]["SummaryOut"];
+        };
         /** CourseOut */
         CourseOut: {
             /** Course */
@@ -219,6 +276,19 @@ export interface components {
             letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
             /** Alter */
             alter: number;
+        };
+        /**
+         * GuitarIn
+         * @description The guitar the tab was written for: `strings` run from string 1 (highest).
+         */
+        GuitarIn: {
+            /** Strings */
+            strings: number[];
+            /**
+             * Capo
+             * @default 0
+             */
+            capo: number;
         };
         /** GuitarNoteOut */
         GuitarNoteOut: {
@@ -344,6 +414,57 @@ export interface components {
             /** Octave */
             octave: number;
         };
+        /** PlacedColumnOut */
+        PlacedColumnOut: {
+            /** Index */
+            index: number;
+            /** Notes */
+            notes: components["schemas"]["PlacedNoteOut"][];
+        };
+        /** PlacedNoteOut */
+        PlacedNoteOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+            /** Pitch */
+            pitch: number;
+            /** Name */
+            name: string;
+        };
+        /** PlacedSystemOut */
+        PlacedSystemOut: {
+            /** Index */
+            index: number;
+            /** Width */
+            width: number;
+            /** Bars */
+            bars: number[];
+            /** Labels */
+            labels: string[];
+            /** Columns */
+            columns: components["schemas"]["PlacedColumnOut"][];
+        };
+        /** PlaybackEventOut */
+        PlaybackEventOut: {
+            /** System */
+            system: number;
+            /** Column */
+            column: number;
+            /** Tick */
+            tick: number;
+            /** Notes */
+            notes: components["schemas"]["PlaybackNoteOut"][];
+        };
+        /** PlaybackNoteOut */
+        PlaybackNoteOut: {
+            /** Pitch */
+            pitch: number;
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+        };
         /** PlaybackOut */
         PlaybackOut: {
             /** Pitch */
@@ -414,6 +535,21 @@ export interface components {
             letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
             /** Alter */
             alter: number;
+        };
+        /** SummaryOut */
+        SummaryOut: {
+            /** Notes In */
+            notes_in: number;
+            /** Notes Out */
+            notes_out: number;
+            /** Transposed Steps */
+            transposed_steps: number;
+            /** Octave Shifted */
+            octave_shifted: number;
+            /** Chords Reduced */
+            chords_reduced: number;
+            /** Unsupported Systems */
+            unsupported_systems: number;
         };
         /** TuningOut */
         TuningOut: {
@@ -674,6 +810,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IdentifyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_tab_api_tab_convert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConvertIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvertOut"];
                 };
             };
             /** @description Validation Error */
