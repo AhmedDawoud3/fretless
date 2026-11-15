@@ -1,0 +1,40 @@
+[project]
+name = "fretless"
+version = "0.1.0"
+description = "Interactive oud learning tools for guitarists: fingerboard, maqam, chords, tab conversion."
+license = "MIT"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.163.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "hypothesis>=6.170.15",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.5",
+    "ty>=0.0.104",
+]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["frontend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "RUF", "PT", "C4", "ANN"]
+
+[tool.ty.rules]
+# Strict: every ty diagnostic that defaults to a warning fails the check.
+possibly-unresolved-reference = "error"
+possibly-missing-attribute = "error"
+possibly-missing-import = "error"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
