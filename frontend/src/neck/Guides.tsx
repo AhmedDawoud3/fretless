@@ -1,8 +1,22 @@
 import type { Course } from "../api/client";
 import { courseY, positionToX } from "./geometry";
 import { NECK_LAYOUT } from "./layout";
+import { pillWidth } from "./pill";
 
 const TICK_REACH = NECK_LAYOUT.courseSpacing * 0.45;
+
+/** Fret number on its own dark pill, so it reads on wood, rim or soundboard alike. */
+function RulerLabel({ x, y, text }: { x: number; y: number; text: string }) {
+  const width = pillWidth(text, true);
+  return (
+    <g className="ruler">
+      <rect x={x - width / 2} y={y - 9} width={width} height={18} rx={9} />
+      <text x={x} y={y + 4}>
+        {text}
+      </text>
+    </g>
+  );
+}
 
 type GuidesProps = { courses: readonly Course[]; rulerLabel?: (position: number) => string };
 
@@ -31,9 +45,11 @@ export function Guides({ courses, rulerLabel }: GuidesProps) {
               y2={courseY(NECK_LAYOUT, Math.max(...reaching)) + TICK_REACH}
             />
             {even && rulerLabel && (
-              <text className="ruler" x={x} y={courseY(NECK_LAYOUT, top) - TICK_REACH - 8}>
-                {rulerLabel(p)}
-              </text>
+              <RulerLabel
+                x={x}
+                y={courseY(NECK_LAYOUT, top) - TICK_REACH - 14}
+                text={rulerLabel(p)}
+              />
             )}
           </g>
         );

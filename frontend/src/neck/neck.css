@@ -33,6 +33,15 @@
   stroke-width: 36;
   stroke-linecap: round;
 }
+.pegbox-bend {
+  fill: none;
+  stroke: var(--wood-dark);
+  stroke-width: 3;
+  stroke-opacity: 0.8;
+}
+.peg-hole {
+  fill: var(--ebony);
+}
 .peg rect {
   fill: var(--wood-mid);
   stroke: var(--rib-light);
@@ -105,11 +114,16 @@
   stroke-opacity: 0.55;
   stroke-width: 1.6;
 }
-.ruler {
+.ruler rect {
+  fill: var(--ebony);
+  fill-opacity: 0.92;
+  stroke: var(--rib-light);
+  stroke-opacity: 0.7;
+}
+.ruler text {
   fill: #fff;
-  fill-opacity: 0.6;
   font:
-    12px system-ui,
+    600 11px system-ui,
     sans-serif;
   text-anchor: middle;
 }

@@ -46,3 +46,11 @@ test("pressing past a course's range plays nothing", () => {
   pressAt(20, 2);
   expect(onPlay).not.toHaveBeenCalled();
 });
+
+test("the pegbox has a peg for each of the 11 strings: six on one side, five on the other", () => {
+  const { container } = render(<OudNeck neck={neck} showGuides snap />);
+  const pegs = [...container.querySelectorAll(".peg")];
+  expect(pegs).toHaveLength(11);
+  expect(container.querySelectorAll(".peg-top")).toHaveLength(6);
+  expect(container.querySelectorAll(".peg-bottom")).toHaveLength(5);
+});
