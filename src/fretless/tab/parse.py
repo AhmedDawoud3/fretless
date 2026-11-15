@@ -9,6 +9,8 @@ from fretless.tab.model import Block, TabDocument, TabSystem, TextBlock
 
 _MIN_LINES = 4
 _MAX_LINES = 7
+_STACK_LINES = 6  # a longer run of whole 6-line systems pasted with no blank line between
+_MAX_STACKED = 60
 _NEWLINE = re.compile(r"\r\n|\r|\n")
 
 
@@ -28,10 +30,18 @@ def parse_tab(text: str) -> TabDocument:
 
 
 def _blocks(lines: list[str], parsed: list[TabLine | None], is_tab: bool) -> list[Block]:
-    """A run of tab-looking lines is a system when it has 4 to 7 lines, else text."""
+    """A run of tab-looking lines is a system when it has 4 to 7 lines, else text.
+
+    A run of 12 to 60 lines that divides into 6-line systems is that many systems.
+    """
     tab_lines = [p for p in parsed if p is not None]
     if is_tab and _MIN_LINES <= len(tab_lines) <= _MAX_LINES:
         return [_system(tab_lines)]
+    if is_tab and len(tab_lines) <= _MAX_STACKED and len(tab_lines) % _STACK_LINES == 0:
+        return [
+            _system(tab_lines[at : at + _STACK_LINES])
+            for at in range(0, len(tab_lines), _STACK_LINES)
+        ]
     return [TextBlock("\n".join(lines))]
 
 

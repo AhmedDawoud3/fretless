@@ -117,3 +117,23 @@ def test_rejected_run_after_a_system_joins_the_text_around_it() -> None:
         parse_tab(system).blocks[0],
         TextBlock(f"words\n{short}\nmore"),
     )
+
+
+def test_twelve_lines_with_no_blank_are_two_six_line_systems() -> None:
+    one = "\n".join(["e|--0--|"] * 5 + ["E|--3--|"])
+    other = "\n".join(["e|--1--|"] * 6)
+    blocks = parse_tab(f"{one}\n{other}").blocks
+    assert blocks == (parse_tab(one).blocks[0], parse_tab(other).blocks[0])
+
+
+def test_runs_that_are_multiples_of_six_split_up_to_sixty_lines() -> None:
+    row = "e|--0--|"
+    assert len(parse_tab("\n".join([row] * 60)).blocks) == 10
+    assert parse_tab("\n".join([row] * 66)).blocks == (TextBlock("\n".join([row] * 66)),)
+    assert len(parse_tab("\n".join([row] * 18)).blocks) == 3
+
+
+def test_nine_and_ten_line_runs_stay_text() -> None:
+    for count in (9, 10, 14):
+        text = "\n".join(["e|--0--|"] * count)
+        assert parse_tab(text).blocks == (TextBlock(text),)
