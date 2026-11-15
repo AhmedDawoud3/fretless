@@ -157,3 +157,33 @@ Unit C, explorer page:
 - Known weakness: top results are often near-duplicates (one note moved an
   octave); no diversity rule yet. Barre model is stricter than a real hand.
   No player has tried the voicings on an instrument.
+
+## 2026-11-15: phase 2, unit F (chords page). Phase 2 feature-complete.
+
+- Chords page added as a second tab (`role="tablist"`, no router); chosen page
+  saved in settings.
+- Shared oud settings owned by `useSharedSettings`; `saveSettings` takes a patch
+  so pages do not overwrite each other's keys.
+- Name picker (12 roots spelled from the oud neck, quality select), clickable
+  guitar neck reusing the oud fret geometry, tuning presets, per-string custom
+  tuning, capo, identify call, ranked matches as buttons.
+- Oud result: voicing cards (first selected automatically), all-chord-tones
+  view, arpeggio, short explanation.
+- Shared with the maqam page rather than copied: `usePlayback` (now generic),
+  `labelledMarkers` (collision-aware labels), `rulerLabelFor`, `useRequest`.
+- `playStrum` added to audio (35 ms between notes), because `playSteps`'s
+  `when` is an absolute AudioContext time the page cannot read.
+- Failed list loads and identify calls now show `role="alert"`.
+- Deviations: capo drawn at the nut with frets counted from it; guitar fret
+  cells are SVG `role="button"` with a justified Biome ignore; chord and shape
+  selection are not saved between visits.
+- Process slip: component tests were written after the components, so the
+  "see it fail" step was skipped for them. Pure logic was test first.
+- Verified in headless Edge: C major entered as x32010 names C major and shows
+  the first voicing; all-chord-tones view; both pages at 390 px with no
+  overflow. Lead checked the screenshot: guitar shape, sounding notes, and oud
+  markers all correct.
+- Known weaknesses: 72 tab stops on the guitar neck; identify has no debounce;
+  large empty band around the oud at 390 px; voicing list still shows
+  near-duplicates. Custom tuning, capo, and arpeggio highlight were exercised
+  by tests only, not in the browser. Sound unheard.
