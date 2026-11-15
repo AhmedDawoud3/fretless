@@ -9,6 +9,8 @@ from fretless.api.schemas import NoteNameOut
 
 StringPitch = Annotated[int, Field(ge=24, le=144, multiple_of=2)]
 Fret = Annotated[int, Field(ge=0, le=24)]
+Strings = Annotated[list[StringPitch], Field(min_length=6, max_length=6)]
+Capo = Annotated[int, Field(ge=0, le=12)]
 
 
 class GuitarStringOut(BaseModel):
@@ -26,8 +28,8 @@ class GuitarTuningOut(BaseModel):
 class IdentifyIn(BaseModel):
     """A shape: `strings` and `frets` both list string 1 (highest) first; null fret = muted."""
 
-    strings: Annotated[list[StringPitch], Field(min_length=6, max_length=6)]
-    capo: Annotated[int, Field(ge=0, le=12)] = 0
+    strings: Strings
+    capo: Capo = 0
     frets: Annotated[list[Fret | None], Field(min_length=6, max_length=6)]
 
 
