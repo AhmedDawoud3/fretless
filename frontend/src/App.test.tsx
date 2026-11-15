@@ -6,6 +6,7 @@ vi.mock("./audio", () => ({ playSteps: vi.fn() }));
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 

@@ -77,8 +77,9 @@ function respond(url: string): unknown {
   return [neck.tuning, { id: "ff", label: "F-F" }];
 }
 
-/** Stubs fetch like the backend: tunings, neck, maqamat, and scales. Returns the mock. */
+/** Stubs fetch like the backend (tunings, neck, maqamat, scales) and starts with empty storage. */
 export function stubApi() {
+  localStorage.clear();
   const fetchMock = vi.fn(async (url: string) => ({ ok: true, json: async () => respond(url) }));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;

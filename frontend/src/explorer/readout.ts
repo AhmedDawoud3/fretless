@@ -3,7 +3,8 @@ import type { Play } from "../neck/play";
 import { formatNoteName, type NamingSystem } from "../notation/noteName";
 import { formatVirtualFret } from "../notation/virtualFret";
 
-export type LabelMode = "frets" | "names" | "both" | "none";
+export const LABEL_MODE_IDS = ["frets", "names", "both", "none"] as const;
+export type LabelMode = (typeof LABEL_MODE_IDS)[number];
 export type Readout = { course: number; fret: string; name: string; cents: number };
 
 const CENTS_PER_STEP = 50;

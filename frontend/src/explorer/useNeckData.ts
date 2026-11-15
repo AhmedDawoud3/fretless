@@ -12,10 +12,10 @@ function toNeckData(failed: boolean, tunings: Tuning[] | null, neck: NeckOut | n
   return { status: "ready", tunings, neck };
 }
 
-/** Loads the tuning list, then the neck for the chosen tuning (the first one by default). */
-export function useNeckData() {
+/** Loads the tuning list, then the neck for the chosen tuning (the first one unless a known one is given). */
+export function useNeckData(initialTuningId: string | null = null) {
   const [tunings, setTunings] = useState<Tuning[] | null>(null);
-  const [tuningId, setTuningId] = useState<string | null>(null);
+  const [tuningId, setTuningId] = useState<string | null>(initialTuningId);
   const [neck, setNeck] = useState<NeckOut | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -23,7 +23,9 @@ export function useNeckData() {
     fetchTunings()
       .then((list) => {
         setTunings(list);
-        setTuningId((current) => current ?? list[0]?.id ?? null);
+        setTuningId((current) =>
+          list.some((t) => t.id === current) ? current : (list[0]?.id ?? null),
+        );
       })
       .catch(() => setFailed(true));
   }, []);

@@ -1,5 +1,4 @@
-export const TEMPO_MIN = 60;
-export const TEMPO_MAX = 240;
+import { TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
 type PlayScaleProps = {
   playing: boolean;

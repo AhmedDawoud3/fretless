@@ -1,6 +1,7 @@
 import type { NoteName } from "../api/client";
 
-export type NamingSystem = "letters" | "solfege";
+export const NAMING_SYSTEMS = ["letters", "solfege"] as const;
+export type NamingSystem = (typeof NAMING_SYSTEMS)[number];
 
 const SOLFEGE: Record<NoteName["letter"], string> = {
   C: "Do",
