@@ -89,10 +89,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chords/qualities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Qualities */
+        get: operations["qualities_api_chords_qualities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chords/{root}/{quality_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chord */
+        get: operations["chord_api_chords__root___quality_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guitar/tunings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guitar Tunings */
+        get: operations["guitar_tunings_api_guitar_tunings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guitar/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Identify Shape */
+        post: operations["identify_shape_api_guitar_identify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChordInfoOut */
+        ChordInfoOut: {
+            /** Root */
+            root: number;
+            /** Quality Id */
+            quality_id: string;
+            /** Symbol */
+            symbol: string;
+            name: components["schemas"]["SpellingOut"];
+            /** Tones */
+            tones: components["schemas"]["ChordToneOut"][];
+        };
+        /** ChordOut */
+        ChordOut: {
+            chord: components["schemas"]["ChordInfoOut"];
+            /** Locations */
+            locations: components["schemas"]["RoleLocationOut"][];
+            /** Voicings */
+            voicings: components["schemas"]["VoicingOut"][];
+            /** Arpeggio */
+            arpeggio: components["schemas"]["PlaybackOut"][];
+        };
+        /** ChordToneOut */
+        ChordToneOut: {
+            /** Pitch Class */
+            pitch_class: number;
+            /**
+             * Letter
+             * @enum {string}
+             */
+            letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
+            /** Alter */
+            alter: number;
+            /** Role */
+            role: string;
+        };
         /** CourseOut */
         CourseOut: {
             /** Course */
@@ -116,6 +220,33 @@ export interface components {
             /** Alter */
             alter: number;
         };
+        /** GuitarNoteOut */
+        GuitarNoteOut: {
+            /** String */
+            string: number;
+            /** Fret */
+            fret: number;
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+        };
+        /** GuitarStringOut */
+        GuitarStringOut: {
+            /** String */
+            string: number;
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+        };
+        /** GuitarTuningOut */
+        GuitarTuningOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Strings */
+            strings: components["schemas"]["GuitarStringOut"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -125,6 +256,28 @@ export interface components {
         Health: {
             /** Status */
             status: string;
+        };
+        /**
+         * IdentifyIn
+         * @description A shape: `strings` and `frets` both list string 1 (highest) first; null fret = muted.
+         */
+        IdentifyIn: {
+            /** Strings */
+            strings: number[];
+            /**
+             * Capo
+             * @default 0
+             */
+            capo: number;
+            /** Frets */
+            frets: (number | null)[];
+        };
+        /** IdentifyOut */
+        IdentifyOut: {
+            /** Notes */
+            notes: components["schemas"]["GuitarNoteOut"][];
+            /** Matches */
+            matches: components["schemas"]["MatchOut"][];
         };
         /** LocationOut */
         LocationOut: {
@@ -147,6 +300,19 @@ export interface components {
             default_root: number;
             /** Description */
             description: string;
+        };
+        /** MatchOut */
+        MatchOut: {
+            /** Root */
+            root: number;
+            /** Quality Id */
+            quality_id: string;
+            /** Symbol */
+            symbol: string;
+            name: components["schemas"]["SpellingOut"];
+            bass: components["schemas"]["SpellingOut"];
+            /** Missing */
+            missing: string[];
         };
         /** NeckLocationOut */
         NeckLocationOut: {
@@ -185,6 +351,36 @@ export interface components {
             name: components["schemas"]["NoteNameOut"];
             location: components["schemas"]["LocationOut"] | null;
         };
+        /** QualityOut */
+        QualityOut: {
+            /** Id */
+            id: string;
+            /** Symbol */
+            symbol: string;
+            /** Name */
+            name: string;
+            /** Tones */
+            tones: components["schemas"]["QualityToneOut"][];
+        };
+        /** QualityToneOut */
+        QualityToneOut: {
+            /** Semitones */
+            semitones: number;
+            /** Role */
+            role: string;
+        };
+        /** RoleLocationOut */
+        RoleLocationOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+            /** Pitch */
+            pitch: number;
+            name: components["schemas"]["NoteNameOut"];
+            /** Role */
+            role: string;
+        };
         /** ScaleLocationOut */
         ScaleLocationOut: {
             /** Course */
@@ -209,6 +405,16 @@ export interface components {
             /** Playback */
             playback: components["schemas"]["PlaybackOut"][];
         };
+        /** SpellingOut */
+        SpellingOut: {
+            /**
+             * Letter
+             * @enum {string}
+             */
+            letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
+            /** Alter */
+            alter: number;
+        };
         /** TuningOut */
         TuningOut: {
             /** Id */
@@ -228,6 +434,17 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VoicingOut */
+        VoicingOut: {
+            /** Locations */
+            locations: components["schemas"]["RoleLocationOut"][];
+            /** Bass Is Root */
+            bass_is_root: boolean;
+            /** Span */
+            span: number;
+            /** Open Courses */
+            open_courses: number;
         };
     };
     responses: never;
@@ -350,6 +567,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScaleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    qualities_api_chords_qualities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualityOut"][];
+                };
+            };
+        };
+    };
+    chord_api_chords__root___quality_id__get: {
+        parameters: {
+            query?: {
+                tuning?: string;
+            };
+            header?: never;
+            path: {
+                root: number;
+                quality_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChordOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guitar_tunings_api_guitar_tunings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuitarTuningOut"][];
+                };
+            };
+        };
+    };
+    identify_shape_api_guitar_identify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentifyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentifyOut"];
                 };
             };
             /** @description Validation Error */
