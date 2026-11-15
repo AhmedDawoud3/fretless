@@ -43,3 +43,11 @@ Terms as used in this codebase. Code names follow these.
 | Bar | A `\|` in tab content, kept as its character offset. Not a pitch. |
 | Cell | The text printed for one note when rendering tab, such as `3`, `12`, `1.5` or a note name. Wider cells push later text right in every line so columns stay aligned. |
 | Text block | Lines of pasted text that are not tab (titles, chord names, lyrics, blank lines), kept verbatim and in order beside the systems. |
+| Event | The notes of one tab column sounding together, as pitches. The unit that is placed on the oud: one note, or a chord. |
+| Alteration | A change conversion made that the user should know about, with a kind, the system and column it concerns (when it concerns one) and a plain sentence. Kinds: `transposed` (whole piece moved), `octave_shifted` (one note moved), `chord_reduced` (notes left out of a chord), `unsupported_system` (a system that is not 6 lines, left as it was). |
+| Transposition (whole-piece) | One octave shift (-1, 0, +1 or +2 octaves) applied to every note of the piece, chosen to leave the fewest notes outside the oud range; ties prefer no shift, then the smaller shift. Keeps the melody's contour. Reported once. |
+| Octave shift (per note) | Moving a single note by whole octaves, either into the oud range after the whole-piece shift, or (an inner chord note only) to make a chord playable. Reported per note. |
+| Chord reduction | Leaving notes out of a chord that cannot be played whole: duplicate pitch classes first, then inner notes one at a time. The top note (melody) is always kept and the bass while possible; the last resort is the top note alone. |
+| Hand position | The lowest stopped position of an event. An all-open event has none and leaves the hand where it was. Moving it between events costs; the fingering path minimises that cost over the whole piece. |
+| Tick | A character offset counted across all converted systems (column index plus the widths of earlier systems plus a fixed gap at each system break). Playing events at one tempo by tick keeps the spacing written in the tab. |
+| ASCII accidental | How accidentals are written in tab text so it survives any editor: `#` sharp, `b` flat, `+` half-sharp, `d` half-flat (`C#`, `Bb`, `C+`, `Dd`). |
