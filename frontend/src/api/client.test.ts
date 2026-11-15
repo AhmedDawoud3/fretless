@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { fetchNeck, fetchTunings } from "./client";
+import { fetchMaqamat, fetchNeck, fetchScale, fetchTunings } from "./client";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,4 +23,16 @@ test("fetchNeck asks for the given tuning", async () => {
 test("a non-OK response throws", async () => {
   stubFetch({ ok: false, status: 500 });
   await expect(fetchTunings()).rejects.toThrow("500");
+});
+
+test("fetchMaqamat returns the parsed list", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => [{ id: "rast" }] });
+  expect(await fetchMaqamat()).toEqual([{ id: "rast" }]);
+  expect(fetchMock).toHaveBeenCalledWith("/api/maqamat");
+});
+
+test("fetchScale asks for the maqam, root and tuning", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => ({}) });
+  await fetchScale("rast", 7, "ff");
+  expect(fetchMock).toHaveBeenCalledWith("/api/maqamat/rast/scale?root=7&tuning=ff");
 });
