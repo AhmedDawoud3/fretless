@@ -28,7 +28,7 @@ function excitation(length: number, random: () => number): Float32Array {
  * and make a slow thump. A one-pole high-pass removes it. The result is clamped
  * because the filter can overshoot the input peak slightly.
  */
-function blockDc(input: Float32Array): Float32Array {
+function blockDc(input: Float32Array): Float32Array<ArrayBuffer> {
   const out = new Float32Array(input.length);
   let previousIn = 0;
   let previousOut = 0;
@@ -79,7 +79,7 @@ export function renderPluck(
   sampleRate: number,
   seconds: number,
   random: () => number,
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const length = Math.round(sampleRate * seconds);
   const ratio = 2 ** (DETUNE_CENTS / 1200);
   const sharp = renderString(frequency * ratio, sampleRate, length, random);
