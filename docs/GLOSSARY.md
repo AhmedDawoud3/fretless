@@ -37,3 +37,9 @@ Terms as used in this codebase. Code names follow these.
 | Span | Steps between the lowest and highest stopped position of a voicing. Open courses do not count. |
 | Tab | Tablature: one text line per string or course, numbers for positions. |
 | Risha | The oud plectrum. |
+| System (tab) | A run of 4 to 7 consecutive tab lines read as one staff: one line per string, with its labels, bar positions and columns. |
+| Line (tab) | One row of a system, numbered 1 (top, highest string or course) to the last (lowest). Starts with an optional label and a bar. |
+| Column (tab) | The notes that start at the same character index of a system: one note for a single pitch, several for a chord. A two-digit fret counts at its first digit. |
+| Bar | A `\|` in tab content, kept as its character offset. Not a pitch. |
+| Cell | The text printed for one note when rendering tab, such as `3`, `12`, `1.5` or a note name. Wider cells push later text right in every line so columns stay aligned. |
+| Text block | Lines of pasted text that are not tab (titles, chord names, lyrics, blank lines), kept verbatim and in order beside the systems. |
