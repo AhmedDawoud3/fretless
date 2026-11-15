@@ -94,3 +94,13 @@ def essential_roles(quality: ChordQuality) -> frozenset[str]:
     roles = {t.role for t in quality.tones}
     colour = next(r for r in ("third", "second", "fourth", "fifth") if r in roles)
     return frozenset({"root", colour} | (roles & {"seventh"}))
+
+
+def arpeggio_pitches(chord: Chord, lowest_pitch: int) -> tuple[int, ...]:
+    """Chord tones ascending from the lowest root at or above `lowest_pitch`, then the root again.
+
+    The last pitch is the root an octave above the first.
+    """
+    start = lowest_pitch + (chord.root - lowest_pitch) % STEPS_PER_OCTAVE
+    above = sorted((pc - chord.root) % STEPS_PER_OCTAVE for pc in chord_pitch_classes(chord))
+    return (*(start + step for step in above), start + STEPS_PER_OCTAVE)

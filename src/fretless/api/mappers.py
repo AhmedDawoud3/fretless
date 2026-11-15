@@ -1,13 +1,13 @@
 """Pure functions turning domain objects into response schemas."""
 
+from fretless.api.names import name_out
+from fretless.api.playback import playback_out
 from fretless.api.schemas import (
     CourseOut,
     DegreeOut,
-    LocationOut,
     MaqamOut,
     NeckLocationOut,
     NeckOut,
-    NoteNameOut,
     PlaybackOut,
     ScaleLocationOut,
     ScaleOut,
@@ -15,21 +15,15 @@ from fretless.api.schemas import (
 )
 from fretless.maqam import Maqam, ascending_octave, scale_pitch_classes, spell_scale
 from fretless.neck import (
-    Location,
     all_locations,
     locations_of,
-    lowest_location,
     max_position,
     pitch_at,
 )
-from fretless.pitch import Letter, NoteName, default_name, spell
+from fretless.pitch import Letter, default_name, spell
 from fretless.tuning import Tuning
 
 type Spelling = tuple[tuple[Letter, int], ...]
-
-
-def name_out(name: NoteName) -> NoteNameOut:
-    return NoteNameOut(letter=name.letter, alter=name.alter, octave=name.octave)
 
 
 def tuning_out(tuning: Tuning) -> TuningOut:
@@ -45,10 +39,6 @@ def maqam_out(maqam: Maqam) -> MaqamOut:
         default_root=maqam.default_root,
         description=maqam.description,
     )
-
-
-def _location_out(location: Location) -> LocationOut:
-    return LocationOut(course=location.course, position=location.position)
 
 
 def neck_out(tuning: Tuning) -> NeckOut:
@@ -98,17 +88,8 @@ def _scale_locations_out(
 
 
 def _playback_out(maqam: Maqam, root: int, tuning: Tuning, spelling: Spelling) -> list[PlaybackOut]:
-    out = []
-    for i, pitch in enumerate(ascending_octave(maqam, root, min(tuning.courses))):
-        found = lowest_location(tuning, pitch)
-        out.append(
-            PlaybackOut(
-                pitch=pitch,
-                name=name_out(spell(pitch, *spelling[i % 7])),
-                location=None if found is None else _location_out(found),
-            )
-        )
-    return out
+    pitches = ascending_octave(maqam, root, min(tuning.courses))
+    return playback_out(tuning, pitches, [spelling[i % 7] for i in range(len(pitches))])
 
 
 def scale_out(maqam: Maqam, root: int, tuning: Tuning) -> ScaleOut:

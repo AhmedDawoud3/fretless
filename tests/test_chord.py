@@ -6,6 +6,7 @@ from fretless.chord import (
     QUALITIES,
     Chord,
     ChordQuality,
+    arpeggio_pitches,
     chord_pitch_classes,
     essential_roles,
     spell_chord,
@@ -88,3 +89,13 @@ def test_spelled_tones_map_back_to_pitch_classes(root: int, quality: ChordQualit
 )
 def test_essential_roles(quality_id: str, roles: set[str]) -> None:
     assert essential_roles(QUALITIES[quality_id]) == frozenset(roles)
+
+
+def test_arpeggio_runs_from_the_lowest_root_to_the_octave_above() -> None:
+    assert arpeggio_pitches(Chord(0, QUALITIES["maj"]), 48) == (48, 56, 62, 72)
+    assert arpeggio_pitches(Chord(18, QUALITIES["min"]), 48) == (66, 72, 80, 90)
+
+
+def test_arpeggio_sorts_an_extension_into_the_octave() -> None:
+    # C9: C E G Bb D, the ninth lands between the root and the third
+    assert arpeggio_pitches(Chord(0, QUALITIES["9"]), 48) == (48, 52, 56, 62, 68, 72)

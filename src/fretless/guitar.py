@@ -36,6 +36,11 @@ GUITAR_TUNINGS: dict[str, GuitarTuning] = {
 }
 
 
+def fretted_pitch(open_pitch: int, capo: int, fret: int) -> int:
+    """Pitch of a string pressed at `fret` (counted from the capo); one fret is two steps."""
+    return open_pitch + 2 * (capo + fret)
+
+
 def shape_pitches(
     strings: tuple[int, ...], capo: int, frets: tuple[int | None, ...]
 ) -> tuple[int, ...]:
@@ -45,7 +50,7 @@ def shape_pitches(
     capo, as in chord charts and tab; one fret is two steps.
     """
     return tuple(
-        open_pitch + 2 * (capo + fret)
+        fretted_pitch(open_pitch, capo, fret)
         for open_pitch, fret in zip(strings, frets, strict=True)
         if fret is not None
     )[::-1]

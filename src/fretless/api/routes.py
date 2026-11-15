@@ -2,22 +2,15 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
+from fretless.api.lookup import DEFAULT_TUNING, find
 from fretless.api.mappers import maqam_out, neck_out, scale_out, tuning_out
 from fretless.api.schemas import Health, MaqamOut, NeckOut, ScaleOut, TuningOut
 from fretless.maqam import MAQAMAT
 from fretless.tuning import TUNINGS
 
-DEFAULT_TUNING = "cc"
-
 router = APIRouter()
-
-
-def _find[T](table: dict[str, T], key: str, kind: str) -> T:
-    if key not in table:
-        raise HTTPException(status_code=404, detail=f"unknown {kind}: {key}")
-    return table[key]
 
 
 @router.get("/api/health")
@@ -32,7 +25,7 @@ def tunings() -> list[TuningOut]:
 
 @router.get("/api/neck/{tuning_id}")
 def neck(tuning_id: str) -> NeckOut:
-    return neck_out(_find(TUNINGS, tuning_id, "tuning"))
+    return neck_out(find(TUNINGS, tuning_id, "tuning"))
 
 
 @router.get("/api/maqamat")
@@ -46,7 +39,7 @@ def scale(
     root: Annotated[int | None, Query(ge=0, le=23)] = None,
     tuning: str = DEFAULT_TUNING,
 ) -> ScaleOut:
-    maqam = _find(MAQAMAT, maqam_id, "maqam")
+    maqam = find(MAQAMAT, maqam_id, "maqam")
     return scale_out(
-        maqam, maqam.default_root if root is None else root, _find(TUNINGS, tuning, "tuning")
+        maqam, maqam.default_root if root is None else root, find(TUNINGS, tuning, "tuning")
     )
