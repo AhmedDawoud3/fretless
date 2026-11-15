@@ -1,5 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { fetchMaqamat, fetchNeck, fetchScale, fetchTunings } from "./client";
+import {
+  fetchChord,
+  fetchGuitarTunings,
+  fetchMaqamat,
+  fetchNeck,
+  fetchQualities,
+  fetchScale,
+  fetchTunings,
+  identifyShape,
+} from "./client";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -35,4 +44,36 @@ test("fetchScale asks for the maqam, root and tuning", async () => {
   const fetchMock = stubFetch({ ok: true, json: async () => ({}) });
   await fetchScale("rast", 7, "ff");
   expect(fetchMock).toHaveBeenCalledWith("/api/maqamat/rast/scale?root=7&tuning=ff");
+});
+
+test("fetchQualities and fetchGuitarTunings read their lists", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => [] });
+  await fetchQualities();
+  await fetchGuitarTunings();
+  expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    "/api/chords/qualities",
+    "/api/guitar/tunings",
+  ]);
+});
+
+test("fetchChord asks for the root, quality and oud tuning", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => ({}) });
+  await fetchChord(4, "m7", "ff");
+  expect(fetchMock).toHaveBeenCalledWith("/api/chords/4/m7?tuning=ff");
+});
+
+test("identifyShape posts the shape as JSON and returns the answer", async () => {
+  const answer = { notes: [], matches: [] };
+  const fetchMock = stubFetch({ ok: true, json: async () => answer });
+  const body = { strings: [64], capo: 2, frets: [null] };
+  expect(await identifyShape(body)).toEqual(answer);
+  const [url, init] = fetchMock.mock.calls[0] ?? [];
+  expect(url).toBe("/api/guitar/identify");
+  expect(init).toMatchObject({ method: "POST", body: JSON.stringify(body) });
+  expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+});
+
+test("identifyShape throws on a rejected shape", async () => {
+  stubFetch({ ok: false, status: 422 });
+  await expect(identifyShape({ strings: [], capo: 0, frets: [] })).rejects.toThrow("422");
 });

@@ -7,10 +7,18 @@ export type NoteName = components["schemas"]["NoteNameOut"];
 export type Maqam = components["schemas"]["MaqamOut"];
 export type Scale = components["schemas"]["ScaleOut"];
 export type ScaleLocation = components["schemas"]["ScaleLocationOut"];
+export type Quality = components["schemas"]["QualityOut"];
+export type ChordResult = components["schemas"]["ChordOut"];
+export type RoleLocation = components["schemas"]["RoleLocationOut"];
+export type Voicing = components["schemas"]["VoicingOut"];
+export type GuitarTuning = components["schemas"]["GuitarTuningOut"];
+export type IdentifyBody = components["schemas"]["IdentifyIn"];
+export type Identified = components["schemas"]["IdentifyOut"];
+export type ChordMatch = components["schemas"]["MatchOut"];
 export type Course = components["schemas"]["CourseOut"];
 
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path);
+async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = init ? await fetch(path, init) : await fetch(path);
   if (!response.ok) {
     throw new Error(`${path} failed with status ${response.status}`);
   }
@@ -32,4 +40,29 @@ export function fetchMaqamat(): Promise<Maqam[]> {
 export function fetchScale(maqamId: string, root: number, tuningId: string): Promise<Scale> {
   const query = `root=${root}&tuning=${encodeURIComponent(tuningId)}`;
   return getJson<Scale>(`/api/maqamat/${encodeURIComponent(maqamId)}/scale?${query}`);
+}
+
+export function fetchQualities(): Promise<Quality[]> {
+  return getJson<Quality[]>("/api/chords/qualities");
+}
+
+export function fetchChord(
+  root: number,
+  qualityId: string,
+  tuningId: string,
+): Promise<ChordResult> {
+  const path = `/api/chords/${root}/${encodeURIComponent(qualityId)}`;
+  return getJson<ChordResult>(`${path}?tuning=${encodeURIComponent(tuningId)}`);
+}
+
+export function fetchGuitarTunings(): Promise<GuitarTuning[]> {
+  return getJson<GuitarTuning[]>("/api/guitar/tunings");
+}
+
+export function identifyShape(body: IdentifyBody): Promise<Identified> {
+  return getJson<Identified>("/api/guitar/identify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
