@@ -1,0 +1,145 @@
+:root {
+  --wood-light: #a8642f;
+  --wood-mid: #8a4b22;
+  --wood-dark: #5e3016;
+  --ebony: #1b120d;
+  --ebony-light: #3a271b;
+  --spruce-light: #e9b872;
+  --spruce-dark: #b8773a;
+  --hole-edge: #2a1a10;
+  --gold: #d9a441;
+  --rib-light: #e8c98f;
+  --rib-dark: #5a3418;
+}
+
+.oud-neck {
+  display: block;
+  width: 1620px;
+  max-width: none;
+  height: auto;
+  touch-action: pan-y;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pegbox {
+  fill: url(#oud-neck-wood);
+  stroke: var(--wood-dark);
+  stroke-width: 2;
+}
+.pegbox-shade {
+  stroke: var(--ebony);
+  stroke-opacity: 0.35;
+  stroke-width: 36;
+  stroke-linecap: round;
+}
+.peg rect {
+  fill: var(--ebony-light);
+  stroke: var(--ebony);
+}
+.peg-stem {
+  stroke: var(--ebony);
+  stroke-width: 5;
+}
+.nut {
+  fill: #eadfc4;
+}
+.neck {
+  stroke: var(--wood-dark);
+  stroke-width: 2;
+}
+.fingerboard {
+  stroke: #000;
+  stroke-opacity: 0.5;
+}
+
+.bowl-edge {
+  fill: none;
+  stroke: var(--rib-light);
+  stroke-width: 22;
+  stroke-linejoin: round;
+}
+.bowl-stripes {
+  fill: none;
+  stroke: var(--rib-dark);
+  stroke-width: 22;
+  stroke-dasharray: 5 17;
+  stroke-linejoin: round;
+}
+.soundboard {
+  stroke: var(--wood-dark);
+  stroke-width: 3;
+}
+.rosette-ring {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3;
+}
+.rosette-lattice {
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+.lattice-line {
+  stroke: var(--gold);
+  stroke-width: 1.6;
+  fill: none;
+}
+.bridge {
+  fill: var(--ebony);
+  stroke: #000;
+}
+
+.string {
+  stroke: #efe4c8;
+  stroke-opacity: 0.92;
+}
+.string-wound {
+  stroke: #c98a4b;
+}
+.guide {
+  stroke: #fff;
+  stroke-opacity: 0.22;
+  stroke-width: 1;
+}
+.guide-fret {
+  stroke-opacity: 0.55;
+  stroke-width: 1.6;
+}
+.ruler {
+  fill: #fff;
+  fill-opacity: 0.6;
+  font:
+    12px system-ui,
+    sans-serif;
+  text-anchor: middle;
+}
+
+.marker circle {
+  fill: #f4c15d;
+  stroke: #1b120d;
+  stroke-width: 2;
+}
+.marker-root circle {
+  fill: #e4572e;
+}
+.marker-active circle {
+  fill: #5fd0c3;
+  stroke: #fff;
+}
+.marker-pill {
+  fill: #1b120d;
+  fill-opacity: 0.88;
+  stroke: #f4c15d;
+}
+.marker text {
+  fill: #fff;
+  font:
+    600 13px "Segoe UI Symbol",
+    "Noto Music",
+    system-ui,
+    sans-serif;
+  text-anchor: middle;
+}
+.markers {
+  pointer-events: none;
+}
