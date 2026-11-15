@@ -39,6 +39,7 @@ Run through `just`; CI runs the same recipes.
   functions annotated; ty must pass. No `# type: ignore`, no `# noqa` without a reason on the same line.
 - TypeScript: Biome, strict; no `any`, no `@ts-ignore`, no non-null `!`.
 - Add a dependency only when a few lines of own code cannot do the job.
+- Never make a large files, always try to follow SOLID, and make smaller more manageable and readable files.
 
 ## Working method (ub-mode)
 
