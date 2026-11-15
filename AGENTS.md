@@ -31,7 +31,7 @@ Run through `just`; CI runs the same recipes.
   Python, the API, and TypeScript. Cents and frequencies exist only at the
   browser edge (audio, microphone, continuous clicks).
 - Domain types are frozen dataclasses with no FastAPI or Pydantic import.
-  Pydantic models appear only in `fretless/api.py`, validate once at entry, and
+  Pydantic and FastAPI appear only in the `fretless/api/` package, validate once at entry, and
   convert to domain types.
 - Business logic is pure functions.
 - Frontend API types come from `schema.d.ts`. Do not hand-write a type the API already defines.
