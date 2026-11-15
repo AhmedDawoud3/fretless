@@ -1,4 +1,5 @@
 import { Controls } from "./explorer/Controls";
+import { MaqamControls } from "./explorer/MaqamControls";
 import { ReadoutLine } from "./explorer/ReadoutLine";
 import { useExplorer } from "./explorer/useExplorer";
 import { WhyNote } from "./explorer/WhyNote";
@@ -39,6 +40,7 @@ function App() {
             system={x.system}
             onSystem={x.setSystem}
           />
+          <MaqamControls maqam={x.maqam} neck={x.data.neck} system={x.system} />
           <ReadoutLine readout={x.readout} />
           <div className="neck-scroll">
             <OudNeck

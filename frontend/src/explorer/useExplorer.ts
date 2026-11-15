@@ -4,6 +4,7 @@ import type { Marker } from "../neck/OudNeck";
 import type { Play } from "../neck/play";
 import type { NamingSystem } from "../notation/noteName";
 import { describePlay, type LabelMode, markerLabel, type Readout } from "./readout";
+import { useMaqam } from "./useMaqam";
 import { type NeckData, useNeckData } from "./useNeckData";
 
 function describeLast(data: NeckData, last: Play | null, system: NamingSystem): Readout | null {
@@ -30,6 +31,7 @@ export function useExplorer() {
   const [labelMode, setLabelMode] = useState<LabelMode>("both");
   const [system, setSystem] = useState<NamingSystem>("letters");
   const [last, setLast] = useState<Play | null>(null);
+  const maqam = useMaqam({ maqamId: null, root: null }, tuningId);
 
   const changeTuning = (id: string) => {
     setLast(null);
@@ -44,6 +46,6 @@ export function useExplorer() {
   const markers = markersFor(last, readout, labelMode);
   return {
     ...{ data, tuningId, changeTuning, snap, setSnap, guides, setGuides },
-    ...{ labelMode, setLabelMode, system, setSystem, play, readout, markers },
+    ...{ labelMode, setLabelMode, system, setSystem, play, readout, markers, maqam },
   };
 }

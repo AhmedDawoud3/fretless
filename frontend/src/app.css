@@ -52,6 +52,44 @@ h1 {
   align-items: center;
 }
 
+.maqam-controls {
+  margin-top: 8px;
+}
+
+.maqam-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #5a3f28;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #1b120d;
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.arabic {
+  font-size: 1.05em;
+}
+
 select {
   background: var(--bg);
   color: var(--text);

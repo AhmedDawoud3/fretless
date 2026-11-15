@@ -1,6 +1,7 @@
 import type { Tuning } from "../api/client";
 import type { NamingSystem } from "../notation/noteName";
 import type { LabelMode } from "./readout";
+import { Select } from "./Select";
 
 export type ControlsProps = {
   tunings: readonly Tuning[];
@@ -27,34 +28,6 @@ const SYSTEMS: readonly [NamingSystem, string][] = [
   ["letters", "C D E"],
   ["solfege", "Do Re Mi"],
 ];
-
-type SelectProps<T extends string> = {
-  label: string;
-  value: T;
-  options: readonly [T, string][];
-  onChange: (value: T) => void;
-};
-
-function Select<T extends string>({ label, value, options, onChange }: SelectProps<T>) {
-  return (
-    <label className="control">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => {
-          const chosen = options.find(([id]) => id === event.target.value);
-          if (chosen) onChange(chosen[0]);
-        }}
-      >
-        {options.map(([id, text]) => (
-          <option key={id} value={id}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 type CheckProps = { label: string; checked: boolean; onChange: (value: boolean) => void };
 
