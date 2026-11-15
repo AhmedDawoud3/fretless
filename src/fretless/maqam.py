@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from itertools import accumulate
 
-from fretless.pitch import DEFAULT_SPELLING, LETTER_STEPS, LETTERS, STEPS_PER_OCTAVE, Letter
+from fretless.pitch import DEFAULT_SPELLING, STEPS_PER_OCTAVE, Letter, spell_above
 
 
 @dataclass(frozen=True)
@@ -70,20 +70,14 @@ def scale_pitch_classes(maqam: Maqam, root_pc: int) -> tuple[int, ...]:
     return tuple((root_pc + s) % STEPS_PER_OCTAVE for s in steps)
 
 
-def _alter_to(letter: Letter, pitch_class: int) -> int:
-    """Signed step difference from the natural letter to the pitch class, in -12..11."""
-    return (pitch_class - LETTER_STEPS[letter] + 12) % STEPS_PER_OCTAVE - 12
-
-
 def spell_scale(maqam: Maqam, root_pc: int) -> tuple[tuple[Letter, int], ...]:
     """Spell each degree: the root by the default table, then one letter per degree."""
     root_letter, root_alter = DEFAULT_SPELLING[root_pc % STEPS_PER_OCTAVE]
-    first = LETTERS.index(root_letter)
-    spelled = [(root_letter, root_alter)]
-    for i, pc in enumerate(scale_pitch_classes(maqam, root_pc)[1:], start=1):
-        letter = LETTERS[(first + i) % len(LETTERS)]
-        spelled.append((letter, _alter_to(letter, pc)))
-    return tuple(spelled)
+    rest = scale_pitch_classes(maqam, root_pc)[1:]
+    return (
+        (root_letter, root_alter),
+        *(spell_above(root_letter, i, pc) for i, pc in enumerate(rest, 1)),
+    )
 
 
 def ascending_octave(maqam: Maqam, root_pc: int, lowest_pitch: int) -> tuple[int, ...]:

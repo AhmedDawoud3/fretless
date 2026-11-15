@@ -19,6 +19,15 @@ DEFAULT_SPELLING: tuple[tuple[Letter, int], ...] = (
 )  # fmt: skip
 
 
+def spell_above(root_letter: Letter, letters_up: int, pitch_class: int) -> tuple[Letter, int]:
+    """Spell `pitch_class` on the letter `letters_up` letters above `root_letter`.
+
+    The alter is the signed step difference from that natural letter, in -12..11.
+    """
+    letter = LETTERS[(LETTERS.index(root_letter) + letters_up) % len(LETTERS)]
+    return letter, (pitch_class - LETTER_STEPS[letter] + 12) % STEPS_PER_OCTAVE - 12
+
+
 @dataclass(frozen=True)
 class NoteName:
     """A spelled note. `alter` is steps from the natural letter (-2 flat ... +2 sharp)."""
