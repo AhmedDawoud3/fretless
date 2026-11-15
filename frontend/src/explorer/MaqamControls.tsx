@@ -31,11 +31,11 @@ export function MaqamControls({
         selectedId={maqam.maqam?.id ?? null}
         onChoose={maqam.choose}
       />
-      {maqam.maqam && maqam.root !== null && (
+      {maqam.selection && (
         <RootPicker
           options={rootOptions(neck.locations, system)}
-          root={maqam.root}
-          traditionalRoot={maqam.maqam.default_root}
+          root={maqam.selection.root}
+          traditionalRoot={maqam.selection.maqam.default_root}
           onRoot={maqam.chooseRoot}
           onTraditional={() => maqam.chooseRoot(null)}
         />

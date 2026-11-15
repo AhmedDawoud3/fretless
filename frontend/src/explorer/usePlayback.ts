@@ -6,6 +6,10 @@ import { roundTrip } from "./roundTrip";
 type Run = ReturnType<typeof playSequence>;
 type Entry = Scale["playback"][number];
 
+function locationAt(entries: readonly Entry[], index: number | null) {
+  return entries[index ?? -1]?.location ?? null;
+}
+
 /**
  * Plays the scale up and down. `resetKey` identifies what is being played (maqam,
  * root, tuning): when it changes, or the page goes away, playback stops.
@@ -36,11 +40,8 @@ export function usePlayback(scale: Scale | null, tempo: number, resetKey: string
     );
     run.current = started;
     setPlaying(true);
-    void started.done.then(() => {
-      if (run.current === started) stop();
-    });
+    void started.done.then(() => run.current === started && stop());
   };
 
-  const entry = index === null ? undefined : entries.current[index];
-  return { playing, location: entry?.location ?? null, toggle: playing ? stop : start };
+  return { playing, location: locationAt(entries.current, index), toggle: playing ? stop : start };
 }

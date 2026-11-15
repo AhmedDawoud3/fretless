@@ -40,7 +40,11 @@ export function useExplorer() {
     ...{ tuningId, snap, guides, labelMode, system, tempo },
     ...maqam.chosen,
   });
-  const playback = usePlayback(maqam.scale, tempo, `${maqam.maqam?.id}|${maqam.root}|${tuningId}`);
+  const playback = usePlayback(
+    maqam.scale,
+    tempo,
+    `${maqam.maqam?.id}|${maqam.selection?.root}|${tuningId}`,
+  );
 
   const changeTuning = (id: string) => {
     setLast(null);
