@@ -148,3 +148,102 @@ select {
     align-items: flex-start;
   }
 }
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #5a3f28;
+}
+
+.tab {
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--accent);
+  color: #1b120d;
+  border-color: var(--accent);
+}
+
+.chord-picker,
+.guitar-panel,
+.chord-result {
+  margin-top: 8px;
+}
+
+.guitar-panel h2 {
+  margin: 16px 0 8px;
+  font-size: 1.1rem;
+}
+
+.string-tunings,
+.matches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.string-tuning {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.guitar-controls input[type="number"] {
+  width: 4em;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid #5a3f28;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.voicings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+
+.voicing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  max-width: 100%;
+}
+
+.voicing-notes {
+  display: flex;
+  flex-direction: column;
+}
+
+.voicing-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  font-size: 0.8rem;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+
+.chord-panel {
+  max-width: 60ch;
+}
+
+.chord-panel p {
+  margin-top: 8px;
+}

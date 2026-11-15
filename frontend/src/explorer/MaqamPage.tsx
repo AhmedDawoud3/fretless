@@ -1,16 +1,15 @@
 import type { PageProps } from "../app/useSharedSettings";
 import { OudNeck } from "../neck/OudNeck";
-import { formatVirtualFret } from "../notation/virtualFret";
 import { MaqamControls } from "./MaqamControls";
 import { MaqamPanel } from "./MaqamPanel";
 import { ReadoutLine } from "./ReadoutLine";
+import { rulerLabelFor } from "./readout";
 import { useExplorer } from "./useExplorer";
 import { WhyNote } from "./WhyNote";
 
 /** Maqam explorer: pick a maqam and a root, see its notes on the oud, hear it. */
 export function MaqamPage({ shared, neck }: PageProps) {
   const x = useExplorer(shared, neck);
-  const showRuler = shared.guides && (shared.labelMode === "frets" || shared.labelMode === "both");
   return (
     <>
       <MaqamControls
@@ -29,7 +28,7 @@ export function MaqamPage({ shared, neck }: PageProps) {
           showGuides={shared.guides}
           snap={shared.snap}
           onPlay={x.play}
-          rulerLabel={showRuler ? formatVirtualFret : undefined}
+          rulerLabel={rulerLabelFor(shared.guides, shared.labelMode)}
         />
       </div>
       {x.maqam.maqam ? (

@@ -41,3 +41,8 @@ export function markerLabel(readout: Readout, mode: LabelMode): string | undefin
   };
   return labels[mode];
 }
+
+/** Fret numbers above the guides, when guides are on and the labels include frets. */
+export function rulerLabelFor(guides: boolean, mode: LabelMode) {
+  return guides && (mode === "frets" || mode === "both") ? formatVirtualFret : undefined;
+}

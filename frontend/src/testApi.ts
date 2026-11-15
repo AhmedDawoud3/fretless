@@ -1,5 +1,15 @@
 import { vi } from "vitest";
-import type { Maqam, NeckLocation, NeckOut, NoteName, Scale } from "./api/client";
+import type {
+  ChordResult,
+  GuitarTuning,
+  Identified,
+  Maqam,
+  NeckLocation,
+  NeckOut,
+  NoteName,
+  Quality,
+  Scale,
+} from "./api/client";
 
 /** Letter and alter for each of the 24 pitch classes, as the neck spells them. */
 const SPELLING: readonly [NeckLocation["name"]["letter"], number][] = [
@@ -68,7 +78,128 @@ export function scaleFor(maqam: Maqam, root: number): Scale {
   };
 }
 
-function respond(url: string): unknown {
+export const qualities: Quality[] = [
+  { id: "major", symbol: "", name: "major", tones: tones([0, "root"], [4, "third"], [7, "fifth"]) },
+  {
+    id: "m7",
+    symbol: "m7",
+    name: "minor 7th",
+    tones: tones([0, "root"], [3, "third"], [10, "seventh"]),
+  },
+];
+
+function tones(...rows: [number, string][]): Quality["tones"] {
+  return rows.map(([semitones, role]) => ({ semitones, role }));
+}
+
+const guitarName = (letter: NoteName["letter"], octave: number): NoteName => ({
+  letter,
+  alter: 0,
+  octave,
+});
+
+/** Standard and drop D, string 1 (highest) first, as the API lists them. */
+export const guitarTunings: GuitarTuning[] = [
+  {
+    id: "standard",
+    label: "Standard",
+    strings: [104, 94, 86, 76, 68, 56].map((pitch, i) => ({
+      string: i + 1,
+      pitch,
+      name: guitarName("E", 4),
+    })),
+  },
+  {
+    id: "dropd",
+    label: "Drop D",
+    strings: [104, 94, 86, 76, 68, 52].map((pitch, i) => ({
+      string: i + 1,
+      pitch,
+      name: guitarName("E", 4),
+    })),
+  },
+];
+
+/** A chord on course 1 only (the test neck has just that course): voicing 1 root+third, voicing 2 root+fifth. */
+export function chordFor(root: number, qualityId: string): ChordResult {
+  const quality = qualities.find((q) => q.id === qualityId) ?? qualities[0];
+  const found = (steps: number, role: string) => {
+    const position = (root + steps) % 24;
+    return { course: 1, position, pitch: 96 + position, name: nameAt(position), role };
+  };
+  const [rootTone, thirdTone, fifthTone] = (quality?.tones ?? []).map((t) =>
+    found(t.semitones * 2, t.role),
+  );
+  const all = [rootTone, thirdTone, fifthTone].filter((l) => l !== undefined);
+  return {
+    chord: {
+      root,
+      quality_id: qualityId,
+      symbol: quality?.symbol ?? "",
+      name: { letter: nameAt(root).letter, alter: nameAt(root).alter },
+      tones: all.map((l) => ({
+        pitch_class: l.position,
+        letter: l.name.letter,
+        alter: l.name.alter,
+        role: l.role,
+      })),
+    },
+    locations: all,
+    voicings: [
+      { locations: all.slice(0, 2), bass_is_root: true, span: 2, open_courses: 0 },
+      {
+        locations: [all[0], all[2]].filter((l) => l !== undefined),
+        bass_is_root: false,
+        span: 3,
+        open_courses: 1,
+      },
+    ],
+    arpeggio: [...all, { ...(all[0] ?? found(0, "root")), position: (root + 24) % 24 }].map(
+      (l) => ({
+        pitch: l.pitch,
+        name: l.name,
+        location: { course: l.course, position: l.position },
+      }),
+    ),
+  };
+}
+
+const C: NoteName = guitarName("C", 4);
+const identifyC = (
+  letter: "C" | "A",
+  symbol: string,
+  quality: string,
+): Identified["matches"][number] => ({
+  root: letter === "C" ? 0 : 18,
+  quality_id: quality,
+  symbol,
+  name: { letter, alter: 0 },
+  bass: { letter: "C", alter: 0 },
+  missing: symbol === "m7" ? ["fifth"] : [],
+});
+
+/** x32010 in standard tuning is C major (and, with a C bass, Am7 without its fifth); any other shape is unknown. */
+function identify(init: RequestInit | undefined): Identified {
+  const body = JSON.parse(String(init?.body ?? "{}")) as { frets: (number | null)[] };
+  const c = JSON.stringify(body.frets) === JSON.stringify([0, 1, 0, 2, 3, null]);
+  const notes = body.frets.flatMap((fret, i) =>
+    fret === null ? [] : [{ string: i + 1, fret, pitch: 100 - i * 5 + fret * 2, name: C }],
+  );
+  return { notes, matches: c ? [identifyC("C", "", "major"), identifyC("A", "m7", "m7")] : [] };
+}
+
+function respondChords(url: string, init?: RequestInit): unknown {
+  if (url === "/api/chords/qualities") return qualities;
+  const chord = /^\/api\/chords\/(\d+)\/(\w+)\?/.exec(url);
+  if (chord) return chordFor(Number(chord[1]), chord[2] ?? "major");
+  if (url === "/api/guitar/tunings") return guitarTunings;
+  if (url === "/api/guitar/identify") return identify(init);
+  return undefined;
+}
+
+function respond(url: string, init?: RequestInit): unknown {
+  const chords = respondChords(url, init);
+  if (chords !== undefined) return chords;
   const scale = /^\/api\/maqamat\/(\w+)\/scale\?root=(\d+)/.exec(url);
   const found = [rast, bayati].find((m) => m.id === scale?.[1]);
   if (scale && found) return scaleFor(found, Number(scale[2]));
@@ -77,10 +208,13 @@ function respond(url: string): unknown {
   return [neck.tuning, { id: "ff", label: "F-F" }];
 }
 
-/** Stubs fetch like the backend (tunings, neck, maqamat, scales) and starts with empty storage. */
+/** Stubs fetch like the backend (tunings, neck, maqamat, scales, chords, guitar) and starts with empty storage. */
 export function stubApi() {
   localStorage.clear();
-  const fetchMock = vi.fn(async (url: string) => ({ ok: true, json: async () => respond(url) }));
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => ({
+    ok: true,
+    json: async () => respond(url, init),
+  }));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }

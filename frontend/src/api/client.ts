@@ -38,21 +38,17 @@ export function fetchMaqamat(): Promise<Maqam[]> {
 }
 
 export function fetchScale(maqamId: string, root: number, tuningId: string): Promise<Scale> {
-  const query = `root=${root}&tuning=${encodeURIComponent(tuningId)}`;
-  return getJson<Scale>(`/api/maqamat/${encodeURIComponent(maqamId)}/scale?${query}`);
+  const path = `/api/maqamat/${encodeURIComponent(maqamId)}/scale`;
+  return getJson<Scale>(`${path}?root=${root}&tuning=${encodeURIComponent(tuningId)}`);
 }
 
 export function fetchQualities(): Promise<Quality[]> {
   return getJson<Quality[]>("/api/chords/qualities");
 }
 
-export function fetchChord(
-  root: number,
-  qualityId: string,
-  tuningId: string,
-): Promise<ChordResult> {
-  const path = `/api/chords/${root}/${encodeURIComponent(qualityId)}`;
-  return getJson<ChordResult>(`${path}?tuning=${encodeURIComponent(tuningId)}`);
+export function fetchChord(root: number, qualityId: string, tuningId: string) {
+  const query = new URLSearchParams({ tuning: tuningId });
+  return getJson<ChordResult>(`/api/chords/${root}/${encodeURIComponent(qualityId)}?${query}`);
 }
 
 export function fetchGuitarTunings(): Promise<GuitarTuning[]> {

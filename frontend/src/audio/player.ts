@@ -58,6 +58,15 @@ export function playSteps(steps: number, when?: number): void {
   startNote(ctx, steps, when ?? ctx.currentTime);
 }
 
+/** Strum: the notes in order, each this much later than the one before. */
+const STRUM_GAP_SECONDS = 0.035;
+
+/** Pluck `steps` low to high in quick succession, as one strummed chord. */
+export function playStrum(steps: readonly number[]): void {
+  const ctx = audioContext();
+  for (const [i, s] of steps.entries()) startNote(ctx, s, ctx.currentTime + i * STRUM_GAP_SECONDS);
+}
+
 /**
  * Plays notes one after another at `notesPerMinute`. `onNote` fires as each note
  * starts (timer-based, so it can drift slightly from the audio clock).
