@@ -56,10 +56,10 @@ function pressFind(right: boolean) {
 
 test("the Practice page lists the drills with a line each, and no stats before any tries", async () => {
   await openPractice();
-  for (const title of [/Find the note/, /Interval by ear/, /Echo/]) {
+  for (const title of [/Find the note/, /Interval by ear/, /Echo/, /Maqam by ear/]) {
     expect(await screen.findByRole("button", { name: title })).toBeDefined();
   }
-  expect(screen.getAllByText("Not tried yet")).toHaveLength(3);
+  expect(screen.getAllByText("Not tried yet")).toHaveLength(4);
   expect(screen.getByText(/Press where it is on the oud/)).toBeDefined();
 });
 

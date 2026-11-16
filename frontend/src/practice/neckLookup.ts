@@ -26,3 +26,8 @@ export function lowestLocation(neck: NeckOut, pitch: number): NeckLocation | und
 export function nameOfPitch(neck: NeckOut, pitch: number): NoteName | undefined {
   return neck.locations.find((l) => l.pitch === pitch)?.name;
 }
+
+/** The note name regardless of octave (spelled as found on the neck). */
+export function nameOfPitchClass(neck: NeckOut, pc: number): NoteName | undefined {
+  return neck.locations.find((l) => pitchClass(l.pitch) === pitchClass(pc))?.name;
+}
