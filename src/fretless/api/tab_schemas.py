@@ -8,7 +8,7 @@ from fretless.api.guitar_schemas import Capo, Strings
 from fretless.tab.convert_model import AlterationKind
 from fretless.tab.oud_render import Mode
 
-ImportKind = Literal["auto", "tab", "chords"]
+ImportKind = Literal["auto", "tab", "chords", "sheet"]
 
 
 class ImportUrlIn(BaseModel):
@@ -19,6 +19,7 @@ class ImportUrlIn(BaseModel):
 class ImportPdfIn(BaseModel):
     pdf_base64: Annotated[str, Field(min_length=1, max_length=20_000_000)]
     filename: Annotated[str, Field(max_length=260)] = ""
+    kind: ImportKind = "auto"
 
 
 class ImportTabOut(BaseModel):

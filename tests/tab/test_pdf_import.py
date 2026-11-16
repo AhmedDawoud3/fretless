@@ -75,7 +75,7 @@ def test_import_pdf_works_on_sample_local_tabs_when_present() -> None:
         ("Willow - Tamino.pdf", "tab", parse_tuning_spec("CFCGCD")),
         ("أغدًا ألقاك (صولو الجيتار) - عمر خورشيد.pdf", "tab", None),
         ("خلي بالك من عقلك - عمر خيرت.pdf", "tab", None),
-        ("Longa Riyad - Piano Chords.pdf", "chords", None),
+        ("Longa Riyad - Piano Chords.pdf", "sheet", None),
     ]
     for name, expected_kind, expected_strings in samples:
         imported = import_pdf_bytes((tabs_dir / name).read_bytes(), filename=name)

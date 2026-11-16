@@ -188,6 +188,30 @@ def test_import_pdf_endpoint_extracts_tab_and_rejects_bad_input() -> None:
     assert client.post("/api/tab/import-pdf", json={"pdf_base64": "!!!"}).status_code == 422
 
 
+def test_import_pdf_endpoint_supports_sheet_music() -> None:
+    doc = pymupdf.Document()
+    page = doc.new_page()
+    lines = page.new_shape()
+    for i in range(5):
+        y = 120.0 + i * 8.0
+        lines.draw_line(pymupdf.Point(40, y), pymupdf.Point(400, y))
+    lines.finish(width=0.6)
+    lines.commit()
+    oval = page.new_shape()
+    oval.draw_oval(pymupdf.Rect(116.5, 149.6, 123.5, 154.4))
+    oval.finish(color=(0, 0, 0), fill=(0, 0, 0), width=0.5)
+    oval.commit()
+    encoded = base64.b64encode(doc.tobytes()).decode("ascii")
+
+    res = client.post(
+        "/api/tab/import-pdf",
+        json={"pdf_base64": encoded, "filename": "sheet.pdf", "kind": "sheet"},
+    )
+    assert res.status_code == 200
+    assert res.json()["kind"] == "sheet"
+    assert "0" in res.json()["text"]
+
+
 def test_import_url_endpoint_returns_imported_tab_and_422_on_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
