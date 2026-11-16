@@ -1,0 +1,19 @@
+.audio-input {
+  margin-top: 8px;
+}
+
+.original-audio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-radius: 8px;
+}
+
+.original-audio audio {
+  max-width: 100%;
+  height: 36px;
+}

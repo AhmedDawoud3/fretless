@@ -19,6 +19,7 @@ const saved = {
     find: { attempts: 4, correct: 3, bestStreak: 2, items: { "4": { attempts: 4, correct: 3 } } },
   },
   drillLevels: { find: 2 },
+  completedLessons: ["open-courses"],
 };
 
 test("nothing stored means the defaults", () => {
@@ -57,7 +58,15 @@ test("each bad value falls back on its own, good ones are kept", () => {
     tabMode: "names",
     progress: saved.progress,
     drillLevels: saved.drillLevels,
+    completedLessons: saved.completedLessons,
   });
+});
+
+test("completedLessons keeps string arrays and rejects invalid shapes", () => {
+  const lessons = (value: unknown) =>
+    parseSettings(JSON.stringify({ completedLessons: value })).completedLessons;
+  expect(lessons(["open-courses", "maqam-rast"])).toEqual(["open-courses", "maqam-rast"]);
+  expect([lessons("nope"), lessons([1, 2]), lessons(null)]).toEqual([[], [], []]);
 });
 
 test("practice progress and levels that are garbled fall back to none, the rest is kept", () => {

@@ -6,7 +6,7 @@ import { Select } from "../explorer/Select";
 import { TAB_TEXT_MAX } from "../explorer/settings";
 import { EXAMPLE_TAB } from "./example";
 
-const MODES: [TabMode, string][] = [
+export const TAB_MODES: [TabMode, string][] = [
   ["frets", "Fret numbers"],
   ["names", "Note names"],
   ["both", "Both"],
@@ -48,7 +48,7 @@ export function TabInput(props: TabInputProps) {
       )}
       <TuningControls presets={presets} tuning={tuning} names={names} />
       <div className="controls">
-        <Select label="Output" value={mode} options={MODES} onChange={onMode} />
+        <Select label="Output" value={mode} options={TAB_MODES} onChange={onMode} />
         <button type="button" onClick={() => onText(EXAMPLE_TAB)}>
           Load example
         </button>

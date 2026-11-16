@@ -48,7 +48,14 @@ const convertBodies = (fetchMock: ReturnType<typeof stubApi>) =>
 test("the converter is the third page in the tab bar", async () => {
   await openTab();
   const tabs = screen.getAllByRole("tab").map((t) => t.textContent);
-  expect(tabs).toEqual(["Maqam explorer", "Chords", "Tab converter", "Practice"]);
+  expect(tabs).toEqual([
+    "Maqam explorer",
+    "Chords",
+    "Tab converter",
+    "Audio to Oud",
+    "Practice",
+    "Course",
+  ]);
 });
 
 test("Convert sends the text with the guitar and oud settings and shows the result", async () => {

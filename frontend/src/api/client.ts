@@ -24,6 +24,9 @@ export type Alteration = components["schemas"]["AlterationOut"];
 export type PlaybackEvent = components["schemas"]["PlaybackEventOut"];
 export type Interval = components["schemas"]["IntervalOut"];
 export type Course = components["schemas"]["CourseOut"];
+export type Lesson = components["schemas"]["LessonOut"];
+export type LessonStep = components["schemas"]["LessonStepOut"];
+export type TranscribeBody = components["schemas"]["TranscribeIn"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(path, init) : await fetch(path);
@@ -43,6 +46,10 @@ export function fetchNeck(tuningId: string): Promise<NeckOut> {
 
 export function fetchIntervals(): Promise<Interval[]> {
   return getJson<Interval[]>("/api/intervals");
+}
+
+export function fetchCourses(tuningId: string): Promise<Lesson[]> {
+  return getJson<Lesson[]>(`/api/courses?tuning=${encodeURIComponent(tuningId)}`);
 }
 
 export function fetchMaqamat(): Promise<Maqam[]> {
@@ -75,11 +82,10 @@ export function identifyShape(body: IdentifyBody): Promise<Identified> {
   });
 }
 
-/** The API refuses text it cannot take (empty or too long) with 422: that is an answer, not a failure. */
+/** The API refuses text or audio it cannot take with 422: that is an answer, not a failure. */
 export type ConvertReply = { rejected: false; converted: Converted } | { rejected: true };
 
-export async function convertTab(body: ConvertBody): Promise<ConvertReply> {
-  const path = "/api/tab/convert";
+async function postConvert<T>(path: string, body: T): Promise<ConvertReply> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -88,4 +94,12 @@ export async function convertTab(body: ConvertBody): Promise<ConvertReply> {
   if (response.status === 422) return { rejected: true };
   if (!response.ok) throw new Error(`${path} failed with status ${response.status}`);
   return { rejected: false, converted: (await response.json()) as Converted };
+}
+
+export function convertTab(body: ConvertBody): Promise<ConvertReply> {
+  return postConvert("/api/tab/convert", body);
+}
+
+export function transcribeAudio(body: TranscribeBody): Promise<ConvertReply> {
+  return postConvert("/api/audio/transcribe", body);
 }

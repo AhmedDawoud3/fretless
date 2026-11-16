@@ -4,7 +4,9 @@ const TITLES: Record<PageId, string> = {
   maqam: "Maqam explorer",
   chords: "Chords",
   tab: "Tab converter",
+  audio: "Audio to Oud",
   practice: "Practice",
+  course: "Course",
 };
 
 type PageTabsProps = { page: PageId; onPage: (page: PageId) => void };

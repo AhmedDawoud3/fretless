@@ -4,6 +4,7 @@ import type {
   GuitarTuning,
   Identified,
   Interval,
+  Lesson,
   Maqam,
   NeckLocation,
   NeckOut,
@@ -271,8 +272,32 @@ function respondChords(url: string, init?: RequestInit): unknown {
   return undefined;
 }
 
+export const LESSONS: Lesson[] = [
+  {
+    id: "open-courses",
+    number: 1,
+    title: "1. Meet the six courses",
+    summary: "Play the open note on course 1 and step up a whole tone.",
+    guitarist_tip:
+      "Oud courses are tuned in fourths rather than the guitar's third between G and B.",
+    steps: [
+      { course: 1, position: 0, pitch: 96, label: "C" },
+      { course: 1, position: 4, pitch: 100, label: "D" },
+    ],
+  },
+  {
+    id: "quarter-tone",
+    number: 2,
+    title: "2. Your first quarter tone",
+    summary: "Play a half-flat note at virtual fret 1.5.",
+    guitarist_tip: "Stop halfway between guitar frets 1 and 2.",
+    steps: [{ course: 1, position: 3, pitch: 99, label: "Dd" }],
+  },
+];
+
 /** Text with a tab line (a bar) converts to the fixture; any other text finds no tab. */
 function respondTab(url: string, init: RequestInit | undefined): unknown {
+  if (url === "/api/audio/transcribe") return CONVERTED;
   if (url !== "/api/tab/convert") return undefined;
   const { text } = JSON.parse(String(init?.body ?? "{}")) as { text: string };
   return text.includes("|") ? CONVERTED : noTab(text);
@@ -287,6 +312,7 @@ function respondMaqam(url: string): unknown {
   const scale = /^\/api\/maqamat\/(\w+)\/scale\?root=(\d+)/.exec(url);
   const found = MAQAMAT.find((m) => m.id === scale?.[1]);
   if (scale && found) return scaleFor(found, Number(scale[2]));
+  if (url.startsWith("/api/courses")) return LESSONS;
   if (url === "/api/maqamat") return MAQAMAT;
   if (url === "/api/intervals") return INTERVALS;
   if (url.startsWith("/api/neck")) return served;

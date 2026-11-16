@@ -1,13 +1,23 @@
 import { useState } from "react";
 
+type ResetProgressProps = {
+  onReset: () => void;
+  label?: string;
+  prompt?: string;
+};
+
 /** "Reset progress", with a second step so one stray click cannot erase it. */
-export function ResetProgress({ onReset }: { onReset: () => void }) {
+export function ResetProgress({
+  onReset,
+  label = "Reset progress",
+  prompt = "Erase all drill progress? This cannot be undone.",
+}: ResetProgressProps) {
   const [asking, setAsking] = useState(false);
   if (!asking) {
     return (
       <p className="reset-progress">
         <button type="button" onClick={() => setAsking(true)}>
-          Reset progress
+          {label}
         </button>
       </p>
     );
@@ -18,7 +28,7 @@ export function ResetProgress({ onReset }: { onReset: () => void }) {
   };
   return (
     <p className="reset-progress">
-      Erase all drill progress? This cannot be undone.{" "}
+      {prompt}{" "}
       <button type="button" onClick={confirm}>
         Yes, reset
       </button>{" "}

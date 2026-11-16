@@ -1,0 +1,48 @@
+.course-page {
+  margin-top: 8px;
+}
+
+.lesson-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lesson-badge {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.lesson-card[aria-pressed="true"] .lesson-badge {
+  color: #1b120d;
+}
+
+.lesson-done {
+  color: #5fd0a0;
+  font-weight: 600;
+}
+
+.lesson-head h2 {
+  margin: 12px 0 4px;
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+.lesson-tip {
+  max-width: 65ch;
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.lesson-prompt {
+  font-size: 1.15rem;
+  margin: 12px 0 4px;
+}
+
+.lesson-feedback {
+  margin: 4px 0 8px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+}

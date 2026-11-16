@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import { PageTabs } from "./app/PageTabs";
 import { type PageProps, useSharedSettings } from "./app/useSharedSettings";
 import { ChordsPage } from "./chords/ChordsPage";
+import { CoursePage } from "./course/CoursePage";
 import { Controls } from "./explorer/Controls";
 import { MaqamPage } from "./explorer/MaqamPage";
 import type { PageId } from "./explorer/settings";
 import { PracticePage } from "./practice/PracticePage";
 import { TabPage } from "./tab/TabPage";
+import { AudioPage } from "./transcribe/AudioPage";
 import "./app.css";
 
 function Status({ kind }: { kind: "loading" | "error" }) {
@@ -22,7 +24,9 @@ const PAGES: Record<PageId, (props: PageProps) => ReactNode> = {
   maqam: MaqamPage,
   chords: ChordsPage,
   tab: TabPage,
+  audio: AudioPage,
   practice: PracticePage,
+  course: CoursePage,
 };
 
 function App() {
@@ -44,7 +48,7 @@ function App() {
             onTuning={shared.setTuningId}
             snap={shared.snap}
             onSnap={shared.setSnap}
-            hideSnap={shared.page === "practice"}
+            hideSnap={shared.page === "practice" || shared.page === "course"}
             guides={shared.guides}
             onGuides={shared.setGuides}
             labelMode={shared.labelMode}

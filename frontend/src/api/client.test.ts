@@ -3,6 +3,7 @@ import {
   type ConvertBody,
   convertTab,
   fetchChord,
+  fetchCourses,
   fetchGuitarTunings,
   fetchIntervals,
   fetchMaqamat,
@@ -11,6 +12,8 @@ import {
   fetchScale,
   fetchTunings,
   identifyShape,
+  type TranscribeBody,
+  transcribeAudio,
 } from "./client";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -112,4 +115,30 @@ test("fetchIntervals asks for the interval list", async () => {
   const fetchMock = stubFetch({ ok: true, json: async () => [{ id: "octave" }] });
   expect(await fetchIntervals()).toEqual([{ id: "octave" }]);
   expect(fetchMock).toHaveBeenCalledWith("/api/intervals");
+});
+
+test("fetchCourses asks for lessons in the given tuning", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => [{ id: "open-courses" }] });
+  expect(await fetchCourses("ff")).toEqual([{ id: "open-courses" }]);
+  expect(fetchMock).toHaveBeenCalledWith("/api/courses?tuning=ff");
+});
+
+const transcribeBody: TranscribeBody = {
+  audio_base64: "AAAA",
+  oud_tuning: "cc",
+  mode: "frets",
+  onset_threshold: 0.5,
+  frame_threshold: 0.3,
+};
+
+test("transcribeAudio posts audio as JSON and handles 200 and 422", async () => {
+  const answer = { text: "x", systems: [] };
+  const fetchMock = stubFetch({ ok: true, status: 200, json: async () => answer });
+  expect(await transcribeAudio(transcribeBody)).toEqual({ rejected: false, converted: answer });
+  const [url, init] = fetchMock.mock.calls[0] ?? [];
+  expect(url).toBe("/api/audio/transcribe");
+  expect(init).toMatchObject({ method: "POST", body: JSON.stringify(transcribeBody) });
+
+  stubFetch({ ok: false, status: 422 });
+  expect(await transcribeAudio(transcribeBody)).toEqual({ rejected: true });
 });

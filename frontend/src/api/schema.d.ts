@@ -191,6 +191,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Courses */
+        get: operations["courses_api_courses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audio/transcribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transcribe Audio */
+        post: operations["transcribe_audio_api_audio_transcribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -382,6 +416,32 @@ export interface components {
             quarter_tone: boolean;
             /** Level */
             level: number;
+        };
+        /** LessonOut */
+        LessonOut: {
+            /** Id */
+            id: string;
+            /** Number */
+            number: number;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Guitarist Tip */
+            guitarist_tip: string;
+            /** Steps */
+            steps: components["schemas"]["LessonStepOut"][];
+        };
+        /** LessonStepOut */
+        LessonStepOut: {
+            /** Course */
+            course: number;
+            /** Position */
+            position: number;
+            /** Pitch */
+            pitch: number;
+            /** Label */
+            label: string;
         };
         /** LocationOut */
         LocationOut: {
@@ -584,6 +644,32 @@ export interface components {
             chords_reduced: number;
             /** Unsupported Systems */
             unsupported_systems: number;
+        };
+        /** TranscribeIn */
+        TranscribeIn: {
+            /** Audio Base64 */
+            audio_base64: string;
+            /**
+             * Oud Tuning
+             * @default cc
+             */
+            oud_tuning: string;
+            /**
+             * Mode
+             * @default frets
+             * @enum {string}
+             */
+            mode: "frets" | "names" | "both";
+            /**
+             * Onset Threshold
+             * @default 0.5
+             */
+            onset_threshold: number;
+            /**
+             * Frame Threshold
+             * @default 0.3
+             */
+            frame_threshold: number;
         };
         /** TuningOut */
         TuningOut: {
@@ -906,6 +992,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntervalOut"][];
+                };
+            };
+        };
+    };
+    courses_api_courses_get: {
+        parameters: {
+            query?: {
+                tuning?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transcribe_audio_api_audio_transcribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranscribeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

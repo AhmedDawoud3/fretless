@@ -6,7 +6,7 @@ import { type Progress, parseProgress } from "../practice/progress";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
 import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
-export const PAGE_IDS = ["maqam", "chords", "tab", "practice"] as const;
+export const PAGE_IDS = ["maqam", "chords", "tab", "audio", "practice", "course"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
 export const TAB_MODE_IDS = ["frets", "names", "both"] as const satisfies readonly TabMode[];
@@ -34,6 +34,8 @@ export type Settings = {
   progress: Progress;
   /** The difficulty chosen for each Practice drill. */
   drillLevels: DrillLevels;
+  /** Ids of completed Course lessons. */
+  completedLessons: string[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tabMode: "frets",
   progress: {},
   drillLevels: {},
+  completedLessons: [],
 };
 
 const STORAGE_KEY = "fretless.settings";
@@ -77,6 +80,9 @@ const isCapo: Guard<number> = (v): v is number =>
 
 const isTabText: Guard<string> = (v): v is string =>
   typeof v === "string" && v.length <= TAB_TEXT_MAX;
+
+const isStringList: Guard<string[]> = (v): v is string[] =>
+  Array.isArray(v) && v.every((item) => typeof item === "string");
 
 function oneOf<T extends string>(allowed: readonly T[]): Guard<T> {
   return (v): v is T => allowed.some((a) => a === v);
@@ -116,6 +122,7 @@ export function parseSettings(raw: string | null): Settings {
     tabMode: field(s, "tabMode", oneOf(TAB_MODE_IDS), d.tabMode),
     progress: parseProgress(s.progress),
     drillLevels: parseLevels(s.drillLevels),
+    completedLessons: field(s, "completedLessons", isStringList, d.completedLessons),
   };
 }
 

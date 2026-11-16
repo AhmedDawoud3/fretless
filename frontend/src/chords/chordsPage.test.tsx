@@ -41,7 +41,7 @@ const identifyBodies = (fetchMock: ReturnType<typeof stubApi>) =>
     .filter(([url]) => url === "/api/guitar/identify")
     .map(([, init]) => JSON.parse(String(init?.body)));
 
-test("four tabs switch the page, and the page chosen is remembered", async () => {
+test("tabs switch the page, and the page chosen is remembered", async () => {
   stubApi();
   const first = render(<App />);
   const tabs = await screen.findAllByRole("tab");
@@ -49,7 +49,9 @@ test("four tabs switch the page, and the page chosen is remembered", async () =>
     "Maqam explorer",
     "Chords",
     "Tab converter",
+    "Audio to Oud",
     "Practice",
+    "Course",
   ]);
   expect(tabs[0]?.getAttribute("aria-selected")).toBe("true");
 

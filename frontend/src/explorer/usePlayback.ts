@@ -1,10 +1,9 @@
 import { useRef } from "react";
-import type { Scale } from "../api/client";
 import { playSequence } from "../audio";
 import { useRunner } from "./useRunner";
 
 /** One note of a played sequence: its pitch and where it sits on the neck, if anywhere. */
-export type Entry = Scale["playback"][number];
+export type Entry = { pitch: number; location: { course: number; position: number } | null };
 
 function locationAt(entries: readonly Entry[], index: number | null) {
   return entries[index ?? -1]?.location ?? null;
