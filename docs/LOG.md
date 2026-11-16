@@ -427,3 +427,44 @@ Quality & checks:
   `pytest --cov` measured 91–100% across the new Python modules.
 - Not verified: live browser run against real MP3 songs or listening to audio
   output by ear.
+
+## 2026-11-16: dark studio UI/UX makeover & dual-track tab studio
+
+Backend:
+- Extended `ConvertOut` in `src/fretless/api/tab_schemas.py` and
+  `src/fretless/api/tab_mappers.py` with `guitar_systems` and `guitar_playback`
+  so the source guitar tab can be played, stepped, and visualized on the guitar
+  neck alongside the converted oud arrangement. Regenerated `schema.d.ts`.
+
+Audio engine:
+- Added `renderGuitarPluck` in `frontend/src/audio/pluck.ts` (single steel-string
+  model sharing `renderString`) and `Instrument` timbre selection + voice
+  choking (`activeVoices`) in `frontend/src/audio/player.ts`.
+
+Neck viewport & Studio shell:
+- Replaced the fixed 1620 px scroll trap with responsive `100%` SVG sizing and
+  a `neckZoom` setting (`Fingerboard` zoom `170 125 710 215` default vs.
+  `Full oud` `0 0 1620 480`), updating `toDrawingPoint` in `pointer.ts` to map
+  through the active `viewBox` while preserving 1:1 full-canvas test mocks.
+- Added open-course tuning badges at the nut and a live hover ghost fret pill on
+  `OudNeck`.
+- Rebuilt all 7 CSS sheets (`app.css`, `neck.css`, `tab.css`, `guitar.css`,
+  `audio.css`, `practice.css`, `course.css`) in a dark obsidian-slate studio
+  palette (`#0b0d12` / `#121620` / `#38d9c0` / `#f5b942` / `#f06449`), unified
+  top header, 2-column Chords studio with collapsible string fine-tuning,
+  clickable `ScaleRibbon` degree pills on Maqam Explorer, and drag-and-drop
+  upload zone on Audio to Oud.
+
+Dual-track Tab Studio & Neck-to-Tab Editor:
+- Added `VisualTabStaff.tsx` (Songsterr-style clickable 6-line column staff),
+  `tabEdit.ts` (`toggleGuitarNote`, `placeOudNote`, `renderOudSystemText`,
+  `systemsToPlayback`), `Oud track` / `Guitar track` switcher, `Edit on neck` +
+  `+ New column`, `Previous` / `Next` event buttons, `Loop`, event scrubber,
+  and `ArrowLeft`/`ArrowRight` stepping in `useTabPlayer.ts` / `TabPlayer.tsx` /
+  `TabResult.tsx`.
+
+Quality & checks:
+- `just check`: ruff format/check, Biome lint (294 files), `ty check`, `tsc -b`,
+  `pytest` (304 passed), and `vitest run` (79 files, 492 passed) all passed.
+- `dryer --threshold 0.8`: no duplicate candidates found.
+- Not verified: visual layout or audio playback by ear in a live browser.
