@@ -61,3 +61,9 @@ def test_a_stopped_note_exactly_at_position_ten_is_still_easy_enough_to_keep_the
     # fingerable pair; position 10 is the threshold, not above it, so no note is dropped
     found = options(CC, SPAN, (70, 68))
     assert [o.notes for o in found] == [(PlacedNote(4, 4, 70), PlacedNote(5, 10, 68))]
+
+
+def test_every_option_of_an_event_has_the_same_notes() -> None:
+    found = options(CC, SPAN, (104, 96, 86, 80, 72))
+    assert len(found) > 1
+    assert len({tuple(sorted(n.pitch for n in o.notes)) for o in found}) == 1

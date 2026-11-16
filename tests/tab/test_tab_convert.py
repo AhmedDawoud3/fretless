@@ -190,3 +190,20 @@ def test_e_chord_in_cc_keeps_bass_third_and_melody_in_easy_positions() -> None:
     assert (max(n.pitch for n in notes), min(n.pitch for n in notes)) == (104, 56)  # E4, E2
     assert {8, 16} <= {n.pitch % 24 for n in notes}  # E and G-sharp
     assert all(n.position <= 10 for n in notes)
+
+
+def test_a_chord_keeps_the_same_notes_whatever_its_neighbours_are() -> None:
+    bar = tab(
+        e="-0--1--3--0-",
+        B="-1--1--0--0-",
+        G="-0--2--0--1-",
+        D="-2--3--0--2-",
+        A="-3--3--2--2-",
+        E="----1--3--0-",
+    )  # x32010 133211 320003 022100
+    (system,) = run(bar).blocks
+    assert isinstance(system, PlacedSystem)
+    last = system.columns[-1].notes  # 022100
+    assert max(n.pitch for n in last) == 104  # E4
+    assert min(n.pitch for n in last) == 56  # E2
+    assert {8, 16} <= {n.pitch % 24 for n in last}  # E and G-sharp

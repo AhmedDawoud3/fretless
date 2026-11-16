@@ -14,6 +14,7 @@ from fretless.tab.options import options
 from fretless.tab.oud_render import render_converted
 from fretless.tab.parse import parse_tab
 from fretless.tab.placement import placements
+from fretless.tab.transpose import fold, oud_range
 from fretless.tuning import TUNINGS, Tuning
 
 LABELS = "eBGDAE"
@@ -57,6 +58,7 @@ def test_every_converted_column_is_playable_and_faithful(
     placed = [b for b in result.blocks if isinstance(b, PlacedSystem)]
     assert len(placed) == len(sources)
     reduced = 0
+    shift, span = result.transposed_steps, oud_range(tuning)
     for source, system in zip(sources, placed, strict=True):
         assert (system.width, system.bars) == (source.width, source.bars)
         assert [c.index for c in system.columns] == [c.index for c in source.columns]
@@ -71,6 +73,17 @@ def test_every_converted_column_is_playable_and_faithful(
             for n in out.notes:
                 assert 0 <= n.position <= max_position(n.course)
                 assert pitch_at(tuning, Location(n.course, n.position)) == n.pitch
+            wanted = tuple(
+                sorted(
+                    {
+                        fold(fretted_pitch(guitar.strings[n.line - 1], capo, n.fret) + shift, span)
+                        for n in src.notes
+                    }
+                )
+            )
+            assert sorted(n.pitch for n in out.notes) == sorted(
+                n.pitch for n in options(tuning, span, wanted)[0].notes
+            )  # the notes kept depend on the event alone, not on its neighbours
             reduced += len(out.notes) < len(src.notes)
     assert sum(a.kind == "chord_reduced" for a in result.alterations) == reduced
     texts = [b for b in document.blocks if isinstance(b, TextBlock)]

@@ -37,8 +37,12 @@ def _rung_options(tuning: Tuning, span: Range, rung: Rung) -> list[Option]:
 
 
 def _ranked(found: list[Option]) -> tuple[Option, ...]:
+    """Fingerings of the cheapest note set only: which notes an event keeps never depends on
+    its neighbours, the path search chooses among fingerings of that one set."""
     ranked = sorted(found, key=lambda o: (o.cost, tuple((n.course, n.position) for n in o.notes)))
-    return tuple(dict.fromkeys(ranked))[:MAX_OPTIONS]
+    chosen = {n.pitch for n in ranked[0].notes}
+    same = (o for o in ranked if {n.pitch for n in o.notes} == chosen)
+    return tuple(dict.fromkeys(same))[:MAX_OPTIONS]
 
 
 def _hard(option: Option) -> bool:
