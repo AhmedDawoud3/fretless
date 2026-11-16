@@ -13,6 +13,8 @@ const saved = {
   page: "chords",
   guitarStrings: [104, 94, 86, 76, 68, 52],
   guitarCapo: 2,
+  tabText: "e|--0--|",
+  tabMode: "names",
 };
 
 test("nothing stored means the defaults", () => {
@@ -47,6 +49,8 @@ test("each bad value falls back on its own, good ones are kept", () => {
     maqamId: "bayati",
     guitarStrings: saved.guitarStrings,
     guitarCapo: 2,
+    tabText: "e|--0--|",
+    tabMode: "names",
   });
 });
 

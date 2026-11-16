@@ -1,3 +1,4 @@
+import type { TabMode } from "../api/client";
 import { CAPO_MAX, PITCH_MAX, PITCH_MIN, STRING_COUNT } from "../chords/shape";
 import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
@@ -5,6 +6,10 @@ import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
 export const PAGE_IDS = ["maqam", "chords"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
+
+export const TAB_MODE_IDS = ["frets", "names", "both"] as const satisfies readonly TabMode[];
+/** The most text the converter API takes. */
+export const TAB_TEXT_MAX = 200_000;
 
 export type Settings = {
   page: PageId;
@@ -20,6 +25,9 @@ export type Settings = {
   /** Open pitch of each guitar string, string 1 first, or null for the first preset. */
   guitarStrings: number[] | null;
   guitarCapo: number;
+  /** The tab pasted into the converter; "" when none, or too long to be kept. */
+  tabText: string;
+  tabMode: TabMode;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +42,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tempo: DEFAULT_TEMPO,
   guitarStrings: null,
   guitarCapo: 0,
+  tabText: "",
+  tabMode: "frets",
 };
 
 const STORAGE_KEY = "fretless.settings";
@@ -56,6 +66,9 @@ const isGuitarStrings: Guard<number[] | null> = (v): v is number[] | null =>
   v === null || (Array.isArray(v) && v.length === STRING_COUNT && v.every(isPitch));
 const isCapo: Guard<number> = (v): v is number =>
   Number.isInteger(v) && (v as number) >= 0 && (v as number) <= CAPO_MAX;
+
+const isTabText: Guard<string> = (v): v is string =>
+  typeof v === "string" && v.length <= TAB_TEXT_MAX;
 
 function oneOf<T extends string>(allowed: readonly T[]): Guard<T> {
   return (v): v is T => allowed.some((a) => a === v);
@@ -91,6 +104,8 @@ export function parseSettings(raw: string | null): Settings {
     tempo: field(s, "tempo", isTempo, d.tempo),
     guitarStrings: field(s, "guitarStrings", isGuitarStrings, d.guitarStrings),
     guitarCapo: field(s, "guitarCapo", isCapo, d.guitarCapo),
+    tabText: field(s, "tabText", isTabText, d.tabText),
+    tabMode: field(s, "tabMode", oneOf(TAB_MODE_IDS), d.tabMode),
   };
 }
 
