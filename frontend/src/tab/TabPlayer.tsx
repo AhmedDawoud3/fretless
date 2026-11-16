@@ -208,24 +208,48 @@ export function emptyGuitarFrets(): Frets {
   return Array.from({ length: STRING_COUNT }, () => null);
 }
 
-/** Visual tab staff, Dual-track Oud/Guitar player & neck editor, and transport bar. */
-export function TabPlayer(props: TabPlayerProps) {
+function resolvePlayerTrack(props: TabPlayerProps) {
   const hasGuitar = props.guitarSystems.length > 0 && props.guitar !== undefined;
   const activeGuitar = props.track === "guitar" && props.guitar ? props.guitar : null;
   const isGuitar = activeGuitar !== null && hasGuitar;
-
-  const handleOudPlay = (hit: { course: number; position: number; pitch: number }) => {
-    playSteps(hit.pitch);
-    if (props.editMode) props.onEditOud?.(hit);
+  return {
+    hasGuitar,
+    activeGuitar: isGuitar ? activeGuitar : null,
+    isGuitar,
+    staffSystems: isGuitar ? props.guitarSystems : props.systems,
+    fretDivisor: (isGuitar ? 1 : 2) as 1 | 2,
   };
+}
 
-  const handleGuitarFret = (string: number, fret: number) => {
-    if (props.guitar) {
-      const pitch = soundingPitch(props.guitar.strings[string - 1] ?? 0, props.guitar.capo, fret);
-      playSteps(pitch, undefined, "guitar");
-    }
-    if (props.editMode) props.onEditGuitar?.(string, fret);
-  };
+function playOudHit(
+  hit: { course: number; position: number; pitch: number },
+  editMode: boolean,
+  onEditOud?: (hit: { course: number; position: number; pitch: number }) => void,
+) {
+  playSteps(hit.pitch);
+  if (editMode) onEditOud?.(hit);
+}
+
+function playGuitarFretHit(
+  guitar: { strings: readonly number[]; capo: number } | undefined,
+  string: number,
+  fret: number,
+  editMode: boolean,
+  onEditGuitar?: (string: number, fret: number) => void,
+) {
+  if (guitar) {
+    playSteps(
+      soundingPitch(guitar.strings[string - 1] ?? 0, guitar.capo, fret),
+      undefined,
+      "guitar",
+    );
+  }
+  if (editMode) onEditGuitar?.(string, fret);
+}
+
+/** Visual tab staff, Dual-track Oud/Guitar player & neck editor, and transport bar. */
+export function TabPlayer(props: TabPlayerProps) {
+  const view = resolvePlayerTrack(props);
 
   return (
     <section
@@ -234,7 +258,7 @@ export function TabPlayer(props: TabPlayerProps) {
       onKeyDown={(e) => onArrowStep(e, props.onPrev, props.onNext)}
     >
       <TrackToolbar
-        hasGuitar={hasGuitar}
+        hasGuitar={view.hasGuitar}
         track={props.track}
         onTrack={props.onTrack}
         editMode={props.editMode}
@@ -259,15 +283,15 @@ export function TabPlayer(props: TabPlayerProps) {
         speed is only approximate.
       </p>
       <VisualTabStaff
-        systems={isGuitar ? props.guitarSystems : props.systems}
+        systems={view.staffSystems}
         mode={props.mode}
-        fretDivisor={isGuitar ? 1 : 2}
+        fretDivisor={view.fretDivisor}
         activeKey={props.activeKey}
         onPick={props.onPick}
       />
       <div className="neck-scroll">
         <NeckStage
-          guitar={isGuitar ? activeGuitar : null}
+          guitar={view.activeGuitar}
           activeGuitarFrets={props.activeGuitarFrets}
           neck={props.neck}
           markers={props.markers}
@@ -276,8 +300,10 @@ export function TabPlayer(props: TabPlayerProps) {
           neckZoom={props.neckZoom}
           system={props.system}
           labelMode={props.labelMode}
-          onOudHit={handleOudPlay}
-          onGuitarFret={handleGuitarFret}
+          onOudHit={(hit) => playOudHit(hit, props.editMode, props.onEditOud)}
+          onGuitarFret={(s, f) =>
+            playGuitarFretHit(props.guitar, s, f, props.editMode, props.onEditGuitar)
+          }
         />
       </div>
     </section>

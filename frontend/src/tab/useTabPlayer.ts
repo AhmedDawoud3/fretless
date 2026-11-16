@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { PlaybackEvent } from "../api/client";
 import { type Instrument, playStrum, playTimed } from "../audio";
 import { useRunner } from "../explorer/useRunner";
@@ -29,6 +29,8 @@ function playTrack(
 
 const prevIndex = (activeIndex: number) => Math.max(0, activeIndex <= 0 ? 0 : activeIndex - 1);
 const nextIndex = (activeIndex: number, length: number) => Math.min(length - 1, activeIndex + 1);
+const resolveActiveIndex = (playing: boolean, index: number | null, picked: number | null) =>
+  playing ? (index ?? -1) : (picked ?? -1);
 
 /**
  * Plays a tab track (Oud or Guitar), supports stepping ◀/▶, scrubbing, loop, and live column picking.
@@ -41,6 +43,11 @@ export function useTabPlayer(
 ) {
   const { playing, index, begin, stop } = useRunner(resetKey);
   const [picked, setPicked] = useState<number | null>(null);
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setPicked(null);
+  }
   const [loop, setLoop] = useState(false);
   const loopRef = useRef(loop);
   loopRef.current = loop;
@@ -53,10 +60,6 @@ export function useTabPlayer(
       return run;
     });
   }, [begin, events, instrument, speed]);
-
-  // Clear picked selection when source inputs change.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: resetKey triggers selection reset
-  useEffect(() => setPicked(null), [resetKey]);
 
   const selectIndex = useCallback(
     (at: number) => {
@@ -77,7 +80,7 @@ export function useTabPlayer(
     [events, selectIndex],
   );
 
-  const activeIndex = playing ? (index ?? -1) : (picked ?? -1);
+  const activeIndex = resolveActiveIndex(playing, index, picked);
   const current = events[activeIndex] ?? null;
 
   return {

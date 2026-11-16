@@ -49,3 +49,29 @@ test("placeOudNote adds or toggles a note in an oud system and renders aligned A
   expect(ascii).toContain("G|--1.5");
   expect(ascii).toContain("D|-------2--|");
 });
+
+test("toggleGuitarNote clears/replaces technique tokens cleanly and renderOudSystemText keeps them", () => {
+  const techTab = [
+    "e|--5h--|",
+    "B|------|",
+    "G|------|",
+    "D|------|",
+    "A|------|",
+    "E|------|",
+  ].join("\n");
+  const cleared = toggleGuitarNote(techTab, 1, 2, 5);
+  expect(cleared.split("\n")[0]).toBe("e|------|");
+  const replaced = toggleGuitarNote(techTab, 1, 2, 7);
+  expect(replaced.split("\n")[0]).toBe("e|--7---|");
+  expect(new Set(replaced.split("\n").map((l) => l.length)).size).toBe(1);
+
+  const sys: ConvertedSystem = {
+    index: 0,
+    width: 8,
+    bars: [],
+    labels: ["C", "G", "D", "A", "F", "C"],
+    columns: [{ index: 2, notes: [{ course: 1, position: 0, pitch: 96, name: "C" }] }],
+    techniques: { "1:2": "h" },
+  };
+  expect(renderOudSystemText(sys, "frets")).toContain("C|--0h");
+});

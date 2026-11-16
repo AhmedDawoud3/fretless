@@ -338,7 +338,8 @@ export function TabImportBar({ onImported }: TabImportBarProps) {
   const [state, setState] = useState<ImportState>({ status: "idle" });
   const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
   const h: ImportHandlers = { setActiveUrl, setState, setLibrary, onImported };
-  const targetUrl = activeUrl ?? url.trim();
+  const trimmedUrl = url.trim();
+  const matchesActive = activeUrl !== null && (trimmedUrl === "" || trimmedUrl === activeUrl);
   const { tracks, trackIndex } = currentTracks(state);
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
@@ -353,8 +354,8 @@ export function TabImportBar({ onImported }: TabImportBarProps) {
         url={url}
         kind={kind}
         busy={state.status === "loading"}
-        canSwitchTrack={Boolean(targetUrl)}
-        tracks={tracks}
+        canSwitchTrack={matchesActive}
+        tracks={matchesActive ? tracks : []}
         trackIndex={trackIndex}
         onUrl={setUrl}
         onKind={setKind}
@@ -363,7 +364,7 @@ export function TabImportBar({ onImported }: TabImportBarProps) {
           void submitUrlImport(url, kind, library, h);
         }}
         onFile={onFile}
-        onTrack={(idx) => void submitTrackImport(idx, targetUrl, kind, library, h)}
+        onTrack={(idx) => void submitTrackImport(idx, activeUrl ?? "", kind, library, h)}
       />
       <ImportStatus state={state} />
       <ImportLibraryShelf

@@ -34,18 +34,19 @@ function spliceToken(text: string, at: number, remove: number, insert: string): 
 function writeAtColumn(parts: SplitLine[], row: number, col: number, token: string): string[] {
   const target = parts[row];
   if (!target) return parts.map((p) => `${p.prefix}${p.content}|`);
-  const existing = /^\d+/.exec(target.content.slice(col))?.[0] ?? "";
-  if (existing === token) {
+  const existing = /^\d+[hp/\\b~]?/.exec(target.content.slice(col))?.[0] ?? "";
+  if (existing.replace(/[hp/\\b~]$/, "") === token) {
     const cleared = spliceToken(target.content, col, existing.length, "-".repeat(existing.length));
     return parts.map((p, i) => `${p.prefix}${i === row ? cleared : p.content}|`);
   }
   const replaceLen = Math.max(1, existing.length);
-  const delta = Math.max(0, token.length - replaceLen);
+  const paddedToken = token.padEnd(replaceLen, "-");
+  const delta = Math.max(0, paddedToken.length - replaceLen);
   const pad = "-".repeat(delta);
   return parts.map((p, i) => {
     const next =
       i === row
-        ? spliceToken(p.content, col, replaceLen, token)
+        ? spliceToken(p.content, col, replaceLen, paddedToken)
         : spliceToken(p.content, col + replaceLen, 0, pad);
     return `${p.prefix}${next}|`;
   });
@@ -121,17 +122,30 @@ export function oudCellText(note: { position: number; name: string }, mode: TabM
   return fret;
 }
 
+function renderOudCell(
+  system: ConvertedSystem,
+  colIndex: number,
+  note: { position: number; name: string },
+  course: number,
+  mode: TabMode,
+): string {
+  const tech = mode === "frets" ? (system.techniques?.[`${course}:${colIndex}`] ?? "") : "";
+  return `${oudCellText(note, mode)}${tech}`;
+}
+
 /** Render an Oud `ConvertedSystem` back to aligned ASCII tab lines. */
 export function renderOudSystemText(system: ConvertedSystem, mode: TabMode): string {
   const labelWidth = Math.max(1, ...system.labels.map((l) => l.length));
   const sorted = [...system.columns].sort((a, b) => a.index - b.index);
-  const widths = sorted.map((c) => Math.max(1, ...c.notes.map((n) => oudCellText(n, mode).length)));
+  const widths = sorted.map((c) =>
+    Math.max(1, ...c.notes.map((n) => renderOudCell(system, c.index, n, n.course, mode).length)),
+  );
   const rows = system.labels.map((label, idx) => {
     const course = idx + 1;
     let body = "--";
     sorted.forEach((col, ci) => {
       const cell = col.notes.find((n) => n.course === course);
-      const text = cell ? oudCellText(cell, mode) : "";
+      const text = cell ? renderOudCell(system, col.index, cell, course, mode) : "";
       body += text.padEnd((widths[ci] ?? 1) + 2, "-");
     });
     return `${label.padEnd(labelWidth)}|${body}|`;
