@@ -3,6 +3,7 @@ import { echoDrill } from "./echo/echoDrill";
 import { findNote } from "./find/findNote";
 import { intervalEar } from "./interval/intervalEar";
 import { maqamEar } from "./maqamEar/maqamEar";
+import { micDrill } from "./mic/micDrill";
 
 /** Every drill on the Practice page, in picker order. A new drill is one line here. */
-export const DRILLS: readonly DrillEntry[] = [findNote, intervalEar, echoDrill, maqamEar];
+export const DRILLS: readonly DrillEntry[] = [findNote, intervalEar, echoDrill, maqamEar, micDrill];

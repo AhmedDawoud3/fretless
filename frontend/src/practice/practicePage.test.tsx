@@ -56,17 +56,23 @@ function pressFind(right: boolean) {
 
 test("the Practice page lists the drills with a line each, and no stats before any tries", async () => {
   await openPractice();
-  for (const title of [/Find the note/, /Interval by ear/, /Echo/, /Maqam by ear/]) {
+  for (const title of [
+    /Find the note/,
+    /Interval by ear/,
+    /Echo/,
+    /Maqam by ear/,
+    /Play it on your oud/,
+  ]) {
     expect(await screen.findByRole("button", { name: title })).toBeDefined();
   }
-  expect(screen.getAllByText("Not tried yet")).toHaveLength(4);
+  expect(screen.getAllByText("Not tried yet")).toHaveLength(5);
   expect(screen.getByText(/Press where it is on the oud/)).toBeDefined();
 });
 
 test("a short note says how to practise", async () => {
   await openPractice();
   expect(await screen.findByText(/weak spots/i)).toBeDefined();
-  expect(screen.getByText(/microphone/i)).toBeDefined();
+  expect(document.querySelector(".how-to-practise")?.textContent).toMatch(/microphone drill/);
 });
 
 test("choosing a drill shows its question", async () => {

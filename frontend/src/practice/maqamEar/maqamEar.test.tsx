@@ -37,6 +37,7 @@ async function show(level = 1, seed = 5) {
   render(maqamEar.render({ context, onRecord, random: seeded(seed) }));
   const question = makeMaqamQuestion(context, seeded(seed));
   await screen.findByRole("button", { name: "Play again" });
+  await waitFor(() => expect(play).toHaveBeenCalled());
   return { question, onRecord };
 }
 
