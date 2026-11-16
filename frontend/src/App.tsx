@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
 import { PageTabs } from "./app/PageTabs";
-import { useSharedSettings } from "./app/useSharedSettings";
+import { type PageProps, useSharedSettings } from "./app/useSharedSettings";
 import { ChordsPage } from "./chords/ChordsPage";
 import { Controls } from "./explorer/Controls";
 import { MaqamPage } from "./explorer/MaqamPage";
+import type { PageId } from "./explorer/settings";
+import { TabPage } from "./tab/TabPage";
 import "./app.css";
 
 function Status({ kind }: { kind: "loading" | "error" }) {
@@ -14,9 +17,16 @@ function Status({ kind }: { kind: "loading" | "error" }) {
   );
 }
 
+const PAGES: Record<PageId, (props: PageProps) => ReactNode> = {
+  maqam: MaqamPage,
+  chords: ChordsPage,
+  tab: TabPage,
+};
+
 function App() {
   const shared = useSharedSettings();
   const { data } = shared;
+  const Page = PAGES[shared.page];
   return (
     <main>
       <h1>Fretless</h1>
@@ -39,11 +49,7 @@ function App() {
             system={shared.system}
             onSystem={shared.setSystem}
           />
-          {shared.page === "maqam" ? (
-            <MaqamPage shared={shared} neck={data.neck} />
-          ) : (
-            <ChordsPage shared={shared} neck={data.neck} />
-          )}
+          <Page shared={shared} neck={data.neck} />
         </>
       )}
     </main>

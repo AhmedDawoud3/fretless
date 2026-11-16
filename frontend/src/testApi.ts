@@ -10,6 +10,7 @@ import type {
   Quality,
   Scale,
 } from "./api/client";
+import { CONVERTED, noTab } from "./tab/convertedFixture";
 
 /** Letter and alter for each of the 24 pitch classes, as the neck spells them. */
 const SPELLING: readonly [NeckLocation["name"]["letter"], number][] = [
@@ -197,7 +198,14 @@ function respondChords(url: string, init?: RequestInit): unknown {
   return undefined;
 }
 
+/** Text with a tab line (a bar) converts to the fixture; any other text finds no tab. */
+function convert(init: RequestInit | undefined) {
+  const { text } = JSON.parse(String(init?.body ?? "{}")) as { text: string };
+  return text.includes("|") ? CONVERTED : noTab(text);
+}
+
 function respond(url: string, init?: RequestInit): unknown {
+  if (url === "/api/tab/convert") return convert(init);
   const chords = respondChords(url, init);
   if (chords !== undefined) return chords;
   const scale = /^\/api\/maqamat\/(\w+)\/scale\?root=(\d+)/.exec(url);
@@ -208,7 +216,7 @@ function respond(url: string, init?: RequestInit): unknown {
   return [neck.tuning, { id: "ff", label: "F-F" }];
 }
 
-/** Stubs fetch like the backend (tunings, neck, maqamat, scales, chords, guitar) and starts with empty storage. */
+/** Stubs fetch like the backend (tunings, neck, maqamat, scales, chords, guitar, tab) and starts with empty storage. */
 export function stubApi() {
   localStorage.clear();
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => ({

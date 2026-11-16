@@ -4,7 +4,7 @@ import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
 import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
-export const PAGE_IDS = ["maqam", "chords"] as const;
+export const PAGE_IDS = ["maqam", "chords", "tab"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
 export const TAB_MODE_IDS = ["frets", "names", "both"] as const satisfies readonly TabMode[];

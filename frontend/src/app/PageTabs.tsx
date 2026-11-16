@@ -1,6 +1,10 @@
 import { PAGE_IDS, type PageId } from "../explorer/settings";
 
-const TITLES: Record<PageId, string> = { maqam: "Maqam explorer", chords: "Chords" };
+const TITLES: Record<PageId, string> = {
+  maqam: "Maqam explorer",
+  chords: "Chords",
+  tab: "Tab converter",
+};
 
 type PageTabsProps = { page: PageId; onPage: (page: PageId) => void };
 

@@ -3,6 +3,10 @@ import { parseSettings } from "./settings";
 
 const parse = (patch: unknown) => parseSettings(JSON.stringify(patch));
 
+test("the converter is a page that can be remembered", () => {
+  expect(parse({ page: "tab" }).page).toBe("tab");
+});
+
 test("the output mode is frets, names or both; anything else is frets", () => {
   expect(["frets", "names", "both"].map((m) => parse({ tabMode: m }).tabMode)).toEqual([
     "frets",
