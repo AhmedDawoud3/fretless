@@ -54,6 +54,31 @@ export const INTERVALS: Interval[] = INTERVAL_ROWS.map(([steps, id, short, level
   level,
 }));
 
+/** The C-C oud as the API serves it: six courses, a fifth each and an octave on course 1, every step of the grid. */
+export const fullNeck: NeckOut = (() => {
+  const opens = [96, 86, 76, 66, 58, 48];
+  const courses = opens.map((open_pitch, i) => ({
+    course: i + 1,
+    open_pitch,
+    max_position: i === 0 ? 24 : 14,
+  }));
+  const locations = courses.flatMap((c) =>
+    Array.from({ length: c.max_position + 1 }, (_, position): NeckLocation => {
+      const pitch = c.open_pitch + position;
+      const [letter, alter] = SPELLING[pitch % 24] ?? ["C", 0];
+      return {
+        course: c.course,
+        position,
+        pitch,
+        name: { letter, alter, octave: Math.floor(pitch / 24) },
+      };
+    }),
+  );
+  return { tuning: { id: "cc", label: "C-C" }, courses, locations };
+})();
+
+let served: NeckOut = neck;
+
 export const rast: Maqam = {
   id: "rast",
   name: "Rast",
@@ -240,12 +265,13 @@ function respondMaqam(url: string): unknown {
   if (scale && found) return scaleFor(found, Number(scale[2]));
   if (url === "/api/maqamat") return [rast, bayati];
   if (url === "/api/intervals") return INTERVALS;
-  if (url.startsWith("/api/neck")) return neck;
+  if (url.startsWith("/api/neck")) return served;
   return [neck.tuning, { id: "ff", label: "F-F" }];
 }
 
 /** Stubs fetch like the backend (tunings, neck, maqamat, scales, chords, guitar, tab) and starts with empty storage. */
-export function stubApi() {
+export function stubApi(neckServed: NeckOut = neck) {
+  served = neckServed;
   localStorage.clear();
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => ({
     ok: true,
