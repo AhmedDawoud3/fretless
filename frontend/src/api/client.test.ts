@@ -4,6 +4,7 @@ import {
   convertTab,
   fetchChord,
   fetchGuitarTunings,
+  fetchIntervals,
   fetchMaqamat,
   fetchNeck,
   fetchQualities,
@@ -105,4 +106,10 @@ test("convertTab reports a 422 as rejected, not as a failure", async () => {
 test("convertTab throws on any other failure", async () => {
   stubFetch({ ok: false, status: 500 });
   await expect(convertTab(convertBody)).rejects.toThrow("500");
+});
+
+test("fetchIntervals asks for the interval list", async () => {
+  const fetchMock = stubFetch({ ok: true, json: async () => [{ id: "octave" }] });
+  expect(await fetchIntervals()).toEqual([{ id: "octave" }]);
+  expect(fetchMock).toHaveBeenCalledWith("/api/intervals");
 });

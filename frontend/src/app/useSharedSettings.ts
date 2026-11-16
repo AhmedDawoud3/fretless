@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import type { NeckOut } from "../api/client";
+import { fetchIntervals, type NeckOut } from "../api/client";
 import type { LabelMode } from "../explorer/readout";
 import { loadSettings, type PageId, saveSettings } from "../explorer/settings";
 import { useNeckData } from "../explorer/useNeckData";
 import type { NamingSystem } from "../notation/noteName";
+import { useRequest } from "./useRequest";
 
 /**
  * The settings both pages share, and the oud neck they are drawn on. The one owner
@@ -17,6 +18,7 @@ export function useSharedSettings() {
   const [guides, setGuides] = useState(saved.guides);
   const [labelMode, setLabelMode] = useState<LabelMode>(saved.labelMode);
   const [system, setSystem] = useState<NamingSystem>(saved.system);
+  const { value: intervals, failed: intervalsFailed } = useRequest("intervals", fetchIntervals);
 
   useEffect(() => {
     // Until the tuning is known there is nothing to save: that would erase the stored one.
@@ -26,6 +28,7 @@ export function useSharedSettings() {
 
   return {
     ...{ data, tuningId, setTuningId, page, setPage, snap, setSnap },
+    ...{ intervals, intervalsFailed },
     ...{ guides, setGuides, labelMode, setLabelMode, system, setSystem },
   };
 }

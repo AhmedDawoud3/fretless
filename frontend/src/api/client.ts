@@ -22,6 +22,7 @@ export type ConvertedSystem = components["schemas"]["PlacedSystemOut"];
 export type ConvertedSummary = components["schemas"]["SummaryOut"];
 export type Alteration = components["schemas"]["AlterationOut"];
 export type PlaybackEvent = components["schemas"]["PlaybackEventOut"];
+export type Interval = components["schemas"]["IntervalOut"];
 export type Course = components["schemas"]["CourseOut"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,6 +39,10 @@ export function fetchTunings(): Promise<Tuning[]> {
 
 export function fetchNeck(tuningId: string): Promise<NeckOut> {
   return getJson<NeckOut>(`/api/neck/${encodeURIComponent(tuningId)}`);
+}
+
+export function fetchIntervals(): Promise<Interval[]> {
+  return getJson<Interval[]>("/api/intervals");
 }
 
 export function fetchMaqamat(): Promise<Maqam[]> {

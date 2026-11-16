@@ -36,6 +36,7 @@ export function MaqamPage({ shared, neck }: PageProps) {
           maqam={x.maqam.maqam}
           scale={x.maqam.scale}
           failed={x.maqam.scaleFailed}
+          intervals={shared.intervals}
           system={shared.system}
         />
       ) : (

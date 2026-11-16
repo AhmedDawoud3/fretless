@@ -3,6 +3,7 @@ import type {
   ChordResult,
   GuitarTuning,
   Identified,
+  Interval,
   Maqam,
   NeckLocation,
   NeckOut,
@@ -29,6 +30,29 @@ export const neck: NeckOut = {
     name: { letter, alter, octave: 4 },
   })),
 };
+
+/** The API's interval list: [steps, id, short, level], names and fret wording derived as the backend does. */
+const INTERVAL_ROWS: readonly [number, string, string, number][] = [
+  [0, "unison", "P1", 3], [2, "minor_second", "m2", 2], [3, "neutral_second", "n2", 4],
+  [4, "major_second", "M2", 2], [6, "minor_third", "m3", 1], [7, "neutral_third", "n3", 4],
+  [8, "major_third", "M3", 1], [10, "perfect_fourth", "P4", 1], [11, "wide_fourth", "w4", 4],
+  [12, "tritone", "TT", 3], [14, "perfect_fifth", "P5", 1], [16, "minor_sixth", "m6", 2],
+  [17, "neutral_sixth", "n6", 4], [18, "major_sixth", "M6", 2], [20, "minor_seventh", "m7", 3],
+  [21, "neutral_seventh", "n7", 4], [22, "major_seventh", "M7", 3], [24, "octave", "P8", 1],
+]; // biome-ignore format: one row per few intervals
+
+const fretWords = (steps: number) =>
+  `${Math.floor(steps / 2) || (steps % 2 ? "" : 0)}${steps % 2 ? "½" : ""} ${steps === 2 ? "fret" : "frets"}`;
+
+export const INTERVALS: Interval[] = INTERVAL_ROWS.map(([steps, id, short, level]) => ({
+  steps,
+  id,
+  name: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("_", " "),
+  short,
+  frets: fretWords(steps),
+  quarter_tone: steps % 2 === 1,
+  level,
+}));
 
 export const rast: Maqam = {
   id: "rast",
@@ -215,6 +239,7 @@ function respondMaqam(url: string): unknown {
   const found = [rast, bayati].find((m) => m.id === scale?.[1]);
   if (scale && found) return scaleFor(found, Number(scale[2]));
   if (url === "/api/maqamat") return [rast, bayati];
+  if (url === "/api/intervals") return INTERVALS;
   if (url.startsWith("/api/neck")) return neck;
   return [neck.tuning, { id: "ff", label: "F-F" }];
 }
