@@ -2,6 +2,7 @@ import type { GuitarTuning } from "../api/client";
 import type { PageProps } from "../app/useSharedSettings";
 import { useGuitarTuning } from "../chords/useGuitarTuning";
 import { rootOptions } from "../explorer/rootOptions";
+import { TabExplanation } from "./TabExplanation";
 import { TabInput } from "./TabInput";
 import { TabResult } from "./TabResult";
 import { type Conversion, useConversion } from "./useConversion";
@@ -50,6 +51,7 @@ export function TabView({
         onConvert={() => convert(input.text)}
       />
       <Outcome {...{ shared, neck, conversion, inputKey }} />
+      <TabExplanation />
     </>
   );
 }

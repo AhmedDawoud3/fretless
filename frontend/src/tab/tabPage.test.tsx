@@ -186,3 +186,13 @@ test("a clipboard that refuses is not an error", async () => {
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByRole("button", { name: "Copy" })).toBeDefined();
 });
+
+test("a short explanation says how the tab is fitted to the oud and what is lost", async () => {
+  await openTab();
+  const panel = screen.getByRole("region", { name: "How the converter works" });
+  expect(panel.textContent).toMatch(/octave/);
+  expect(panel.textContent).toMatch(/top note/);
+  expect(panel.textContent).toMatch(/easiest hand position/);
+  expect(panel.textContent).toMatch(/slides, bends and hammer-ons are dropped/i);
+  expect(panel.textContent).toMatch(/rhythm is approximate/);
+});
