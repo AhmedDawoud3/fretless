@@ -5,6 +5,8 @@ from itertools import combinations
 from fretless.pitch import STEPS_PER_OCTAVE
 from fretless.tab.transpose import Range
 
+MAX_NOTES = 4  # an oud chord is a 2 to 4 note shape, as in voicing.py
+
 type Rung = tuple[tuple[int, ...], ...]  # alternative pitch sets of one preference level
 
 
@@ -12,15 +14,14 @@ def _desc(pitches: tuple[int, ...] | list[int]) -> tuple[int, ...]:
     return tuple(sorted(set(pitches), reverse=True))
 
 
-def _drop_duplicate_classes(pitches: tuple[int, ...]) -> tuple[int, ...]:
-    """Keep the top and bottom notes and the lowest note of every other pitch class."""
-    seen: set[int] = set()
-    kept = []
-    for pitch in reversed(pitches):  # lowest first
-        if pitch in (pitches[0], pitches[-1]) or pitch % STEPS_PER_OCTAVE not in seen:
-            kept.append(pitch)
-        seen.add(pitch % STEPS_PER_OCTAVE)
-    return _desc(kept)
+def _most_classes(sets: Rung) -> Rung:
+    """The sets with the most distinct pitch classes: root, third, fifth beat root, root, fifth."""
+
+    def classes(pitches: tuple[int, ...]) -> int:
+        return len({p % STEPS_PER_OCTAVE for p in pitches})
+
+    best = max(classes(s) for s in sets)
+    return tuple(s for s in sets if classes(s) == best)
 
 
 def _subsets(pitches: tuple[int, ...], size: int, with_bass: bool) -> Rung:
@@ -31,21 +32,20 @@ def _subsets(pitches: tuple[int, ...], size: int, with_bass: bool) -> Rung:
 
 
 def rungs(pitches: tuple[int, ...]) -> tuple[Rung, ...]:
-    """Pitch sets to try in order: all notes, duplicate classes dropped, then fewer notes.
+    """Pitch sets to try in order: the whole chord if it has at most MAX_NOTES, then fewer.
 
     The top note (the melody) is always kept. Subsets that keep the bass come before any
-    that lose it; the last resort is the top note alone.
+    that lose it, larger before smaller; within a size, only sets with the most distinct
+    pitch classes. The last resort is the top note alone.
     """
     whole = _desc(pitches)
-    thinner = _drop_duplicate_classes(whole)
-    levels: list[Rung] = [(whole,)]
-    if thinner != whole:
-        levels.append((thinner,))
-    top = len(thinner)
-    if top > 1:
-        levels += [_subsets(thinner, s, True) for s in range(top - 1, 1, -1)]
-        levels += [_subsets(thinner, s, False) for s in range(top - 1, 1, -1)]
-        levels.append(((thinner[0],),))
+    count = len(whole)
+    levels: list[Rung] = [(whole,)] if count <= MAX_NOTES else []
+    if count > 1:
+        for with_bass in (True, False):
+            for size in range(min(count - 1, MAX_NOTES), 1, -1):
+                levels.append(_most_classes(_subsets(whole, size, with_bass)))
+        levels.append(((whole[0],),))
     return tuple(levels)
 
 

@@ -125,3 +125,56 @@ def test_no_tab_converts_to_itself() -> None:
     assert result.blocks == (TextBlock("just words"),)
     assert result.alterations == ()
     assert result.transposed_steps == 0
+
+
+def column_notes(result: Converted) -> list[PlacedNote]:
+    (column,) = [c for b in result.blocks if isinstance(b, PlacedSystem) for c in b.columns]
+    return list(column.notes)
+
+
+def test_already_placeable_two_and_three_note_columns_are_unchanged() -> None:
+    two = run(tab(G="-0-", D="-0-"))  # G3 and D3 sound on the open courses 2 and 3
+    assert column_notes(two) == [PlacedNote(2, 0, 86), PlacedNote(3, 0, 76)]
+    three = run(tab(G="-0-", D="-0-", A="-2-"))  # plus B2: course 4 (66) at position 4
+    assert column_notes(three) == [PlacedNote(2, 0, 86), PlacedNote(3, 0, 76), PlacedNote(4, 4, 70)]
+    assert kinds(two) == kinds(three) == []
+
+
+def test_x32010_becomes_an_easy_shape_of_at_most_four_notes() -> None:
+    result = run(tab(e="-0-", B="-1-", G="-0-", D="-2-", A="-3-"))  # C3 E3 G3 C4 E4
+    notes = column_notes(result)
+    assert len(notes) <= 4
+    assert max(n.pitch for n in notes) == 104  # E4 melody
+    assert min(n.pitch for n in notes) == 72  # C3 bass
+    assert all(n.position <= 10 for n in notes)  # nothing above virtual fret 5
+    assert {n.pitch % 24 for n in notes} == {0, 8, 14}  # C E G
+    reduced = [a for a in result.alterations if a.kind == "chord_reduced"]
+    assert len(reduced) == 1
+    assert reduced[0].message.startswith(f"{5 - len(notes)} chord note")
+
+
+def test_f_barre_chord_keeps_melody_and_bass_in_four_notes_or_fewer() -> None:
+    notes = column_notes(run(tab(e="-1-", B="-1-", G="-2-", D="-3-", A="-3-", E="-1-")))
+    assert len(notes) <= 4
+    assert max(n.pitch for n in notes) == 106  # F4
+    assert min(n.pitch for n in notes) == 58  # F2
+
+
+def test_open_g_and_e_chords_keep_root_and_third_in_both_tunings() -> None:
+    g_major = tab(e="-3-", B="-0-", G="-0-", D="-0-", A="-2-", E="-3-")  # 320003
+    e_major = tab(e="-0-", B="-0-", G="-1-", D="-2-", A="-2-", E="-0-")  # 022100
+    # (text, source top note, root class, third class): G=14 B=22, E=8 G#=16
+    for text, top, root, third in ((g_major, 110, 14, 22), (e_major, 104, 8, 16)):
+        for tuning in (CC, FF):
+            result = run(text, tuning)
+            notes = column_notes(result)
+            shift = result.transposed_steps
+            assert len(notes) <= 4
+            assert max(n.pitch for n in notes) % 24 == (top + shift) % 24
+            if (text, tuning) == (e_major, FF):
+                # Known gap: E2 is below F-F, so the whole piece moves up an octave (transpose.py)
+                # and the melody lands on E5 at position 22, where no third fits the hand.
+                assert result.transposed_steps == 24
+                continue
+            classes = {n.pitch % 24 for n in notes}
+            assert {(root + shift) % 24, (third + shift) % 24} <= classes

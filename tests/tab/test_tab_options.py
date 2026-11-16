@@ -34,3 +34,23 @@ def test_options_are_capped_and_sorted_by_cost() -> None:
     found = options(CC, SPAN, (96, 86, 76))
     assert len(found) <= MAX_OPTIONS
     assert [o.cost for o in found] == sorted(o.cost for o in found)
+
+
+def test_five_notes_become_the_cheapest_four_note_shape_keeping_top_and_bass() -> None:
+    # C3 E3 G3 C4 E4 -> E4 on course 1 fret 4, G3 open course 2, E3 course 3 fret 2, C3 course 4
+    # fret 3; every position is at most 10 steps
+    found = options(CC, SPAN, (104, 96, 86, 80, 72))
+    assert found[0].notes == (
+        PlacedNote(1, 8, 104),
+        PlacedNote(2, 0, 86),
+        PlacedNote(3, 4, 80),
+        PlacedNote(4, 6, 72),
+    )
+    assert all(len(o.notes) <= 4 for o in found)
+
+
+def test_a_chord_needing_a_stretch_above_position_ten_loses_a_note_to_stay_easy() -> None:
+    # D3 B2 A2: 60 and 62 sit two steps apart, so one must take course 6 at position 12 or 14.
+    # Dropping the 62 (inner note) leaves D3 open on course 3 and the bass 60 at position 2.
+    found = options(CC, SPAN, (76, 62, 60))
+    assert found[0].notes == (PlacedNote(3, 0, 76), PlacedNote(5, 2, 60))

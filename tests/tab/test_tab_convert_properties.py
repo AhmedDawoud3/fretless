@@ -65,7 +65,7 @@ def test_every_converted_column_is_playable_and_faithful(
                 fretted_pitch(guitar.strings[n.line - 1], capo, n.fret) % STEPS_PER_OCTAVE
                 for n in src.notes
             }
-            assert 1 <= len(out.notes) <= len(src.notes)
+            assert 1 <= len(out.notes) <= min(len(src.notes), 4)
             assert len({n.course for n in out.notes}) == len(out.notes)
             assert {n.pitch % STEPS_PER_OCTAVE for n in out.notes} <= classes
             for n in out.notes:

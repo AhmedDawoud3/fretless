@@ -22,13 +22,20 @@ def test_inner_notes_drop_before_the_bass_and_the_top_note_never_drops() -> None
     )
 
 
-def test_duplicate_pitch_classes_drop_before_inner_notes() -> None:
-    # F2 C3 F3 A3 C4 F4: the second F and the second C are duplicates of lower notes
+def test_a_chord_of_more_than_four_notes_starts_at_four_with_the_most_pitch_classes() -> None:
+    # F2 C3 F3 A3 C4 F4: 4-note sets keep F4 and F2; an inner C and A give 3 classes, not 2
     found = rungs((58, 72, 82, 90, 96, 106))
-    assert found[0] == ((106, 96, 90, 82, 72, 58),)
-    assert found[1] == ((106, 90, 72, 58),)
-    assert all(len(sub) < 4 for rung in found[2:] for sub in rung)
+    assert found[0] == ((106, 96, 90, 58), (106, 90, 72, 58))
+    assert all(len(sub) <= 4 for rung in found for sub in rung)
+    assert [len(rung[0]) for rung in found] == [4, 3, 2, 4, 3, 2, 1]
     assert found[-1] == ((106,),)
+
+
+def test_five_notes_skip_the_whole_chord_and_prefer_distinct_classes() -> None:
+    # C3 E3 G3 C4 E4: keeping top E4 and bass C3, G3 is needed for three classes
+    found = rungs((72, 80, 86, 96, 104))
+    assert found[0] == ((104, 96, 86, 72), (104, 86, 80, 72))
+    assert all(len(sub) <= 4 for rung in found for sub in rung)
 
 
 def test_a_duplicate_that_is_the_top_or_bottom_note_is_kept() -> None:
