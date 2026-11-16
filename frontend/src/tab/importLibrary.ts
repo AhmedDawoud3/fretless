@@ -6,10 +6,14 @@ const MAX_ITEMS = 50;
 export type LibraryItem = {
   key: string;
   imported: ImportedTab;
+  sourceUrl?: string;
+  isDefault?: boolean;
 };
 
-export const urlLibraryKey = (url: string, kind: ImportKind): string =>
-  `url:${kind}:${url.trim().toLowerCase()}`;
+export const urlLibraryKey = (url: string, kind: ImportKind, track?: number | null): string => {
+  const base = `url:${kind}:${url.trim().toLowerCase()}`;
+  return track == null ? base : `${base}#t${track}`;
+};
 
 export const pdfLibraryKey = (filename: string, size: number, kind: ImportKind): string =>
   `pdf:${kind}:${filename.trim().toLowerCase()}:${size}`;
@@ -48,10 +52,39 @@ export function findInLibrary(items: readonly LibraryItem[], key: string): Libra
   return items.find((item) => item.key === key);
 }
 
+export function findUrlInLibrary(
+  items: readonly LibraryItem[],
+  url: string,
+  kind: ImportKind,
+  track?: number | null,
+): LibraryItem | undefined {
+  const direct = findInLibrary(items, urlLibraryKey(url, kind, track));
+  if (direct) return direct;
+  const basePrefix = `${urlLibraryKey(url, kind)}#`;
+  if (track == null) {
+    return items.find((item) => item.isDefault && item.key.startsWith(basePrefix));
+  }
+  return items.find(
+    (item) => item.key.startsWith(basePrefix) && item.imported.track_index === track,
+  );
+}
+
 export function saveToLibrary(items: readonly LibraryItem[], item: LibraryItem): LibraryItem[] {
   const next = [item, ...items.filter((entry) => entry.key !== item.key)].slice(0, MAX_ITEMS);
   writeLibrary(next);
   return next;
+}
+
+export function saveUrlToLibrary(
+  items: readonly LibraryItem[],
+  imported: ImportedTab,
+  sourceUrl: string,
+  kind: ImportKind,
+  isDefault: boolean,
+): LibraryItem[] {
+  const trackIdx = imported.track_index ?? null;
+  const key = urlLibraryKey(sourceUrl, kind, trackIdx);
+  return saveToLibrary(items, { key, imported, sourceUrl, isDefault });
 }
 
 export function removeFromLibrary(items: readonly LibraryItem[], key: string): LibraryItem[] {

@@ -306,6 +306,7 @@ function respondTab(url: string, init: RequestInit | undefined): unknown {
       text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
       strings: [104, 94, 86, 76, 68, 56],
       capo: 0,
+      tracks: [],
     };
   }
   if (url === "/api/tab/import-pdf") {
@@ -316,6 +317,7 @@ function respondTab(url: string, init: RequestInit | undefined): unknown {
       text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
       strings: [90, 86, 76, 70, 62, 52],
       capo: 0,
+      tracks: [],
     };
   }
   if (url !== "/api/tab/convert") return undefined;

@@ -177,3 +177,61 @@ test("re-importing the same URL loads from library without a second fetch, and s
   fireEvent.click(removeBtn);
   expect(screen.queryByRole("button", { name: "Load Samai Bayati" })).toBeNull();
 });
+
+test("multi-track Songsterr import reveals a Track selector and switches tracks cleanly", async () => {
+  const fetchMock = await openTab();
+  const base = fetchMock.getMockImplementation();
+  const tracks = [
+    { index: 0, name: "Rhythm Guitar", instrument: "Electric Guitar (clean)", is_vocal: false },
+    {
+      index: 1,
+      name: "Electric Bass (finger)",
+      instrument: "Electric Bass (finger)",
+      is_vocal: false,
+    },
+    { index: 3, name: "Vocals", instrument: "Tenor Sax", is_vocal: true },
+  ];
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/import-url") {
+      const req = JSON.parse(String(init?.body ?? "{}")) as { track?: number };
+      const chosen = req.track ?? 3;
+      const trackName = tracks.find((t) => t.index === chosen)?.name ?? "Vocals";
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          title: `Tamino — So It Goes — ${trackName}`,
+          source: "songsterr",
+          kind: "tab",
+          text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
+          strings: null,
+          capo: 0,
+          tempo: 116,
+          track_index: chosen,
+          tracks,
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  const taminoUrl =
+    "https://www.songsterr.com/a/wsa/tamino-so-it-goes-full-version-vocal-tab-s5828677";
+  fireEvent.change(screen.getByLabelText("Tab / Chords URL"), { target: { value: taminoUrl } });
+  fireEvent.click(screen.getByRole("button", { name: "Import URL" }));
+
+  await screen.findByText(/Imported Tamino — So It Goes — Vocals/i);
+  const trackSelect = screen.getByLabelText("Track") as HTMLSelectElement;
+  expect(trackSelect.value).toBe("3");
+
+  fireEvent.change(trackSelect, { target: { value: "0" } });
+  await screen.findByText(/Imported Tamino — So It Goes — Rhythm Guitar/i);
+
+  const importCalls = fetchMock.mock.calls
+    .filter(([u]) => u === "/api/tab/import-url")
+    .map(([, init]) => JSON.parse(String(init?.body)));
+  expect(importCalls).toEqual([
+    { url: taminoUrl, kind: "auto" },
+    { url: taminoUrl, kind: "auto", track: 0 },
+  ]);
+});

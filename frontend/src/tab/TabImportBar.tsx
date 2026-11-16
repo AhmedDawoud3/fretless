@@ -1,6 +1,7 @@
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import {
   type ImportedTab,
+  type ImportedTrack,
   type ImportKind,
   type ImportReply,
   importTabPdf,
@@ -10,12 +11,13 @@ import { Select } from "../explorer/Select";
 import { bytesToBase64 } from "../transcribe/exampleWav";
 import {
   findInLibrary,
+  findUrlInLibrary,
   type LibraryItem,
   loadLibrary,
   pdfLibraryKey,
   removeFromLibrary,
   saveToLibrary,
-  urlLibraryKey,
+  saveUrlToLibrary,
 } from "./importLibrary";
 
 const MAX_PDF_BYTES = 14 * 1024 * 1024;
@@ -41,6 +43,14 @@ type ImportState =
 
 const UNREACHABLE = "Import failed. Check that `just api` is running and try again.";
 
+function formatTrackLabel(track: ImportedTrack): string {
+  const { name, instrument } = track;
+  if (instrument && instrument.toLowerCase() !== name.toLowerCase()) {
+    return `${name} (${instrument})`;
+  }
+  return name;
+}
+
 function ImportStatus({ state }: { state: ImportState }) {
   if (state.status === "idle") return null;
   if (state.status === "loading") return <p className="import-status">{state.label}</p>;
@@ -57,6 +67,30 @@ function ImportStatus({ state }: { state: ImportState }) {
     <p className="import-status">
       {`${prefix} ${state.imported.title} (${source} · ${state.imported.kind})`}
     </p>
+  );
+}
+
+function TrackSelect({
+  tracks,
+  trackIndex,
+  disabled,
+  onChange,
+}: {
+  tracks: readonly ImportedTrack[];
+  trackIndex: number | null;
+  disabled: boolean;
+  onChange: (index: number) => void;
+}) {
+  if (tracks.length <= 1 || disabled) return null;
+  const current = String(trackIndex ?? tracks[0]?.index ?? 0);
+  const options: [string, string][] = tracks.map((t) => [String(t.index), formatTrackLabel(t)]);
+  return (
+    <Select
+      label="Track"
+      value={current}
+      options={options}
+      onChange={(val) => onChange(Number(val))}
+    />
   );
 }
 
@@ -134,100 +168,208 @@ async function runImport(
   }
 }
 
+function currentTracks(state: ImportState): {
+  tracks: readonly ImportedTrack[];
+  trackIndex: number | null;
+} {
+  if (state.status !== "done" && state.status !== "cached") {
+    return { tracks: [], trackIndex: null };
+  }
+  return {
+    tracks: state.imported.tracks ?? [],
+    trackIndex: state.imported.track_index ?? null,
+  };
+}
+
+function ImportFormFields({
+  url,
+  kind,
+  busy,
+  canSwitchTrack,
+  tracks,
+  trackIndex,
+  onUrl,
+  onKind,
+  onSubmit,
+  onFile,
+  onTrack,
+}: {
+  url: string;
+  kind: ImportKind;
+  busy: boolean;
+  canSwitchTrack: boolean;
+  tracks: readonly ImportedTrack[];
+  trackIndex: number | null;
+  onUrl: (v: string) => void;
+  onKind: (k: ImportKind) => void;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onFile: (e: ChangeEvent<HTMLInputElement>) => void;
+  onTrack: (idx: number) => void;
+}) {
+  return (
+    <form className="import-form" onSubmit={onSubmit}>
+      <label className="control import-url-field">
+        Tab / Chords URL
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => onUrl(e.target.value)}
+          placeholder="https://tabs.ultimate-guitar.com/... or https://www.songsterr.com/..."
+          disabled={busy}
+        />
+      </label>
+      <Select label="Import as" value={kind} options={IMPORT_KINDS} onChange={onKind} />
+      <button type="submit" disabled={busy || url.trim() === ""}>
+        Import URL
+      </button>
+      <label className="control import-pdf-pick">
+        Import PDF
+        <input type="file" accept=".pdf,application/pdf" disabled={busy} onChange={onFile} />
+      </label>
+      <TrackSelect
+        tracks={tracks}
+        trackIndex={trackIndex}
+        disabled={busy || !canSwitchTrack}
+        onChange={onTrack}
+      />
+    </form>
+  );
+}
+
+async function readPdfImport(file: File, kind: ImportKind): Promise<ImportReply> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  return importTabPdf({ pdf_base64: bytesToBase64(bytes), filename: file.name, kind });
+}
+
+type ImportHandlers = {
+  setActiveUrl: (u: string | null) => void;
+  setState: (s: ImportState) => void;
+  setLibrary: (fn: (prev: LibraryItem[]) => LibraryItem[]) => void;
+  onImported: (imported: ImportedTab) => void;
+};
+
+function acceptCachedEntry(
+  cached: LibraryItem | undefined,
+  fallbackUrl: string | null,
+  h: ImportHandlers,
+): boolean {
+  if (!cached) return false;
+  h.setActiveUrl(cached.sourceUrl ?? fallbackUrl);
+  h.setState({ status: "cached", imported: cached.imported });
+  h.onImported(cached.imported);
+  return true;
+}
+
+function acceptUrlEntry(
+  sourceUrl: string,
+  kind: ImportKind,
+  imported: ImportedTab,
+  isDefault: boolean,
+  h: ImportHandlers,
+) {
+  h.setLibrary((prev) => saveUrlToLibrary(prev, imported, sourceUrl, kind, isDefault));
+  h.setActiveUrl(sourceUrl);
+  h.onImported(imported);
+}
+
+async function submitUrlImport(
+  rawUrl: string,
+  kind: ImportKind,
+  library: readonly LibraryItem[],
+  h: ImportHandlers,
+) {
+  const trimmed = rawUrl.trim();
+  if (!trimmed || acceptCachedEntry(findUrlInLibrary(library, trimmed, kind), trimmed, h)) return;
+  await runImport(
+    "Fetching tab or chords...",
+    () => importTabUrl({ url: trimmed, kind }),
+    h.setState,
+    (imported) => acceptUrlEntry(trimmed, kind, imported, true, h),
+  );
+}
+
+async function submitTrackImport(
+  trackIdx: number,
+  targetUrl: string,
+  kind: ImportKind,
+  library: readonly LibraryItem[],
+  h: ImportHandlers,
+) {
+  if (!targetUrl) return;
+  if (acceptCachedEntry(findUrlInLibrary(library, targetUrl, kind, trackIdx), targetUrl, h)) return;
+  await runImport(
+    "Loading track...",
+    () => importTabUrl({ url: targetUrl, kind, track: trackIdx }),
+    h.setState,
+    (imported) => acceptUrlEntry(targetUrl, kind, imported, false, h),
+  );
+}
+
+async function submitPdfImport(
+  file: File | undefined,
+  kind: ImportKind,
+  library: readonly LibraryItem[],
+  h: ImportHandlers,
+) {
+  if (!file) return;
+  if (file.size > MAX_PDF_BYTES) {
+    h.setState({ status: "error", message: "PDF file is over 14 MB." });
+    return;
+  }
+  const key = pdfLibraryKey(file.name, file.size, kind);
+  if (acceptCachedEntry(findInLibrary(library, key), null, h)) return;
+  await runImport(
+    `Reading ${file.name}...`,
+    () => readPdfImport(file, kind),
+    h.setState,
+    (imported) => {
+      h.setActiveUrl(null);
+      h.setLibrary((prev) => saveToLibrary(prev, { key, imported }));
+      h.onImported(imported);
+    },
+  );
+}
+
 /** Import tabs or chord sheets from Ultimate Guitar, Songsterr, or local PDF files. */
 export function TabImportBar({ onImported }: TabImportBarProps) {
   const [url, setUrl] = useState("");
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const [kind, setKind] = useState<ImportKind>("auto");
   const [state, setState] = useState<ImportState>({ status: "idle" });
   const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary());
+  const h: ImportHandlers = { setActiveUrl, setState, setLibrary, onImported };
+  const targetUrl = activeUrl ?? url.trim();
+  const { tracks, trackIndex } = currentTracks(state);
 
-  const acceptImported = (key: string, imported: ImportedTab) => {
-    setLibrary((prev) => saveToLibrary(prev, { key, imported }));
-    onImported(imported);
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    void submitPdfImport(file, kind, library, h);
   };
-
-  const loadCached = (key: string): boolean => {
-    const cached = findInLibrary(library, key);
-    if (!cached) return false;
-    setState({ status: "cached", imported: cached.imported });
-    onImported(cached.imported);
-    return true;
-  };
-
-  const handleUrl = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = url.trim();
-    if (!trimmed) return;
-    const key = urlLibraryKey(trimmed, kind);
-    if (loadCached(key)) return;
-    await runImport(
-      "Fetching tab or chords...",
-      () => importTabUrl({ url: trimmed, kind }),
-      setState,
-      (imported) => acceptImported(key, imported),
-    );
-  };
-
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (file.size > MAX_PDF_BYTES) {
-      setState({ status: "error", message: "PDF file is over 14 MB." });
-      return;
-    }
-    const key = pdfLibraryKey(file.name, file.size, kind);
-    if (loadCached(key)) return;
-    await runImport(
-      `Reading ${file.name}...`,
-      async () =>
-        importTabPdf({
-          pdf_base64: bytesToBase64(new Uint8Array(await file.arrayBuffer())),
-          filename: file.name,
-          kind,
-        }),
-      setState,
-      (imported) => acceptImported(key, imported),
-    );
-  };
-
-  const busy = state.status === "loading";
 
   return (
     <div className="import-bar">
-      <form className="import-form" onSubmit={(e) => void handleUrl(e)}>
-        <label className="control import-url-field">
-          Tab / Chords URL
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://tabs.ultimate-guitar.com/... or https://www.songsterr.com/..."
-            disabled={busy}
-          />
-        </label>
-        <Select label="Import as" value={kind} options={IMPORT_KINDS} onChange={setKind} />
-        <button type="submit" disabled={busy || url.trim() === ""}>
-          Import URL
-        </button>
-        <label className="control import-pdf-pick">
-          Import PDF
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            disabled={busy}
-            onChange={(e) => void handleFileChange(e)}
-          />
-        </label>
-      </form>
+      <ImportFormFields
+        url={url}
+        kind={kind}
+        busy={state.status === "loading"}
+        canSwitchTrack={Boolean(targetUrl)}
+        tracks={tracks}
+        trackIndex={trackIndex}
+        onUrl={setUrl}
+        onKind={setKind}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submitUrlImport(url, kind, library, h);
+        }}
+        onFile={onFile}
+        onTrack={(idx) => void submitTrackImport(idx, targetUrl, kind, library, h)}
+      />
       <ImportStatus state={state} />
       <ImportLibraryShelf
         items={library}
-        disabled={busy}
-        onSelect={(item) => {
-          setState({ status: "cached", imported: item.imported });
-          onImported(item.imported);
-        }}
+        disabled={state.status === "loading"}
+        onSelect={(item) => acceptCachedEntry(item, null, h)}
         onRemove={(key) => setLibrary((prev) => removeFromLibrary(prev, key))}
       />
     </div>

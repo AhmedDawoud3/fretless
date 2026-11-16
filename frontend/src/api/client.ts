@@ -31,6 +31,7 @@ export type ImportUrlBody = components["schemas"]["ImportUrlIn"];
 export type ImportKind = ImportUrlBody["kind"];
 export type ImportPdfBody = components["schemas"]["ImportPdfIn"];
 export type ImportedTab = components["schemas"]["ImportTabOut"];
+export type ImportedTrack = components["schemas"]["ImportedTrackOut"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(path, init) : await fetch(path);
