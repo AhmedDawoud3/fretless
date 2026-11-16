@@ -1,6 +1,6 @@
 import { stepsToFrequency } from "../audio/frequency";
-import type { Detection } from "./detectPitch";
 import { CENTS_PER_STEP } from "./compare";
+import type { Detection } from "./detectPitch";
 import { frequencyToSteps } from "./steps";
 
 export type Reading =
@@ -51,47 +51,44 @@ function steadyReading(frames: Frame[]): Reading {
   };
 }
 
+type Run = { agreeing: Frame[]; pending: Frame[] };
+type Config = Required<TrackerOptions>;
+
+const agrees = (frames: Frame[], frame: Frame, agreeCents: number) =>
+  frames.length === 0 || Math.abs(frame.steps - medianSteps(frames)) <= agreeCents / CENTS_PER_STEP;
+
+/** Frames that disagree wait in `pending`, and replace `agreeing` only once they too have held. */
+function addFrame(run: Run, frame: Frame, o: Config): Run {
+  if (agrees(run.agreeing, frame, o.agreeCents)) {
+    return { agreeing: [...run.agreeing, frame].slice(-o.windowFrames), pending: [] };
+  }
+  const pending = agrees(run.pending, frame, o.agreeCents) ? [...run.pending, frame] : [frame];
+  return pending.length >= o.minFrames ? { agreeing: pending, pending: [] } : { ...run, pending };
+}
+
+function readingOf(run: Run, o: Config): Reading {
+  return run.agreeing.length >= o.minFrames ? steadyReading(run.agreeing) : { state: "settling" };
+}
+
+const EMPTY: Run = { agreeing: [], pending: [] };
+
 /**
  * Turns per-frame detections into a stable reading. A pitch is steady after
- * `minFrames` agreeing frames; frames that disagree wait in a pending run and
- * only replace the steady pitch once they too have held for `minFrames`, so a
- * lone octave glitch never shows.
+ * `minFrames` agreeing frames; frames that disagree only replace the steady
+ * pitch once they too have held for `minFrames`, so a lone octave glitch never
+ * shows. Unclear frames hold the last reading; `silenceMs` of nothing resets.
  */
 export function createTracker(options: TrackerOptions = {}): Tracker {
-  const o = { ...DEFAULTS, ...options };
-  const agreeSteps = o.agreeCents / CENTS_PER_STEP;
-  let agreeing: Frame[] = [];
-  let pending: Frame[] = [];
+  const o: Config = { ...DEFAULTS, ...options };
+  let run = EMPTY;
   let lastHeardMs = Number.NEGATIVE_INFINITY;
   let reading: Reading = { state: "silent" };
-
-  const agrees = (frames: Frame[], frame: Frame) =>
-    frames.length === 0 || Math.abs(frame.steps - medianSteps(frames)) <= agreeSteps;
-
-  function addFrame(frame: Frame): void {
-    if (agrees(agreeing, frame)) {
-      agreeing = [...agreeing, frame].slice(-o.windowFrames);
-      pending = [];
-      return;
-    }
-    pending = agrees(pending, frame) ? [...pending, frame] : [frame];
-    if (pending.length >= o.minFrames) {
-      agreeing = pending;
-      pending = [];
-    }
-  }
-
-  function settle(): Reading {
-    if (agreeing.length >= o.minFrames) return steadyReading(agreeing);
-    return { state: "settling" };
-  }
 
   return {
     push(detection, timeMs) {
       if (detection === null) {
         if (timeMs - lastHeardMs > o.silenceMs) {
-          agreeing = [];
-          pending = [];
+          run = EMPTY;
           reading = { state: "silent" };
         }
         return reading;
@@ -101,8 +98,9 @@ export function createTracker(options: TrackerOptions = {}): Tracker {
         if (reading.state === "silent") reading = { state: "settling" };
         return reading;
       }
-      addFrame({ steps: frequencyToSteps(detection.frequency), clarity: detection.clarity });
-      reading = settle();
+      const steps = frequencyToSteps(detection.frequency);
+      run = addFrame(run, { steps, clarity: detection.clarity }, o);
+      reading = readingOf(run, o);
       return reading;
     },
   };
