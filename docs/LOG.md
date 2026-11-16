@@ -611,3 +611,49 @@ Quality & checks:
   confirmed automatic selection of track `3` (`Vocals`) from `-vocal-tab-` URLs
   and switching across `0` (`Rhythm Guitar`), `1` (`Electric Bass`), and `3`
   (`Vocals`).
+
+## 2026-11-17: codebase review fixes, importer split, and full complexity < 10
+
+Backend:
+- Replaced generator lookup hacks (`next(le for le in LETTERS ...)`) with
+  `LETTER_BY_NAME` in `src/fretless/pitch.py`, `src/fretless/guitar.py`, and
+  `src/fretless/tab/tuning_parse.py`.
+- Bounded `options` cache with `@lru_cache(maxsize=2048)` in
+  `src/fretless/tab/options.py`, removed dead `summary_out` from
+  `src/fretless/api/tab_mappers.py`, narrowed audio decoding exception catches in
+  `src/fretless/audio/decode.py`, and simplified `parse_tab` in
+  `src/fretless/tab/parse.py` to zip lines and parsed rows before grouping.
+- Implemented slash-chord bass voicing (`C/G`, `Am/G`) in `src/fretless/tab/chords.py`
+  (`_parse_chord_with_bass`, optional `bass_pc` in `_shape_score` and
+  `_search_shapes`) and replaced the inner mutating `_flush()` closure with
+  `_render_pending_chunks`.
+- Replaced anonymous 3/4-tuples in `src/fretless/tab/pdf_import.py` with frozen
+  dataclasses (`_SlurArc`, `_SlideMark`, `_RawStaffNote`, `_StaffContext`),
+  closed PyMuPDF documents with `with`, capped PDF processing to 30 pages, and
+  removed redundant `_slide_lines_wrap`.
+- Split the 643-line `src/fretless/tab/url_import.py` into
+  `src/fretless/tab/ug_import.py`, `src/fretless/tab/songsterr_import.py`
+  (adding `_validate_cloudfront_parts`), and a transport/dispatcher
+  `src/fretless/tab/url_import.py` with `_SafeRedirectHandler`, 10 MB
+  response/gzip size caps, and hostname checks.
+
+Frontend:
+- Fixed `writeAtColumn` and `renderOudSystemText` in `frontend/src/tab/tabEdit.ts`
+  so editing guitar notes removes/replaces trailing technique symbols cleanly
+  without orphaning characters, and editing oud notes preserves technique
+  suffixes in `frets` mode.
+- Scoped `TrackSelect` in `frontend/src/tab/TabImportBar.tsx` so stale song
+  tracks do not remain active when typing a different URL.
+- Decomposed `TabPlayer` (`resolvePlayerTrack`, `playOudHit`,
+  `playGuitarFretHit`) in `frontend/src/tab/TabPlayer.tsx` and `useTabPlayer`
+  (`resolveActiveIndex` + render-time `prevResetKey` reset replacing the
+  passive mount `useEffect` race) in `frontend/src/tab/useTabPlayer.ts`.
+
+Quality & checks:
+- `just check`: `ruff format --check` (115 files), `ruff check`, `biome` (297
+  files), `ty check`, `tsc -b`, `pytest` (333 passed, including slash-chord
+  bass and malformed CloudFront metadata tests), and `vitest run` (80 files,
+  501 passed, including `tabEdit.test.ts` technique edit tests).
+- `dryer --threshold 0.8`: no duplicate candidates found.
+- `crapper --no-coverage`: every function across the entire Python + TypeScript
+  codebase now scores cyclomatic complexity `<= 9`.
