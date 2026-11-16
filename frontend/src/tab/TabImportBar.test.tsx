@@ -85,6 +85,7 @@ test("importing a Songsterr URL sends kind and imports tab cleanly", async () =>
 
 test("uploading a PDF imports its tab, applies tuning, and converts automatically", async () => {
   const fetchMock = await openTab();
+  fireEvent.change(screen.getByLabelText("Import as"), { target: { value: "sheet" } });
   const file = new File([Uint8Array.from([37, 80, 68, 70])], "Smile - Tamino.pdf", {
     type: "application/pdf",
   });
@@ -97,7 +98,10 @@ test("uploading a PDF imports its tab, applies tuning, and converts automaticall
   await screen.findByRole("region", { name: "Converted tab" });
 
   const pdfCall = fetchMock.mock.calls.find(([u]) => u === "/api/tab/import-pdf");
-  expect(JSON.parse(String(pdfCall?.[1]?.body))).toMatchObject({ filename: "Smile - Tamino.pdf" });
+  expect(JSON.parse(String(pdfCall?.[1]?.body))).toMatchObject({
+    filename: "Smile - Tamino.pdf",
+    kind: "sheet",
+  });
 });
 
 test("422 import rejections surface an accessible alert with server detail", async () => {

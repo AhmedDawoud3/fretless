@@ -453,6 +453,12 @@ export interface components {
              * @default
              */
             filename: string;
+            /**
+             * Kind
+             * @default auto
+             * @enum {string}
+             */
+            kind: "auto" | "tab" | "chords" | "sheet";
         };
         /** ImportTabOut */
         ImportTabOut: {
@@ -481,7 +487,7 @@ export interface components {
              * @default auto
              * @enum {string}
              */
-            kind: "auto" | "tab" | "chords";
+            kind: "auto" | "tab" | "chords" | "sheet";
         };
         /** IntervalOut */
         IntervalOut: {

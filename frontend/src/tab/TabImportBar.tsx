@@ -19,6 +19,7 @@ const SOURCE_LABELS: Record<string, string> = {
 const IMPORT_KINDS: [ImportKind, string][] = [
   ["auto", "Auto"],
   ["tab", "Tab"],
+  ["sheet", "Sheet music"],
   ["chords", "Chords"],
 ];
 
@@ -90,7 +91,9 @@ export function TabImportBar({ onImported }: TabImportBarProps) {
     setState({ status: "loading", label: `Reading ${file.name}...` });
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      applyReply(await importTabPdf({ pdf_base64: bytesToBase64(bytes), filename: file.name }));
+      applyReply(
+        await importTabPdf({ pdf_base64: bytesToBase64(bytes), filename: file.name, kind }),
+      );
     } catch {
       setState({ status: "error", message: UNREACHABLE });
     }
