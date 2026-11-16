@@ -16,5 +16,6 @@ router = APIRouter()
 def convert_tab(body: ConvertIn) -> ConvertOut:
     tuning = find(TUNINGS, body.oud_tuning, "tuning")
     document = parse_tab(body.text)
-    converted = convert(document, tuple(body.guitar.strings), body.guitar.capo, tuning)
-    return convert_out(document, converted, tuning, body.mode)
+    strings = tuple(body.guitar.strings)
+    converted = convert(document, strings, body.guitar.capo, tuning)
+    return convert_out(document, converted, tuning, body.mode, strings, body.guitar.capo)

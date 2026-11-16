@@ -138,3 +138,16 @@ def test_bad_input_is_422() -> None:
 
 def test_unknown_tuning_is_404() -> None:
     assert convert(oud_tuning="bayati").status_code == 404
+
+
+def test_guitar_systems_and_playback_are_returned_for_source_tab() -> None:
+    body = convert().json()
+    assert len(body["guitar_systems"]) == 2
+    first = body["guitar_systems"][0]
+    assert first["labels"] == ["E", "B", "G", "D", "A", "E"]
+    assert first["columns"][0]["notes"] == [
+        {"course": 3, "position": 0, "pitch": 86, "name": "G"},
+        {"course": 5, "position": 3, "pitch": 72, "name": "C"},
+    ]
+    assert len(body["guitar_playback"]) == len(body["playback"])
+    assert body["guitar_playback"][0]["notes"][0]["pitch"] == 86

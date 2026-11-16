@@ -78,3 +78,5 @@ class ConvertOut(BaseModel):
     alterations: list[AlterationOut]
     playback: list[PlaybackEventOut]
     summary: SummaryOut
+    guitar_systems: list[PlacedSystemOut] = []
+    guitar_playback: list[PlaybackEventOut] = []
