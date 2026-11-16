@@ -41,11 +41,16 @@ const identifyBodies = (fetchMock: ReturnType<typeof stubApi>) =>
     .filter(([url]) => url === "/api/guitar/identify")
     .map(([, init]) => JSON.parse(String(init?.body)));
 
-test("three tabs switch the page, and the page chosen is remembered", async () => {
+test("four tabs switch the page, and the page chosen is remembered", async () => {
   stubApi();
   const first = render(<App />);
   const tabs = await screen.findAllByRole("tab");
-  expect(tabs.map((t) => t.textContent)).toEqual(["Maqam explorer", "Chords", "Tab converter"]);
+  expect(tabs.map((t) => t.textContent)).toEqual([
+    "Maqam explorer",
+    "Chords",
+    "Tab converter",
+    "Practice",
+  ]);
   expect(tabs[0]?.getAttribute("aria-selected")).toBe("true");
 
   fireEvent.click(await screen.findByRole("tab", { name: "Chords" }));

@@ -45,10 +45,10 @@ const convertBodies = (fetchMock: ReturnType<typeof stubApi>) =>
     .filter(([url]) => url === CONVERT_URL)
     .map(([, init]) => JSON.parse(String(init?.body)));
 
-test("the converter is a third page in the tab bar", async () => {
+test("the converter is the third page in the tab bar", async () => {
   await openTab();
   const tabs = screen.getAllByRole("tab").map((t) => t.textContent);
-  expect(tabs).toEqual(["Maqam explorer", "Chords", "Tab converter"]);
+  expect(tabs).toEqual(["Maqam explorer", "Chords", "Tab converter", "Practice"]);
 });
 
 test("Convert sends the text with the guitar and oud settings and shows the result", async () => {
