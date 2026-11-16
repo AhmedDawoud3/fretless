@@ -311,3 +311,35 @@ Unit L, frontend `listen/`:
 - Not verified: no real microphone and no real oud. The capture loop
   (`openMicrophone.ts`, `startListening.ts`) has never run in a browser.
   Tracker thresholds are guesses to tune against real input.
+
+## 2026-11-16: phase 4, unit M (practice page, part 1)
+
+- Fourth page "Practice": drill picker with per-drill stats, shared shell
+  (prompt, answer, feedback, Next, streak, score), difficulty per drill,
+  reset with confirm.
+- Framework: a drill is a pure `makeQuestion` and `check` plus a `View`;
+  `defineDrill` and one line in `registry.ts` plug it in. Progress and levels
+  live in the validated settings key. `pickWeighted` gives unseen items weight
+  4 and always-right items 1, never zero.
+- Drills: Find the note, Interval by ear, Echo (hear it, find it). Echo was the
+  lead's addition, not an owner request.
+- Removed the duplicate `stepsToFrets`; the maqam panel now reads fret wording
+  from `/api/intervals`, loaded once in `useSharedSettings`.
+- Lead's error: the plan's example said a perfect fifth is "3½ frets". It is 7
+  frets (14 steps / 2). The agent followed the API, not the example.
+- Sequential seeds in the first seeded-random helper gave near-identical
+  values and made property tests useless; replaced with mulberry32.
+- Tests first for pure logic, shell, Find, Interval, and page. The Echo view
+  test was written before the view but not run before it existed.
+- Process slip: one commit went in with two red tests (chained after a failing
+  check); fixed in a following commit, not amended.
+- Verified in headless Edge at 1400 px: picker, Find after a wrong press,
+  Interval after answering, Echo hint, number-key answer. At 390 px only the
+  picker and Find. The screenshots read predate the last fix commit.
+- Known: Snap checkbox still shown on Practice though Find and Echo force snap;
+  level 4 interval drill has 18 options but number keys cover 9; flats in
+  level 2 untested because the test neck has only sharps; note gaps (0.9 s,
+  1 s) are guesses; sound unheard. `just check` timed out once under load and
+  passed on rerun.
+- Environment: an older backend process was holding port 8000 without the
+  intervals endpoint; the agent left it alone and used other ports.
