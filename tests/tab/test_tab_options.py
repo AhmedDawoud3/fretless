@@ -54,3 +54,10 @@ def test_a_chord_needing_a_stretch_above_position_ten_loses_a_note_to_stay_easy(
     # Dropping the 62 (inner note) leaves D3 open on course 3 and the bass 60 at position 2.
     found = options(CC, SPAN, (76, 62, 60))
     assert found[0].notes == (PlacedNote(3, 0, 76), PlacedNote(5, 2, 60))
+
+
+def test_a_stopped_note_exactly_at_position_ten_is_still_easy_enough_to_keep_the_chord() -> None:
+    # A2 and G#2 (70, 68): 70 on course 4 position 4 and 68 on course 5 position 10 is the only
+    # fingerable pair; position 10 is the threshold, not above it, so no note is dropped
+    found = options(CC, SPAN, (70, 68))
+    assert [o.notes for o in found] == [(PlacedNote(4, 4, 70), PlacedNote(5, 10, 68))]
