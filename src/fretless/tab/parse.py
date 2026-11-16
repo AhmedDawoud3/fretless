@@ -29,6 +29,10 @@ def parse_tab(text: str) -> TabDocument:
     return TabDocument(tuple(_merge_text(blocks)))
 
 
+def _is_stack(count: int) -> bool:
+    return count <= _MAX_STACKED and count % _STACK_LINES == 0
+
+
 def _blocks(lines: list[str], parsed: list[TabLine | None], is_tab: bool) -> list[Block]:
     """A run of tab-looking lines is a system when it has 4 to 7 lines, else text.
 
@@ -37,7 +41,7 @@ def _blocks(lines: list[str], parsed: list[TabLine | None], is_tab: bool) -> lis
     tab_lines = [p for p in parsed if p is not None]
     if is_tab and _MIN_LINES <= len(tab_lines) <= _MAX_LINES:
         return [_system(tab_lines)]
-    if is_tab and len(tab_lines) <= _MAX_STACKED and len(tab_lines) % _STACK_LINES == 0:
+    if is_tab and _is_stack(len(tab_lines)):
         return [
             _system(tab_lines[at : at + _STACK_LINES])
             for at in range(0, len(tab_lines), _STACK_LINES)
