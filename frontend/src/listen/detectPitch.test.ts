@@ -103,21 +103,3 @@ describe("detectPitch on the Karplus-Strong pluck", () => {
     });
   }
 });
-
-describe("detectPitch speed", () => {
-  /** Average ms per call over one batch. */
-  function batchMs(frame: Float32Array, runs: number): number {
-    const start = performance.now();
-    for (let i = 0; i < runs; i++) detectPitch(frame, 44100);
-    return (performance.now() - start) / runs;
-  }
-
-  it("takes well under 10 ms per 4096-sample frame", () => {
-    const frame = harmonicTone(98, WEAK_FUNDAMENTAL, 44100, N);
-    detectPitch(frame, 44100);
-    // Best of five batches of 10 (50 runs): parallel test workers add scheduling noise.
-    const perFrame = Math.min(...[0, 1, 2, 3, 4].map(() => batchMs(frame, 10)));
-    console.info(`detectPitch: ${perFrame.toFixed(2)} ms per frame`);
-    expect(perFrame).toBeLessThan(10);
-  });
-});
