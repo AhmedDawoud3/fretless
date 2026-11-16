@@ -209,3 +209,37 @@ Unit C, explorer page:
   (queued for the next unit); repeat marks; comments glued to the last bar;
   technique symbols are dropped rather than preserved. Only the two example
   systems were tried, no tab pasted from a real site.
+
+## 2026-11-16: phase 3, unit H (tab conversion and API)
+
+The agent hit the usage limit mid-unit and was resumed from its saved state.
+
+- Parser: a run of 12 to 60 tab lines that is a multiple of 6 now splits into
+  6-line systems.
+- New pure modules in `src/fretless/tab/`: `events`, `transpose`, `placement`,
+  `reduce`, `options`, `costs`, `path`, `convert_model`, `alterations`,
+  `convert`, `oud_render`, `playback`.
+- Conversion: one whole-piece octave shift, then single notes folded into
+  range. Per event a ladder: all notes, inner-note octave moves, duplicate
+  pitch classes dropped, inner notes dropped, top note alone. A Viterbi search
+  picks fingerings by hand movement. Weights are named constants in `costs.py`
+  marked `ponytail:`.
+- `POST /api/tab/convert` with schemas, mappers, routes in `tab_*.py`. String
+  and capo validation shared with identify. 2,000 events convert in under 1 s.
+- Deviations: octave moves tried on any unplaceable set, not only same-course
+  conflicts; systems carry an `index` field; "keep highest and lowest
+  instances" read as top note, bottom note, and lowest instance of each other
+  pitch class.
+- Only `frets` mode output re-parses; `names` and `both` do not, because the
+  parser rejects most letters inside tab content.
+- Lead checked the sample output by hand: every single note lands on the right
+  course and fret. Chord result is doubtful: x32010 kept all 5 notes as two
+  barres at frets 5 and 7, where a 3 or 4 note open shape is far easier. A cap
+  of 4 notes per chord is queued as a follow-up.
+- Mutator: partial. `events`, `oud_render`, `playback` 100%; `costs` 94%;
+  `reduce` 91%; `convert` 83%; `transpose` 81%; `placement` 80%;
+  `alterations` 73%; `path` 67% (tie-break survivors not killed). API modules
+  not mutated.
+- Process slips reported by the agent: parser fix first committed half applied,
+  then amended; some test edits broken by shell escaping and repaired by hand.
+- Not verified: no tab pasted from a real site; fingering not tried by a player.
