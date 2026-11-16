@@ -11,6 +11,8 @@ const saved = {
   root: 8,
   tempo: 90,
   page: "chords",
+  guitarStrings: [104, 94, 86, 76, 68, 52],
+  guitarCapo: 2,
 };
 
 test("nothing stored means the defaults", () => {
@@ -43,6 +45,8 @@ test("each bad value falls back on its own, good ones are kept", () => {
     ...DEFAULT_SETTINGS,
     guides: false,
     maqamId: "bayati",
+    guitarStrings: saved.guitarStrings,
+    guitarCapo: 2,
   });
 });
 
@@ -68,4 +72,24 @@ test("saving some settings keeps the ones it does not mention", () => {
     tempo: 90,
     page: "chords",
   });
+});
+
+const STANDARD = [104, 94, 86, 76, 68, 56];
+
+test("a saved guitar tuning is six even pitches in range, else the first preset (null)", () => {
+  const strings = (value: unknown) =>
+    parseSettings(JSON.stringify({ guitarStrings: value })).guitarStrings;
+  expect(strings(STANDARD)).toEqual(STANDARD);
+  expect([strings(null), strings([104, 94]), strings("x")]).toEqual([null, null, null]);
+  expect([strings([...STANDARD.slice(1), 105]), strings([...STANDARD.slice(1), 10])]).toEqual([
+    null,
+    null,
+  ]);
+  expect(strings([...STANDARD.slice(1), 1.5])).toBeNull();
+});
+
+test("a saved capo is a whole fret from 0 to 12", () => {
+  const capo = (value: unknown) => parseSettings(JSON.stringify({ guitarCapo: value })).guitarCapo;
+  expect([capo(0), capo(12)]).toEqual([0, 12]);
+  expect([capo(13), capo(-1), capo(2.5), capo("3")]).toEqual([0, 0, 0, 0]);
 });

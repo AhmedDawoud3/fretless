@@ -206,3 +206,15 @@ test("when the chord lists cannot load, the page says so", async () => {
   fireEvent.click(await screen.findByRole("tab", { name: "Chords" }));
   expect((await screen.findByRole("alert")).textContent).toContain("chord lists");
 });
+
+test("the guitar tuning and capo are remembered on the next visit", async () => {
+  await openChords();
+  fireEvent.change(screen.getByLabelText("Capo"), { target: { value: "3" } });
+  press("String 6 up a semitone");
+  cleanup();
+
+  render(<App />);
+  fireEvent.click(await screen.findByRole("tab", { name: "Chords" }));
+  expect(((await screen.findByLabelText("Capo")) as HTMLInputElement).value).toBe("3");
+  expect((screen.getByLabelText("Guitar tuning") as HTMLSelectElement).value).toBe("custom");
+});

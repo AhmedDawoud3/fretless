@@ -1,3 +1,4 @@
+import { CAPO_MAX, PITCH_MAX, PITCH_MIN, STRING_COUNT } from "../chords/shape";
 import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
 import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
@@ -16,6 +17,9 @@ export type Settings = {
   /** Pitch class 0..23, or null for the maqam's traditional root. */
   root: number | null;
   tempo: number;
+  /** Open pitch of each guitar string, string 1 first, or null for the first preset. */
+  guitarStrings: number[] | null;
+  guitarCapo: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +32,8 @@ export const DEFAULT_SETTINGS: Settings = {
   maqamId: null,
   root: null,
   tempo: DEFAULT_TEMPO,
+  guitarStrings: null,
+  guitarCapo: 0,
 };
 
 const STORAGE_KEY = "fretless.settings";
@@ -40,6 +46,16 @@ const isRoot: Guard<number | null> = (v): v is number | null =>
   v === null || (Number.isInteger(v) && (v as number) >= 0 && (v as number) < 24);
 const isTempo: Guard<number> = (v): v is number =>
   typeof v === "number" && v >= TEMPO_MIN && v <= TEMPO_MAX;
+
+const isPitch = (v: unknown): v is number =>
+  Number.isInteger(v) &&
+  (v as number) % 2 === 0 &&
+  (v as number) >= PITCH_MIN &&
+  (v as number) <= PITCH_MAX;
+const isGuitarStrings: Guard<number[] | null> = (v): v is number[] | null =>
+  v === null || (Array.isArray(v) && v.length === STRING_COUNT && v.every(isPitch));
+const isCapo: Guard<number> = (v): v is number =>
+  Number.isInteger(v) && (v as number) >= 0 && (v as number) <= CAPO_MAX;
 
 function oneOf<T extends string>(allowed: readonly T[]): Guard<T> {
   return (v): v is T => allowed.some((a) => a === v);
@@ -73,6 +89,8 @@ export function parseSettings(raw: string | null): Settings {
     maqamId: field(s, "maqamId", isText, d.maqamId),
     root: field(s, "root", isRoot, d.root),
     tempo: field(s, "tempo", isTempo, d.tempo),
+    guitarStrings: field(s, "guitarStrings", isGuitarStrings, d.guitarStrings),
+    guitarCapo: field(s, "guitarCapo", isCapo, d.guitarCapo),
   };
 }
 

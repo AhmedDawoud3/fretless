@@ -31,7 +31,11 @@ export function GuitarPanel({ presets, names, system, choice, onChoose }: Guitar
   return (
     <section className="guitar-panel" aria-label="Guitar shape">
       <h2>Or click the shape you know</h2>
-      <TuningControls presets={presets} shape={shape} names={names} />
+      <TuningControls presets={presets} tuning={shape} names={names}>
+        <button type="button" onClick={shape.clear}>
+          Clear
+        </button>
+      </TuningControls>
       <div className="guitar-scroll">
         <GuitarNeck frets={shape.frets} capo={shape.capo} onFret={press} onNut={shape.nut} />
       </div>
