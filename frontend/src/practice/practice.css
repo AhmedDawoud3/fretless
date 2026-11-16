@@ -105,6 +105,10 @@
   border-left-color: #e4572e;
 }
 
+.next-button {
+  margin-top: 4px;
+}
+
 .reset-progress {
   margin: 12px 0 0;
 }

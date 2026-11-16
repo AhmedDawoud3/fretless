@@ -15,5 +15,5 @@ export function describeInterval(
     return name ? spokenName(name, system) : "?";
   };
   const notes = `${named(low)} up to ${named(low + interval.steps)}`;
-  return `It was a ${interval.name.toLowerCase()} (${interval.frets}): ${notes}.`;
+  return `It was the ${interval.name.toLowerCase()} (${interval.frets}): ${notes}.`;
 }

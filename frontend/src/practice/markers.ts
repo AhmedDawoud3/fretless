@@ -15,6 +15,7 @@ export function noteMarker(
     course: spot.course,
     position: spot.position,
     tone,
+    compact: true,
     label: name && formatNoteName(name, system),
   };
 }

@@ -5,9 +5,11 @@ export function ResetProgress({ onReset }: { onReset: () => void }) {
   const [asking, setAsking] = useState(false);
   if (!asking) {
     return (
-      <button type="button" onClick={() => setAsking(true)}>
-        Reset progress
-      </button>
+      <p className="reset-progress">
+        <button type="button" onClick={() => setAsking(true)}>
+          Reset progress
+        </button>
+      </p>
     );
   }
   const confirm = () => {
