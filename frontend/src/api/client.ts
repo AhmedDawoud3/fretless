@@ -15,6 +15,13 @@ export type GuitarTuning = components["schemas"]["GuitarTuningOut"];
 export type IdentifyBody = components["schemas"]["IdentifyIn"];
 export type Identified = components["schemas"]["IdentifyOut"];
 export type ChordMatch = components["schemas"]["MatchOut"];
+export type ConvertBody = components["schemas"]["ConvertIn"];
+export type TabMode = ConvertBody["mode"];
+export type Converted = components["schemas"]["ConvertOut"];
+export type ConvertedSystem = components["schemas"]["PlacedSystemOut"];
+export type ConvertedSummary = components["schemas"]["SummaryOut"];
+export type Alteration = components["schemas"]["AlterationOut"];
+export type PlaybackEvent = components["schemas"]["PlaybackEventOut"];
 export type Course = components["schemas"]["CourseOut"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -61,4 +68,19 @@ export function identifyShape(body: IdentifyBody): Promise<Identified> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+/** The API refuses text it cannot take (empty or too long) with 422: that is an answer, not a failure. */
+export type ConvertReply = { rejected: false; converted: Converted } | { rejected: true };
+
+export async function convertTab(body: ConvertBody): Promise<ConvertReply> {
+  const path = "/api/tab/convert";
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 422) return { rejected: true };
+  if (!response.ok) throw new Error(`${path} failed with status ${response.status}`);
+  return { rejected: false, converted: (await response.json()) as Converted };
 }

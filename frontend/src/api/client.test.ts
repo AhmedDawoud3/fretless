@@ -1,5 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
+  type ConvertBody,
+  convertTab,
   fetchChord,
   fetchGuitarTunings,
   fetchMaqamat,
@@ -76,4 +78,31 @@ test("identifyShape posts the shape as JSON and returns the answer", async () =>
 test("identifyShape throws on a rejected shape", async () => {
   stubFetch({ ok: false, status: 422 });
   await expect(identifyShape({ strings: [], capo: 0, frets: [] })).rejects.toThrow("422");
+});
+
+const convertBody: ConvertBody = {
+  text: "e|--0--|",
+  guitar: { strings: [104, 99, 94, 88, 83, 76], capo: 0 },
+  oud_tuning: "cc",
+  mode: "frets",
+};
+
+test("convertTab posts the tab as JSON and returns the conversion", async () => {
+  const answer = { text: "x", systems: [] };
+  const fetchMock = stubFetch({ ok: true, status: 200, json: async () => answer });
+  expect(await convertTab(convertBody)).toEqual({ rejected: false, converted: answer });
+  const [url, init] = fetchMock.mock.calls[0] ?? [];
+  expect(url).toBe("/api/tab/convert");
+  expect(init).toMatchObject({ method: "POST", body: JSON.stringify(convertBody) });
+  expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+});
+
+test("convertTab reports a 422 as rejected, not as a failure", async () => {
+  stubFetch({ ok: false, status: 422 });
+  expect(await convertTab(convertBody)).toEqual({ rejected: true });
+});
+
+test("convertTab throws on any other failure", async () => {
+  stubFetch({ ok: false, status: 500 });
+  await expect(convertTab(convertBody)).rejects.toThrow("500");
 });
