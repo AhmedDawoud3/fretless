@@ -277,6 +277,32 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** AudioArrangementOut */
+        AudioArrangementOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Stem */
+            stem: string;
+            /** Fit Score */
+            fit_score: number;
+            /** Fit Reason */
+            fit_reason: string;
+            /** Notes Count */
+            notes_count: number;
+            /** Audio Base64 */
+            audio_base64?: string | null;
+            /** Text */
+            text: string;
+            /** Systems */
+            systems: components["schemas"]["PlacedSystemOut"][];
+            /** Alterations */
+            alterations: components["schemas"]["AlterationOut"][];
+            /** Playback */
+            playback: components["schemas"]["PlaybackEventOut"][];
+            summary: components["schemas"]["SummaryOut"];
+        };
         /** ChordInfoOut */
         ChordInfoOut: {
             /** Root */
@@ -348,6 +374,20 @@ export interface components {
              * @default []
              */
             guitar_playback: components["schemas"]["PlaybackEventOut"][];
+            /** Tempo */
+            tempo?: number | null;
+            /**
+             * Detected Maqam
+             * @default []
+             */
+            detected_maqam: components["schemas"]["DetectedMaqamOut"][];
+            /** Active Arrangement Id */
+            active_arrangement_id?: string | null;
+            /**
+             * Arrangements
+             * @default []
+             */
+            arrangements: components["schemas"]["AudioArrangementOut"][];
         };
         /** CourseOut */
         CourseOut: {
@@ -371,6 +411,23 @@ export interface components {
             letter: "C" | "D" | "E" | "F" | "G" | "A" | "B";
             /** Alter */
             alter: number;
+        };
+        /** DetectedMaqamOut */
+        DetectedMaqamOut: {
+            /** Maqam Id */
+            maqam_id: string;
+            /** Maqam Name */
+            maqam_name: string;
+            /** Arabic Name */
+            arabic_name: string;
+            /** Root */
+            root: number;
+            /** Root Name */
+            root_name: string;
+            /** Confidence */
+            confidence: number;
+            /** Scale Pitches */
+            scale_pitches: number[];
         };
         /**
          * GuitarIn

@@ -106,6 +106,31 @@ class SummaryOut(BaseModel):
     unsupported_systems: int
 
 
+class DetectedMaqamOut(BaseModel):
+    maqam_id: str
+    maqam_name: str
+    arabic_name: str
+    root: int
+    root_name: str
+    confidence: int
+    scale_pitches: list[int]
+
+
+class AudioArrangementOut(BaseModel):
+    id: str
+    label: str
+    stem: str
+    fit_score: int
+    fit_reason: str
+    notes_count: int
+    audio_base64: str | None = None
+    text: str
+    systems: list[PlacedSystemOut]
+    alterations: list[AlterationOut]
+    playback: list[PlaybackEventOut]
+    summary: SummaryOut
+
+
 class ConvertOut(BaseModel):
     text: str
     systems: list[PlacedSystemOut]
@@ -114,3 +139,7 @@ class ConvertOut(BaseModel):
     summary: SummaryOut
     guitar_systems: list[PlacedSystemOut] = []
     guitar_playback: list[PlaybackEventOut] = []
+    tempo: int | None = None
+    detected_maqam: list[DetectedMaqamOut] = []
+    active_arrangement_id: str | None = None
+    arrangements: list[AudioArrangementOut] = []

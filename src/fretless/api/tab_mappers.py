@@ -1,8 +1,12 @@
 """Pure functions turning a conversion into the response schema."""
 
+from typing import TypedDict
+
 from fretless.api.tab_schemas import (
     AlterationOut,
+    AudioArrangementOut,
     ConvertOut,
+    DetectedMaqamOut,
     PlacedColumnOut,
     PlacedNoteOut,
     PlacedSystemOut,
@@ -10,7 +14,9 @@ from fretless.api.tab_schemas import (
     PlaybackNoteOut,
     SummaryOut,
 )
+from fretless.audio.arrange import AudioArrangement
 from fretless.guitar import fretted_pitch
+from fretless.maqam_detect import detect_maqam_from_pitches
 from fretless.tab.convert_model import Alteration, Converted, PlacedNote, PlacedSystem
 from fretless.tab.events import GUITAR_LINES
 from fretless.tab.model import TabDocument, TabSystem
@@ -145,22 +151,83 @@ def _guitar_playback_out(systems: list[PlacedSystemOut]) -> list[PlaybackEventOu
     return out
 
 
+class _CoreFields(TypedDict):
+    text: str
+    systems: list[PlacedSystemOut]
+    alterations: list[AlterationOut]
+    playback: list[PlaybackEventOut]
+    summary: SummaryOut
+
+
+def _core_fields(notes_in: int, converted: Converted, tuning: Tuning, mode: Mode) -> _CoreFields:
+    return {
+        "text": render_converted(converted, tuning, mode),
+        "systems": [
+            _system_out(b, tuning) for b in converted.blocks if isinstance(b, PlacedSystem)
+        ],
+        "alterations": [_alteration_out(a) for a in converted.alterations],
+        "playback": [_playback_out(e) for e in playback(converted)],
+        "summary": summary_from_count(notes_in, converted),
+    }
+
+
+def _detected_maqam_out(converted: Converted) -> list[DetectedMaqamOut]:
+    pitches = [
+        n.pitch
+        for block in converted.blocks
+        if isinstance(block, PlacedSystem)
+        for col in block.columns
+        for n in col.notes
+    ]
+    return [
+        DetectedMaqamOut(
+            maqam_id=m.maqam_id,
+            maqam_name=m.maqam_name,
+            arabic_name=m.arabic_name,
+            root=m.root,
+            root_name=m.root_name,
+            confidence=m.confidence,
+            scale_pitches=list(m.scale_pitches),
+        )
+        for m in detect_maqam_from_pitches(pitches)
+    ]
+
+
+def arrangement_out(item: AudioArrangement, tuning: Tuning, mode: Mode) -> AudioArrangementOut:
+    core = _core_fields(item.notes_in, item.converted, tuning, mode)
+    return AudioArrangementOut(
+        id=item.id,
+        label=item.label,
+        stem=item.stem,
+        fit_score=item.fit_score,
+        fit_reason=item.fit_reason,
+        notes_count=item.notes_in,
+        audio_base64=item.audio_base64,
+        **core,
+    )
+
+
 def convert_placed_out(
     notes_in: int,
     converted: Converted,
     tuning: Tuning,
     mode: Mode,
     guitar_systems: list[PlacedSystemOut] | None = None,
+    *,
+    tempo: int | None = None,
+    active_arrangement_id: str | None = None,
+    arrangements: list[AudioArrangementOut] | None = None,
 ) -> ConvertOut:
     g_systems = guitar_systems or []
+    core = _core_fields(notes_in, converted, tuning, mode)
     return ConvertOut(
-        text=render_converted(converted, tuning, mode),
-        systems=[_system_out(b, tuning) for b in converted.blocks if isinstance(b, PlacedSystem)],
-        alterations=[_alteration_out(a) for a in converted.alterations],
-        playback=[_playback_out(e) for e in playback(converted)],
-        summary=summary_from_count(notes_in, converted),
+        **core,
         guitar_systems=g_systems,
         guitar_playback=_guitar_playback_out(g_systems),
+        tempo=tempo,
+        detected_maqam=_detected_maqam_out(converted),
+        active_arrangement_id=active_arrangement_id,
+        arrangements=arrangements or [],
     )
 
 

@@ -6,9 +6,11 @@ import soundfile as sf
 from fastapi.testclient import TestClient
 
 from fretless.api import app
-from fretless.audio.arrange import arrange_notes, group_chords
-from fretless.audio.decode import SAMPLE_RATE, decode_audio
+from fretless.audio.arrange import arrange_notes, extract_monophonic_line, group_chords
+from fretless.audio.decode import SAMPLE_RATE, decode_audio, decode_audio_stereo
 from fretless.audio.notes import DetectedNote, extract_notes
+from fretless.audio.separate import encode_wav_base64, separate_stems
+from fretless.audio.tempo import detect_audio_bpm
 from fretless.tab.model import TextBlock
 from fretless.tab.oud_render import render_converted
 from fretless.tuning import TUNINGS
@@ -125,6 +127,12 @@ def test_audio_transcribe_endpoint_end_to_end_and_errors() -> None:
     assert body["summary"]["notes_out"] >= 2
     assert len(body["playback"]) >= 2
     assert "C|" in body["text"]
+    assert body["tempo"] >= 60
+    assert len(body["arrangements"]) >= 1
+    assert body["active_arrangement_id"] == body["arrangements"][0]["id"]
+    assert body["arrangements"][0]["fit_score"] >= 1
+    assert body["arrangements"][0]["audio_base64"]
+    assert len(body["detected_maqam"]) >= 1
 
     assert (
         client.post(
@@ -140,3 +148,31 @@ def test_audio_transcribe_endpoint_end_to_end_and_errors() -> None:
         ).status_code
         == 404
     )
+
+
+def test_stem_separation_tempo_and_monophonic_filtering() -> None:
+    t = np.arange(SAMPLE_RATE, dtype=np.float32) / SAMPLE_RATE
+    bass_sig = 0.5 * np.sin(2 * np.pi * 110.0 * t).astype(np.float32)
+    vocal_sig = 0.5 * np.sin(2 * np.pi * 440.0 * t).astype(np.float32)
+    side_sig = 0.4 * np.sin(2 * np.pi * 1200.0 * t).astype(np.float32)
+    left = bass_sig + vocal_sig + side_sig
+    right = bass_sig + vocal_sig - side_sig
+    wav = _wav_bytes(np.column_stack([left, right]).astype(np.float32), SAMPLE_RATE)
+
+    mono, stereo = decode_audio_stereo(wav)
+    stems = separate_stems(mono, stereo)
+    assert len(stems.vocals) == len(mono)
+    assert float(np.sqrt(np.mean(stems.bass**2))) > 0.05
+    assert float(np.sqrt(np.mean(stems.vocals**2))) > 0.05
+    assert len(base64.b64decode(encode_wav_base64(stems.vocals))) > 100
+
+    pulse = tuple(DetectedNote(i * 0.5, 0.3, 96, 0.8) for i in range(6))
+    assert detect_audio_bpm(pulse) == 120
+
+    crowded = (
+        DetectedNote(0.1, 0.5, 96, 0.4),
+        DetectedNote(0.11, 0.5, 108, 0.9),
+        DetectedNote(0.6, 0.4, 100, 0.85),
+    )
+    solo = extract_monophonic_line(crowded, "loudest")
+    assert [n.pitch for n in solo] == [108, 100]
