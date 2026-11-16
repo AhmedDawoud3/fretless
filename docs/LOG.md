@@ -283,3 +283,31 @@ Unit J, frontend:
   marker agree (A3, course 2 fret 2).
 - Tests only, not browser: column click, 422 alert, copy, over-limit message.
   Not done: tab pasted from a real site; sound unheard.
+
+## 2026-11-16: phase 4 groundwork, units K (intervals) and L (pitch detection core)
+
+Unit K, backend:
+- `interval.py`: unison to octave plus 5 quarter-tone intervals (3, 7, 11, 17,
+  21 steps), difficulty levels 1 to 4, `interval_between`. `GET /api/intervals`.
+- The quarter-tone set is derived from `MAQAMAT` roots by a test, not guessed.
+  The 11-step interval (in Sikah) was not in the plan; the agent named it
+  "Wide fourth" itself. Name needs a musician's judgement.
+- Fret wording now exists in Python; the frontend `stepsToFrets` is a duplicate
+  queued for removal.
+- Mutator: 6 of 6 killed.
+
+Unit L, frontend `listen/`:
+- YIN `detectPitch`, `createTracker` smoother, `compareToTarget`,
+  `nearestStep`, `frequencyToSteps`, `useMicrophone`. No page yet.
+- Worst error on synthetic signals (sines, weak fundamental, paired strings,
+  noise at -20 dB, decay) and on the project's own Karplus-Strong pluck: 1.41
+  cents. About 4 ms per 4096-sample frame.
+- Tracker shows a pitch only after 3 agreeing frames, so a lone octave glitch
+  never shows; a real slide lags 3 frames.
+- Deviation: `frequencyToSteps` lives in `listen/steps.ts`, though it arguably
+  belongs beside `stepsToFrequency` in `audio/`.
+- Speed test takes the best of five batches; a single average was flaky under
+  parallel test workers.
+- Not verified: no real microphone and no real oud. The capture loop
+  (`openMicrophone.ts`, `startListening.ts`) has never run in a browser.
+  Tracker thresholds are guesses to tune against real input.
