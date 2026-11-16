@@ -512,3 +512,21 @@ Quality & checks:
   `TabImportBar.tsx`.
 - Not verified: importing in a live browser UI (backend live URLs and PDFs were
   smoke-checked from Python; frontend tested against `stubApi` mocks).
+
+## 2026-11-16: 5-line sheet music PDF import support
+
+- Added `src/fretless/tab/pdf_geometry.py` (shared staff/segment extraction and
+  quantized rendering extracted from `pdf_import.py`) and
+  `src/fretless/tab/sheet_import.py` (`extract_sheet_systems`) to read 5-line
+  standard notation staves from PDFs (SMuFL, Finale Maestro, and filled/stroked
+  vector ovals), apply treble/treble-8vb/bass clefs, key signatures, and
+  barline-scoped accidentals (including quarter-tone glyphs), and map notes and
+  chord stacks onto 6-string guitar tabs.
+- Updated `import_pdf_bytes` in `src/fretless/tab/pdf_import.py` and
+  `ImportPdfIn` / `ImportKind` (`"auto" | "tab" | "chords" | "sheet"`) in
+  `src/fretless/api/tab_schemas.py` & `tab_routes.py`, regenerated `schema.d.ts`,
+  and added the `Sheet music` option to `frontend/src/tab/TabImportBar.tsx`.
+- Verified with synthetic vector-oval/SMuFL tests and real PDFs in `D:\Misc\Tabs`
+  (`Longa Riyad - Piano Chords.pdf` and `أغدًا ألقاك` 5-line notation staff):
+  all checks pass (`ruff`, `biome`, `ty check`, `tsc -b`, `pytest`, `vitest`,
+  `dryer`).
