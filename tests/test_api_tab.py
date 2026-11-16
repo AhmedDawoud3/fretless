@@ -1,7 +1,12 @@
+import base64
+
+import pymupdf
+import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
 from fretless.api import app
+from fretless.tab.import_model import ImportedTab
 from fretless.tab.model import TabSystem
 from fretless.tab.parse import parse_tab
 
@@ -151,3 +156,63 @@ def test_guitar_systems_and_playback_are_returned_for_source_tab() -> None:
     ]
     assert len(body["guitar_playback"]) == len(body["playback"])
     assert body["guitar_playback"][0]["notes"][0]["pitch"] == 86
+
+
+def test_convert_expands_pasted_chord_sheets_and_ug_tags() -> None:
+    body = convert(text="[Intro]\n[ch]Am[/ch]  [ch]E7[/ch]  [ch]G[/ch]  [ch]D[/ch]").json()
+    assert len(body["systems"]) == 1
+    assert len(body["guitar_systems"]) == 1
+    assert len(body["guitar_systems"][0]["columns"]) == 4
+
+
+def test_import_pdf_endpoint_extracts_tab_and_rejects_bad_input() -> None:
+    doc = pymupdf.Document()
+    page = doc.new_page()
+    page.insert_text((80, 40), "Sample")
+    shape = page.new_shape()
+    for i in range(6):
+        y = 100.0 + i * 8.0
+        shape.draw_line(pymupdf.Point(40, y), pymupdf.Point(400, y))
+    shape.finish(width=0.6)
+    shape.commit()
+    page.insert_text((100, 103.0), "3", fontsize=8)
+    encoded = base64.b64encode(doc.tobytes()).decode("ascii")
+
+    res = client.post("/api/tab/import-pdf", json={"pdf_base64": encoded, "filename": "s.pdf"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["source"] == "pdf"
+    assert data["kind"] == "tab"
+    assert "3" in data["text"]
+
+    assert client.post("/api/tab/import-pdf", json={"pdf_base64": "!!!"}).status_code == 422
+
+
+def test_import_url_endpoint_returns_imported_tab_and_422_on_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fretless.api.tab_routes as tab_routes
+
+    def fake_import(url: str, kind: str = "auto") -> ImportedTab:
+        if "bad" in url:
+            raise ValueError("Enter a valid Ultimate Guitar or Songsterr URL.")
+        return ImportedTab(
+            title="Eagles — Hotel California",
+            source="ultimate-guitar",
+            kind="chords",
+            text="e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
+            strings=tuple(STANDARD),
+            capo=2,
+        )
+
+    monkeypatch.setattr(tab_routes, "import_tab_url", fake_import)
+    ok = client.post(
+        "/api/tab/import-url",
+        json={"url": "https://tabs.ultimate-guitar.com/tab/eagles/hotel-california-chords-46190"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["capo"] == 2
+    assert ok.json()["strings"] == STANDARD
+
+    bad = client.post("/api/tab/import-url", json={"url": "https://bad.example.com"})
+    assert bad.status_code == 422

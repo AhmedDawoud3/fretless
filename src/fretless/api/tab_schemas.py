@@ -1,12 +1,33 @@
 """Pydantic models for the tab conversion endpoint."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from fretless.api.guitar_schemas import Capo, Strings
 from fretless.tab.convert_model import AlterationKind
 from fretless.tab.oud_render import Mode
+
+ImportKind = Literal["auto", "tab", "chords"]
+
+
+class ImportUrlIn(BaseModel):
+    url: Annotated[str, Field(min_length=1, max_length=2_000)]
+    kind: ImportKind = "auto"
+
+
+class ImportPdfIn(BaseModel):
+    pdf_base64: Annotated[str, Field(min_length=1, max_length=20_000_000)]
+    filename: Annotated[str, Field(max_length=260)] = ""
+
+
+class ImportTabOut(BaseModel):
+    title: str
+    source: str
+    kind: str
+    text: str
+    strings: list[int] | None = None
+    capo: int = 0
 
 
 class GuitarIn(BaseModel):
