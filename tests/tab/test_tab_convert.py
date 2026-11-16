@@ -171,10 +171,22 @@ def test_open_g_and_e_chords_keep_root_and_third_in_both_tunings() -> None:
             shift = result.transposed_steps
             assert len(notes) <= 4
             assert max(n.pitch for n in notes) % 24 == (top + shift) % 24
-            if (text, tuning) == (e_major, FF):
-                # Known gap: E2 is below F-F, so the whole piece moves up an octave (transpose.py)
-                # and the melody lands on E5 at position 22, where no third fits the hand.
-                assert result.transposed_steps == 24
-                continue
             classes = {n.pitch % 24 for n in notes}
             assert {(root + shift) % 24, (third + shift) % 24} <= classes
+
+
+def test_e_chord_in_ff_folds_the_low_e_and_keeps_the_piece_in_place() -> None:
+    result = run(tab(e="-0-", B="-0-", G="-1-", D="-2-", A="-2-", E="-0-"), FF)  # 022100
+    notes = column_notes(result)
+    assert result.transposed_steps == 0
+    assert "transposed" not in kinds(result)
+    assert max(n.pitch for n in notes) == 104  # E4 kept, not moved
+    assert min(n.pitch for n in notes) >= 58  # E2 (56) is below F-F, so it was folded up
+    assert {8, 16} <= {n.pitch % 24 for n in notes}  # E and G-sharp
+
+
+def test_e_chord_in_cc_keeps_bass_third_and_melody_in_easy_positions() -> None:
+    notes = column_notes(run(tab(e="-0-", B="-0-", G="-1-", D="-2-", A="-2-", E="-0-"), CC))
+    assert (max(n.pitch for n in notes), min(n.pitch for n in notes)) == (104, 56)  # E4, E2
+    assert {8, 16} <= {n.pitch % 24 for n in notes}  # E and G-sharp
+    assert all(n.position <= 10 for n in notes)

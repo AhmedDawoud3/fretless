@@ -33,6 +33,12 @@ def test_stray_low_note_does_not_move_the_whole_piece() -> None:
     assert best_shift((40, 96, 100, 104, 108), oud_range(CC)) == 0
 
 
+def test_a_shift_needs_to_rescue_more_than_a_quarter_of_all_notes() -> None:
+    span = oud_range(CC)
+    assert best_shift((40, 42, 60, 70), span) == 24  # rescues 2 of 4: more than a quarter
+    assert best_shift((40, 60, 70, 80), span) == 0  # rescues 1 of 4: exactly a quarter
+
+
 def test_fold_moves_by_octaves_into_range() -> None:
     assert fold(40, oud_range(CC)) == 64
     assert fold(16, oud_range(CC)) == 64

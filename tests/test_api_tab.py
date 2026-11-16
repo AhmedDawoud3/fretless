@@ -36,8 +36,9 @@ def convert(**body: object) -> Response:
 
 
 def test_two_system_example_converts() -> None:
-    # the high run in the second system (frets 10 to 14 on the top string) is above the oud's
-    # range, so the whole piece comes down an octave: G3 + C3 become G2 + C2
+    # the high run in the second system (frets 10 to 14 on the top string) puts 4 of 26 notes
+    # above the oud's range; an octave down would rescue only 3 (one open A falls below C2),
+    # under the quarter needed, so the piece stays put and the 4 notes are folded one by one
     response = convert()
     assert response.status_code == 200
     body = response.json()
@@ -50,8 +51,8 @@ def test_two_system_example_converts() -> None:
     assert first["columns"][0] == {
         "index": 1,
         "notes": [
-            {"course": 5, "position": 4, "pitch": 62, "name": "G"},
-            {"course": 6, "position": 0, "pitch": 48, "name": "C"},
+            {"course": 2, "position": 0, "pitch": 86, "name": "G"},
+            {"course": 4, "position": 6, "pitch": 72, "name": "C"},
         ],
     }
 
@@ -68,8 +69,9 @@ def test_summary_agrees_with_the_alterations() -> None:
     assert summary["octave_shifted"] == count("octave_shifted")
     assert summary["chords_reduced"] == count("chord_reduced")
     assert summary["unsupported_systems"] == count("unsupported_system")
-    assert summary["transposed_steps"] == -24
-    assert count("transposed") == 1
+    assert summary["transposed_steps"] == 0
+    assert count("transposed") == 0
+    assert count("octave_shifted") == 4  # the four notes above C5, folded one by one
     source = [b for b in parse_tab(SAMPLE).blocks if isinstance(b, TabSystem)]
     assert summary["notes_in"] == sum(len(c.notes) for b in source for c in b.columns)
     placed = sum(len(c["notes"]) for sys in body["systems"] for c in sys["columns"])
@@ -85,8 +87,8 @@ def test_playback_lists_every_event_with_running_ticks() -> None:
         "column": 1,
         "tick": 1,
         "notes": [
-            {"pitch": 62, "course": 5, "position": 4},
-            {"pitch": 48, "course": 6, "position": 0},
+            {"pitch": 86, "course": 2, "position": 0},
+            {"pitch": 72, "course": 4, "position": 6},
         ],
     }
     ticks = [e["tick"] for e in events]

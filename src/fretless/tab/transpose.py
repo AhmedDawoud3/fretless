@@ -10,6 +10,12 @@ from fretless.tuning import Tuning
 SHIFTS = (0, -STEPS_PER_OCTAVE, STEPS_PER_OCTAVE, 2 * STEPS_PER_OCTAVE)
 
 
+# ponytail: hand-tuned fraction of all notes a whole-piece shift must rescue. Ceiling: every
+# note counts the same, so a melody pushed to the top of the range can win over a stray bass
+# note. Upgrade path: weigh melody notes above bass notes.
+SHIFT_GAIN = 0.25
+
+
 @dataclass(frozen=True)
 class Range:
     low: int  # lowest open course
@@ -24,8 +30,17 @@ def oud_range(tuning: Tuning) -> Range:
 
 
 def best_shift(pitches: tuple[int, ...], span: Range) -> int:
-    """The shift in steps that leaves the fewest notes outside `span`; ties keep the first."""
-    return min(SHIFTS, key=lambda k: sum(not span.contains(p + k) for p in pitches))
+    """The shift in steps that leaves the fewest notes outside `span`; ties keep the first.
+
+    A shift other than 0 must bring back more than SHIFT_GAIN of all notes, else stray notes
+    are folded one by one and the piece stays where it is.
+    """
+
+    def out(shift: int) -> int:
+        return sum(not span.contains(p + shift) for p in pitches)
+
+    worth = [k for k in SHIFTS if out(0) - out(k) > SHIFT_GAIN * len(pitches)]
+    return min(worth or [0], key=out)
 
 
 def fold(pitch: int, span: Range) -> int:
