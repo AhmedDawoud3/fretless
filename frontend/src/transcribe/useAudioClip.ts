@@ -6,6 +6,7 @@ const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 export type LoadedAudio = {
   id: number;
   name: string;
+  size: number;
   base64: string;
   url: string | null;
 };
@@ -29,6 +30,7 @@ function buildClip(
   return {
     id: (prev?.id ?? 0) + 1,
     name,
+    size: bytes.byteLength,
     base64: bytesToBase64(bytes),
     url: makeUrl(bytes.slice().buffer, mime),
   };

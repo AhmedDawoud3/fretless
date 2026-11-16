@@ -72,6 +72,8 @@ export const CONVERTED: Converted = {
       ],
     },
   ],
+  detected_maqam: [],
+  arrangements: [],
 };
 
 /** Text with no tab in it comes back unchanged and with nothing found. */
@@ -89,4 +91,6 @@ export const noTab = (text: string): Converted => ({
   },
   guitar_systems: [],
   guitar_playback: [],
+  detected_maqam: [],
+  arrangements: [],
 });

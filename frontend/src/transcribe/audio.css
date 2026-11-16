@@ -28,7 +28,59 @@
   border-radius: 8px;
 }
 
-.original-audio audio {
+.original-audio audio,
+.stem-audio-preview audio {
   max-width: 100%;
   height: 36px;
+}
+
+.audio-arrangements {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.arrangement-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.arrangement-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.86rem;
+}
+
+.arrangement-score {
+  color: var(--cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.arrangement-pill[aria-pressed="true"] .arrangement-score {
+  color: inherit;
+}
+
+.arrangement-reason {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stem-audio-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }

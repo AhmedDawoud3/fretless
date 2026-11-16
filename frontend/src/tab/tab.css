@@ -159,6 +159,45 @@
   color: var(--muted);
 }
 
+.maqam-detect-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.maqam-detect-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.maqam-detect-title {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.maqam-detect-alts,
+.maqam-detect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.maqam-alt-pill {
+  padding: 3px 8px;
+  font-size: 0.78rem;
+}
+
 .track-toolbar {
   display: flex;
   flex-wrap: wrap;

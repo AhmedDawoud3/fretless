@@ -6,6 +6,7 @@ import { DEFAULT_TEMPO } from "../explorer/tempo";
 import { AlterationList } from "./AlterationList";
 import { CopyButton } from "./CopyButton";
 import { eventMarkers } from "./eventMarkers";
+import { MaqamDetectBar, resolveNeckMarkers, useMaqamSolo } from "./MaqamDetectBar";
 import { summaryLine } from "./summary";
 import { emptyGuitarFrets, TabPlayer, type TrackKind } from "./TabPlayer";
 import { TabText } from "./TabText";
@@ -152,6 +153,7 @@ export function TabResult({
   const isGuitar = effectiveTrack === "guitar";
   const oudSystems = editedSystems ?? converted.systems;
   const activePlayback = resolvePlayback(converted, editedSystems, isGuitar);
+  const solo = useMaqamSolo(converted.detected_maqam);
 
   const player = useTabPlayer(
     activePlayback,
@@ -177,12 +179,29 @@ export function TabResult({
     setAppendNext(false);
   };
 
+  const neckMarkers = resolveNeckMarkers(
+    isGuitar,
+    solo.soloMode ? solo.active : null,
+    neck,
+    shared,
+    eventMarkers(player.current, oudSystems, shared.labelMode),
+  );
+
   return (
     <section className="tab-result" aria-label="Conversion result">
       <p className="tab-summary">{summaryLine(converted.summary)}</p>
+      <MaqamDetectBar
+        hidden={isGuitar}
+        candidates={converted.detected_maqam}
+        selectedIdx={solo.selectedIdx}
+        soloMode={solo.soloMode}
+        onSelect={solo.setSelectedIdx}
+        onToggleSolo={() => solo.setSoloMode((v) => !v)}
+        onExplore={() => shared.setPage("maqam")}
+      />
       <TabPlayer
         neck={neck}
-        markers={isGuitar ? [] : eventMarkers(player.current, oudSystems, shared.labelMode)}
+        markers={neckMarkers}
         systems={oudSystems}
         guitarSystems={converted.guitar_systems}
         guitar={guitar}

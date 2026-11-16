@@ -2,6 +2,7 @@ import { type DragEvent, useState } from "react";
 import type { TabMode } from "../api/client";
 import { Select } from "../explorer/Select";
 import { TAB_MODES } from "../tab/TabInput";
+import type { AudioLibraryEntry } from "./audioLibrary";
 
 type AudioControlsProps = {
   fileName: string | null;
@@ -15,9 +16,55 @@ type AudioControlsProps = {
   onFile: (file: File) => void;
   onLoadExample: () => void;
   onTranscribe: () => void;
+  cachedNotice?: string | null;
+  library?: readonly AudioLibraryEntry[];
+  onSelectLibrary?: (entry: AudioLibraryEntry) => void;
+  onRemoveLibrary?: (key: string) => void;
 };
 
 const toSensitivity = (threshold: number) => Math.round((1 - threshold) * 100) / 100;
+
+function AudioLibraryShelf({
+  entries,
+  onSelect,
+  onRemove,
+}: {
+  entries: readonly AudioLibraryEntry[];
+  onSelect?: (entry: AudioLibraryEntry) => void;
+  onRemove?: (key: string) => void;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <section className="tab-import-library" aria-label="Saved audio library">
+      <span className="tab-import-library-label">Saved audio library</span>
+      <ul className="tab-import-library-list">
+        {entries.map((entry) => (
+          <li key={entry.key} className="tab-import-library-item">
+            <button
+              type="button"
+              className="tab-import-library-load"
+              aria-label={`Load ${entry.filename}`}
+              onClick={() => onSelect?.(entry)}
+            >
+              <span className="tab-import-library-title">{entry.filename}</span>
+              <span className="tab-import-library-meta">
+                {entry.tuningId} · {entry.mode}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="tab-import-library-remove"
+              aria-label={`Remove ${entry.filename}`}
+              onClick={() => onRemove?.(entry.key)}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function LoadedAudioBar({ fileName, audioUrl }: { fileName: string; audioUrl: string | null }) {
   return (
@@ -31,6 +78,36 @@ function LoadedAudioBar({ fileName, audioUrl }: { fileName: string; audioUrl: st
         </audio>
       )}
     </div>
+  );
+}
+
+function AudioStatusFooter({
+  tooLarge,
+  fileName,
+  audioUrl,
+  cachedNotice,
+}: {
+  tooLarge: boolean;
+  fileName: string | null;
+  audioUrl: string | null;
+  cachedNotice?: string | null;
+}) {
+  return (
+    <>
+      {tooLarge && (
+        <p className="tab-limit" role="alert">
+          That file is over 12 MB. Trim it to a shorter MP3 or WAV clip and try again.
+        </p>
+      )}
+      {fileName ? (
+        <LoadedAudioBar fileName={fileName} audioUrl={audioUrl} />
+      ) : (
+        <p className="drop-hint">
+          Drop an MP3, WAV, OGG, or FLAC clip here, or load the Maqam Rast example.
+        </p>
+      )}
+      {cachedNotice && <p className="import-status">{cachedNotice}</p>}
+    </>
   );
 }
 
@@ -105,18 +182,17 @@ export function AudioControls(props: AudioControlsProps) {
           Transcribe to oud
         </button>
       </div>
-      {tooLarge && (
-        <p className="tab-limit" role="alert">
-          That file is over 12 MB. Trim it to a shorter MP3 or WAV clip and try again.
-        </p>
-      )}
-      {fileName ? (
-        <LoadedAudioBar fileName={fileName} audioUrl={audioUrl} />
-      ) : (
-        <p className="drop-hint">
-          Drop an MP3, WAV, OGG, or FLAC clip here, or load the Maqam Rast example.
-        </p>
-      )}
+      <AudioStatusFooter
+        tooLarge={tooLarge}
+        fileName={fileName}
+        audioUrl={audioUrl}
+        cachedNotice={props.cachedNotice}
+      />
+      <AudioLibraryShelf
+        entries={props.library ?? []}
+        onSelect={props.onSelectLibrary}
+        onRemove={props.onRemoveLibrary}
+      />
     </section>
   );
 }
