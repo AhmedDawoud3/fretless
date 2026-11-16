@@ -657,3 +657,22 @@ Quality & checks:
 - `dryer --threshold 0.8`: no duplicate candidates found.
 - `crapper --no-coverage`: every function across the entire Python + TypeScript
   codebase now scores cyclomatic complexity `<= 9`.
+
+## 2026-11-17: multi-stem audio separation, multi-arrangement Oud scorer, real BPM quantization, Maqam solo guide, and audio library
+
+- Why: full-mix MP3/audio transcriptions were too crowded for Oud playability, used a fixed tempo instead of the track's beat grid, gave no isolated stem preview, and offered no Maqam scale overlay for soloing/improvising over an imported track or re-opening previously transcribed songs.
+- Backend audio pipeline (`src/fretless/audio/` & `src/fretless/maqam_detect.py`):
+  - `decode.py`: added `_read_audio` and `decode_audio_stereo` returning `(mono, stereo_2ch)` float32 at `22050 Hz` (`decode_audio` delegates to `decode_audio_stereo(raw)[0]`).
+  - `separate.py`: added pure-NumPy STFT (`1024`/`256`) HPSS harmonic/percussive decomposition with stereo mid/side pan and frequency-band masking via `separate_stems` (`SeparatedStems(vocals, instruments, bass)`) plus `encode_wav_base64` (11.025 kHz mono 16-bit PCM WAV).
+  - `tempo.py`: added `detect_audio_bpm` (`60..160` BPM IOI folding, default `108`) and `ticks_per_second_for_bpm` (`4` ticks per quarter-note beat).
+  - `maqam_detect.py`: added `DetectedMaqam` and `detect_maqam_from_pitches` scoring pitch-class histograms, quarter-tone degrees, and cadence anchors across all 8 maqamat and 24 roots.
+  - `arrange.py`: added `AudioArrangement`, `extract_monophonic_line`, `extract_sparse_chords`, `combine_vocal_and_bass`, `_single_note_of`, `_pair_ornament`, `_lead_techniques` (`~`, `/`, `\`), `score_oud_fit`, `_candidate_specs`, and `build_audio_arrangements` (with mono fallback if stems yield no notes), ranking candidates by Oud fit score (`1..99`).
+- API (`src/fretless/api/` & `frontend/src/api/schema.d.ts`):
+  - Extended `ConvertOut` with `tempo`, `detected_maqam` (`DetectedMaqamOut`), `active_arrangement_id`, and `arrangements` (`AudioArrangementOut`), mapped in `tab_mappers.py` and returned by `POST /api/audio/transcribe` in `audio_routes.py`. Regenerated `frontend/src/api/schema.d.ts` via `just gen-api`.
+- Frontend (`frontend/src/app/`, `frontend/src/tab/`, `frontend/src/transcribe/`):
+  - Extracted shared `readStoredList` / `writeStoredList` in `localStore.ts` (reused by `importLibrary.ts` and new `audioLibrary.ts` Saved Audio Library with session `Map` stem-preview caching).
+  - Added `MaqamDetectBar.tsx` (`soloScaleMarkers`, `resolveNeckMarkers`, `useMaqamSolo`, candidate pills `<fieldset>`, `Solo / Improvise guide` neck scale toggle, and `Open in Maqam Explorer`) wired into `TabResult.tsx` for Oud tabs.
+  - Added `AudioArrangements.tsx` (`applyArrangement`, fit-score `<fieldset>` switcher, `fit_reason`, and isolated stem WAV `<audio controls aria-label="Isolated stem audio">`), tempo sync, and Saved Audio Library shelf in `AudioControls.tsx` and `AudioPage.tsx`.
+- Quality & checks:
+  - `just format` cleanly formatted; `crapper --no-coverage` reported max cyclomatic complexity `9` across all Python and TypeScript functions; `dryer --threshold 0.8` reported no duplicate candidates found.
+  - `just check` passed (`ruff format --check` 119 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 335 passed, `vitest run` 80 test files / 502 passed, including `test_maqam_detect.py`, `test_audio.py`, and `audioPage.test.tsx`).
