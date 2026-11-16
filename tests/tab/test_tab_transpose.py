@@ -40,3 +40,10 @@ def test_fold_moves_by_octaves_into_range() -> None:
     assert fold(148, oud_range(CC)) == 100
     assert fold(48, oud_range(CC)) == 48
     assert fold(120, oud_range(CC)) == 120
+
+
+def test_range_ends_are_inside_the_range() -> None:
+    assert best_shift((48,), oud_range(CC)) == 0
+    assert best_shift((120,), oud_range(CC)) == 0
+    assert best_shift((47,), oud_range(CC)) == 24
+    assert best_shift((121,), oud_range(CC)) == -24
