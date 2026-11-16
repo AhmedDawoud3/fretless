@@ -574,3 +574,40 @@ Quality & checks:
   `tests/tab/test_tab_techniques.py`), and `vitest run` (80 files, 499 passed).
 - `dryer --threshold 0.8`: no duplicate candidates found;
   `crapper --changed --no-coverage`: all changed/new functions score CC `<= 9`.
+
+## 2026-11-17: multi-track Songsterr import (vocals, guitar, bass) & track selector
+
+Backend:
+- Added `ImportedTrack` (`src/fretless/tab/import_model.py`) and
+  `track_index: int | None` / `tracks: tuple[ImportedTrack, ...]` on
+  `ImportedTab`.
+- Updated `src/fretless/tab/url_import.py`:
+  - Exposed `note_candidates` in `src/fretless/tab/sheet_import.py` and used it
+    to fold/map non-6-string pitched tracks (e.g. 4-string `Electric Bass`) onto
+    6-line Standard Guitar tab cleanly via `_parse_midi_tuning` & `_map_string_fret`.
+  - Discovered all playable pitched tracks (`_is_pitched_track`,
+    `_songsterr_tracks`, excluding Drums and empty tracks) and selected default
+    tracks from `-vocal` / `-bass` URL hints or `popularTrackGuitar` /
+    `defaultTrack` / `popularTrack`, while supporting explicit `track: int`.
+- Added `track: int | None` to `ImportUrlIn`, `ImportedTrackOut`, and
+  `track_index` / `tracks` on `ImportTabOut` (`src/fretless/api/tab_schemas.py`,
+  `tab_routes.py`), and regenerated `frontend/src/api/schema.d.ts`.
+
+Frontend:
+- Updated `frontend/src/api/client.ts` (`ImportedTrack`),
+  `frontend/src/tab/importLibrary.ts` (`findUrlInLibrary`, `saveUrlToLibrary`,
+  per-track cache keys `#t<index>` avoiding duplicate shelf items),
+  `frontend/src/tab/TabImportBar.tsx` (rendering the `Track` `<Select>` picker
+  whenever a Songsterr song has >1 playable track), and
+  `frontend/src/testApi.ts`.
+
+Quality & checks:
+- `just check` passes: `ruff format --check` (113 files), `ruff check`, `biome`
+  (297 files), `ty check`, `tsc -b`, `pytest` (331 passed), and `vitest run`
+  (80 files, 500 passed).
+- `dryer --threshold 0.8`: no duplicate candidates found;
+  `crapper --changed --no-coverage`: all changed/new functions score CC `<= 9`.
+- Live smoke check against Songsterr song `5828677` (`Tamino — So It Goes`)
+  confirmed automatic selection of track `3` (`Vocals`) from `-vocal-tab-` URLs
+  and switching across `0` (`Rhythm Guitar`), `1` (`Electric Bass`), and `3`
+  (`Vocals`).
