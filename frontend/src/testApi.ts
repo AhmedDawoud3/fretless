@@ -298,6 +298,26 @@ export const LESSONS: Lesson[] = [
 /** Text with a tab line (a bar) converts to the fixture; any other text finds no tab. */
 function respondTab(url: string, init: RequestInit | undefined): unknown {
   if (url === "/api/audio/transcribe") return CONVERTED;
+  if (url === "/api/tab/import-url") {
+    return {
+      title: "Demo Imported Tab",
+      source: "ultimate-guitar",
+      kind: "tab",
+      text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
+      strings: [104, 94, 86, 76, 68, 56],
+      capo: 0,
+    };
+  }
+  if (url === "/api/tab/import-pdf") {
+    return {
+      title: "Smile",
+      source: "pdf",
+      kind: "tab",
+      text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
+      strings: [90, 86, 76, 70, 62, 52],
+      capo: 0,
+    };
+  }
   if (url !== "/api/tab/convert") return undefined;
   const { text } = JSON.parse(String(init?.body ?? "{}")) as { text: string };
   return text.includes("|") ? CONVERTED : noTab(text);

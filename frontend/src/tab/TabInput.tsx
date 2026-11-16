@@ -1,10 +1,11 @@
-import type { GuitarTuning, TabMode } from "../api/client";
+import type { GuitarTuning, ImportedTab, TabMode } from "../api/client";
 import { TuningControls } from "../chords/TuningControls";
 import type { GuitarTuningState } from "../chords/useGuitarTuning";
 import type { RootOption } from "../explorer/rootOptions";
 import { Select } from "../explorer/Select";
 import { TAB_TEXT_MAX } from "../explorer/settings";
 import { EXAMPLE_TAB } from "./example";
+import { TabImportBar } from "./TabImportBar";
 
 export const TAB_MODES: [TabMode, string][] = [
   ["frets", "Fret numbers"],
@@ -22,11 +23,13 @@ type TabInputProps = {
   tuning: GuitarTuningState;
   names: readonly RootOption[];
   onConvert: () => void;
+  onImported: (imported: ImportedTab) => void;
 };
 
-/** Paste a guitar tab inside a collapsible studio drawer, configure guitar tuning, and convert. */
+/** Paste, upload PDF, or import from Ultimate Guitar / Songsterr, configure guitar tuning, and convert. */
 export function TabInput(props: TabInputProps) {
-  const { text, onText, tooLong, mode, onMode, presets, tuning, names, onConvert } = props;
+  const { text, onText, tooLong, mode, onMode, presets, tuning, names, onConvert, onImported } =
+    props;
   return (
     <section className="tab-input studio-card" aria-label="Guitar tab input">
       <div className="controls">
@@ -43,6 +46,7 @@ export function TabInput(props: TabInputProps) {
           Convert
         </button>
       </div>
+      <TabImportBar onImported={onImported} />
       <details className="ascii-source" open>
         <summary>Source Guitar Tab & Tuning</summary>
         <label className="tab-label">
@@ -51,6 +55,7 @@ export function TabInput(props: TabInputProps) {
             className="tab-textarea"
             value={text}
             onChange={(event) => onText(event.target.value)}
+            placeholder="Paste 6-line guitar tab, Ultimate Guitar markup, or chord progression (Am G F E7)..."
             wrap="off"
             spellCheck={false}
             rows={7}

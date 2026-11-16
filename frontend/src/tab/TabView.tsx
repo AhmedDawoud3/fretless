@@ -1,4 +1,4 @@
-import type { GuitarTuning } from "../api/client";
+import type { GuitarTuning, ImportedTab } from "../api/client";
 import type { PageProps } from "../app/useSharedSettings";
 import { useGuitarTuning } from "../chords/useGuitarTuning";
 import { rootOptions } from "../explorer/rootOptions";
@@ -62,6 +62,14 @@ export function TabView({
     input.setText(next);
     convert(next);
   };
+  const handleImported = (imported: ImportedTab) => {
+    input.setText(imported.text);
+    if (imported.strings && imported.strings.length === 6) {
+      tuning.setStrings(imported.strings);
+    }
+    tuning.setCapo(imported.capo);
+    convert(imported.text);
+  };
   return (
     <>
       <TabInput
@@ -70,6 +78,7 @@ export function TabView({
         {...{ mode: input.mode, onMode: input.setMode }}
         names={rootOptions(neck.locations, shared.system)}
         onConvert={() => convert(input.text)}
+        onImported={handleImported}
       />
       <Outcome
         {...{ shared, neck, conversion, inputKey }}

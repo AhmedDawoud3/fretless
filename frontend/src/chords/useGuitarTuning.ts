@@ -22,6 +22,7 @@ export function useGuitarTuning(presets: readonly GuitarTuning[]) {
     ...{ strings, capo },
     tune: (string: number, semitones: number) =>
       setStrings((s) => shiftString(s, string, semitones)),
+    setStrings: (next: readonly number[]) => setStrings([...next]),
     choosePreset: (id: string) => setStrings(pitchesOf(presets.find((p) => p.id === id))),
     setCapo: (value: number) => setCapo(clampCapo(value)),
   };

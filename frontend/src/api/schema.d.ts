@@ -174,6 +174,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tab/import-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Url Tab */
+        post: operations["import_url_tab_api_tab_import_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tab/import-pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Pdf Tab */
+        post: operations["import_pdf_tab_api_tab_import_pdf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/intervals": {
         parameters: {
             query?: never;
@@ -409,6 +443,45 @@ export interface components {
             notes: components["schemas"]["GuitarNoteOut"][];
             /** Matches */
             matches: components["schemas"]["MatchOut"][];
+        };
+        /** ImportPdfIn */
+        ImportPdfIn: {
+            /** Pdf Base64 */
+            pdf_base64: string;
+            /**
+             * Filename
+             * @default
+             */
+            filename: string;
+        };
+        /** ImportTabOut */
+        ImportTabOut: {
+            /** Title */
+            title: string;
+            /** Source */
+            source: string;
+            /** Kind */
+            kind: string;
+            /** Text */
+            text: string;
+            /** Strings */
+            strings?: number[] | null;
+            /**
+             * Capo
+             * @default 0
+             */
+            capo: number;
+        };
+        /** ImportUrlIn */
+        ImportUrlIn: {
+            /** Url */
+            url: string;
+            /**
+             * Kind
+             * @default auto
+             * @enum {string}
+             */
+            kind: "auto" | "tab" | "chords";
         };
         /** IntervalOut */
         IntervalOut: {
@@ -973,6 +1046,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConvertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_url_tab_api_tab_import_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportUrlIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportTabOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_pdf_tab_api_tab_import_pdf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPdfIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportTabOut"];
                 };
             };
             /** @description Validation Error */

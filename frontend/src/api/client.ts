@@ -27,6 +27,10 @@ export type Course = components["schemas"]["CourseOut"];
 export type Lesson = components["schemas"]["LessonOut"];
 export type LessonStep = components["schemas"]["LessonStepOut"];
 export type TranscribeBody = components["schemas"]["TranscribeIn"];
+export type ImportUrlBody = components["schemas"]["ImportUrlIn"];
+export type ImportKind = ImportUrlBody["kind"];
+export type ImportPdfBody = components["schemas"]["ImportPdfIn"];
+export type ImportedTab = components["schemas"]["ImportTabOut"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(path, init) : await fetch(path);
@@ -82,18 +86,32 @@ export function identifyShape(body: IdentifyBody): Promise<Identified> {
   });
 }
 
-/** The API refuses text or audio it cannot take with 422: that is an answer, not a failure. */
-export type ConvertReply = { rejected: false; converted: Converted } | { rejected: true };
-
-async function postConvert<T>(path: string, body: T): Promise<ConvertReply> {
+async function postJson<T, R>(
+  path: string,
+  body: T,
+  on422: (response: Response) => Promise<R>,
+  onOk: (payload: unknown) => R,
+): Promise<R> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (response.status === 422) return { rejected: true };
+  if (response.status === 422) return on422(response);
   if (!response.ok) throw new Error(`${path} failed with status ${response.status}`);
-  return { rejected: false, converted: (await response.json()) as Converted };
+  return onOk(await response.json());
+}
+
+/** The API refuses text or audio it cannot take with 422: that is an answer, not a failure. */
+export type ConvertReply = { rejected: false; converted: Converted } | { rejected: true };
+
+function postConvert<T>(path: string, body: T): Promise<ConvertReply> {
+  return postJson<T, ConvertReply>(
+    path,
+    body,
+    async () => ({ rejected: true }),
+    (data) => ({ rejected: false, converted: data as Converted }),
+  );
 }
 
 export function convertTab(body: ConvertBody): Promise<ConvertReply> {
@@ -102,4 +120,35 @@ export function convertTab(body: ConvertBody): Promise<ConvertReply> {
 
 export function transcribeAudio(body: TranscribeBody): Promise<ConvertReply> {
   return postConvert("/api/audio/transcribe", body);
+}
+
+/** Result of importing a tab or chords from Ultimate Guitar, Songsterr, or PDF. */
+export type ImportReply =
+  | { rejected: false; imported: ImportedTab }
+  | { rejected: true; detail: string };
+
+async function readErrorDetail(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === "string" ? body.detail : "Could not import that source.";
+  } catch {
+    return "Could not import that source.";
+  }
+}
+
+function postImport<T>(path: string, body: T): Promise<ImportReply> {
+  return postJson<T, ImportReply>(
+    path,
+    body,
+    async (res) => ({ rejected: true, detail: await readErrorDetail(res) }),
+    (data) => ({ rejected: false, imported: data as ImportedTab }),
+  );
+}
+
+export function importTabUrl(body: ImportUrlBody): Promise<ImportReply> {
+  return postImport("/api/tab/import-url", body);
+}
+
+export function importTabPdf(body: ImportPdfBody): Promise<ImportReply> {
+  return postImport("/api/tab/import-pdf", body);
 }
