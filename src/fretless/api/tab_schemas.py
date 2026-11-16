@@ -14,12 +14,20 @@ ImportKind = Literal["auto", "tab", "chords", "sheet"]
 class ImportUrlIn(BaseModel):
     url: Annotated[str, Field(min_length=1, max_length=2_000)]
     kind: ImportKind = "auto"
+    track: Annotated[int | None, Field(ge=0)] = None
 
 
 class ImportPdfIn(BaseModel):
     pdf_base64: Annotated[str, Field(min_length=1, max_length=20_000_000)]
     filename: Annotated[str, Field(max_length=260)] = ""
     kind: ImportKind = "auto"
+
+
+class ImportedTrackOut(BaseModel):
+    index: int
+    name: str
+    instrument: str
+    is_vocal: bool = False
 
 
 class ImportTabOut(BaseModel):
@@ -30,6 +38,8 @@ class ImportTabOut(BaseModel):
     strings: list[int] | None = None
     capo: int = 0
     tempo: int | None = None
+    track_index: int | None = None
+    tracks: list[ImportedTrackOut] = []
 
 
 class GuitarIn(BaseModel):

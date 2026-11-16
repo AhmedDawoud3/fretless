@@ -153,3 +153,87 @@ def test_import_tab_url_fetches_songsterr_tab_and_chords() -> None:
 def test_import_tab_url_rejects_unsupported_domains() -> None:
     with pytest.raises(ValueError, match="Ultimate Guitar or Songsterr"):
         import_tab_url("https://example.com/song")
+
+
+def test_import_songsterr_multitrack_discovers_vocals_guitar_and_bass() -> None:
+    meta = {
+        "songId": 5828677,
+        "revisionId": 10,
+        "image": "img58",
+        "artist": "Tamino",
+        "title": "So It Goes",
+        "defaultTrack": 3,
+        "popularTrackGuitar": 0,
+        "popularTrack": 3,
+        "tracks": [
+            {
+                "name": "Rhythm Guitar",
+                "instrument": "Electric Guitar (clean)",
+                "isVocalTrack": False,
+                "tuning": [64, 59, 55, 50, 45, 40],
+            },
+            {
+                "name": "",
+                "instrument": "Electric Bass (finger)",
+                "isVocalTrack": False,
+                "tuning": [43, 38, 33, 28],
+            },
+            {"name": "", "instrument": "Drums", "isVocalTrack": False, "tuning": None},
+            {
+                "name": "Vocals",
+                "instrument": "Tenor Sax",
+                "isVocalTrack": True,
+                "tuning": [64, 59, 55, 50, 45, 40],
+            },
+        ],
+    }
+    guitar_track = {
+        "tuning": [64, 59, 55, 50, 45, 40],
+        "measures": [{"voices": [{"beats": [{"notes": [{"string": 2, "fret": 2}]}]}]}],
+    }
+    bass_track = {
+        "tuning": [43, 38, 33, 28],
+        "measures": [{"voices": [{"beats": [{"notes": [{"string": 3, "fret": 0}]}]}]}],
+    }
+    vocal_track = {
+        "tuning": [64, 59, 55, 50, 45, 40],
+        "measures": [{"voices": [{"beats": [{"notes": [{"string": 1, "fret": 5}]}]}]}],
+    }
+    responses: dict[str, bytes] = {
+        "https://www.songsterr.com/api/meta/5828677": json.dumps(meta).encode(),
+        "https://dqsljvtekg760.cloudfront.net/5828677/10/img58/0.json": gzip.compress(
+            json.dumps(guitar_track).encode()
+        ),
+        "https://dqsljvtekg760.cloudfront.net/5828677/10/img58/1.json": gzip.compress(
+            json.dumps(bass_track).encode()
+        ),
+        "https://dqsljvtekg760.cloudfront.net/5828677/10/img58/3.json": gzip.compress(
+            json.dumps(vocal_track).encode()
+        ),
+    }
+
+    vocal_url = "https://www.songsterr.com/a/wsa/tamino-so-it-goes-full-version-vocal-tab-s5828677"
+    vocal_res = import_tab_url(vocal_url, fetcher=responses.__getitem__)
+    assert vocal_res.track_index == 3
+    assert vocal_res.title == "Tamino — So It Goes — Vocals"
+    assert [(t.index, t.name, t.instrument, t.is_vocal) for t in vocal_res.tracks] == [
+        (0, "Rhythm Guitar", "Electric Guitar (clean)", False),
+        (1, "Electric Bass (finger)", "Electric Bass (finger)", False),
+        (3, "Vocals", "Tenor Sax", True),
+    ]
+
+    guitar_res = import_tab_url(vocal_url, fetcher=responses.__getitem__, track=0)
+    assert guitar_res.track_index == 0
+    assert guitar_res.title == "Tamino — So It Goes — Rhythm Guitar"
+    assert guitar_res.strings == STANDARD
+
+    bass_res = import_tab_url(vocal_url, fetcher=responses.__getitem__, track=1)
+    assert bass_res.track_index == 1
+    assert bass_res.strings == STANDARD
+    systems = [b for b in parse_tab(bass_res.text).blocks if isinstance(b, TabSystem)]
+    assert len(systems) == 1
+    assert systems[0].columns[0].notes[0].line == 6
+    assert systems[0].columns[0].notes[0].fret == 0
+
+    with pytest.raises(ValueError, match="pitched track"):
+        import_tab_url(vocal_url, fetcher=responses.__getitem__, track=2)

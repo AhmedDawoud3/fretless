@@ -87,7 +87,7 @@ def _fold_into_guitar_range(pitch: int, low: int, high: int) -> int:
     return pitch
 
 
-def _note_candidates(pitch: int, strings: tuple[int, ...]) -> list[tuple[int, int]]:
+def note_candidates(pitch: int, strings: tuple[int, ...]) -> list[tuple[int, int]]:
     even_pitch = round(pitch / 2) * 2
     low, high = min(strings), max(strings) + 48
     fitted = _fold_into_guitar_range(even_pitch, low, high)
@@ -105,7 +105,7 @@ def _place_pitch_column(pitches: list[int], strings: tuple[int, ...]) -> list[tu
     used_lines: set[int] = set()
     for pitch in sorted(pitches, reverse=True):
         choice = next(
-            (cand for cand in _note_candidates(pitch, strings) if cand[0] not in used_lines),
+            (cand for cand in note_candidates(pitch, strings) if cand[0] not in used_lines),
             None,
         )
         if choice is not None:

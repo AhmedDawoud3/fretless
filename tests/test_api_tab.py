@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from fretless.api import app
-from fretless.tab.import_model import ImportedTab
+from fretless.tab.import_model import ImportedTab, ImportedTrack
 from fretless.tab.model import TabSystem
 from fretless.tab.parse import parse_tab
 
@@ -217,9 +217,10 @@ def test_import_url_endpoint_returns_imported_tab_and_422_on_error(
 ) -> None:
     import fretless.api.tab_routes as tab_routes
 
-    def fake_import(url: str, kind: str = "auto") -> ImportedTab:
+    def fake_import(url: str, kind: str = "auto", track: int | None = None) -> ImportedTab:
         if "bad" in url:
             raise ValueError("Enter a valid Ultimate Guitar or Songsterr URL.")
+        chosen = 3 if track is None else track
         return ImportedTab(
             title="Eagles — Hotel California",
             source="ultimate-guitar",
@@ -227,16 +228,27 @@ def test_import_url_endpoint_returns_imported_tab_and_422_on_error(
             text="e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
             strings=tuple(STANDARD),
             capo=2,
+            track_index=chosen,
+            tracks=(
+                ImportedTrack(0, "Rhythm Guitar", "Electric Guitar (clean)", False),
+                ImportedTrack(3, "Vocals", "Tenor Sax", True),
+            ),
         )
 
     monkeypatch.setattr(tab_routes, "import_tab_url", fake_import)
     ok = client.post(
         "/api/tab/import-url",
-        json={"url": "https://tabs.ultimate-guitar.com/tab/eagles/hotel-california-chords-46190"},
+        json={
+            "url": "https://tabs.ultimate-guitar.com/tab/eagles/hotel-california-chords-46190",
+            "track": 0,
+        },
     )
     assert ok.status_code == 200
     assert ok.json()["capo"] == 2
     assert ok.json()["strings"] == STANDARD
+    assert ok.json()["track_index"] == 0
+    assert len(ok.json()["tracks"]) == 2
+    assert ok.json()["tracks"][1]["is_vocal"] is True
 
     bad = client.post("/api/tab/import-url", json={"url": "https://bad.example.com"})
     assert bad.status_code == 422

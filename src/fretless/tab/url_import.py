@@ -12,10 +12,11 @@ from typing import Any
 
 from fretless.guitar import GUITAR_TUNINGS
 from fretless.tab.chords import clean_ug_markup, expand_chord_sheet, has_six_line_tab
-from fretless.tab.import_model import ImportedTab
+from fretless.tab.import_model import ImportedTab, ImportedTrack
 from fretless.tab.oud_render import ascii_name
 from fretless.tab.render import render_system
 from fretless.tab.render_model import RenderCell, RenderSystem
+from fretless.tab.sheet_import import note_candidates
 from fretless.tab.tuning_parse import (
     extract_tempo_from_text,
     extract_tuning_from_text,
@@ -159,12 +160,18 @@ def parse_ug_html(
     raise ValueError("No playable 6-line guitar tab or chords found on that Ultimate Guitar page.")
 
 
+def _parse_midi_tuning(raw: object) -> tuple[int, ...] | None:
+    if not isinstance(raw, list) or not (1 <= len(raw) <= 12):
+        return None
+    valid = all(
+        isinstance(n, int) and not isinstance(n, bool) and 24 <= 2 * (n - 12) <= 144 for n in raw
+    )
+    return tuple(2 * (n - 12) for n in raw) if valid else None
+
+
 def _midi_tuning_to_strings(raw: object) -> tuple[int, ...] | None:
-    if not isinstance(raw, list) or len(raw) != 6:
-        return None
-    if not all(isinstance(n, int) and 24 <= 2 * (n - 12) <= 144 for n in raw):
-        return None
-    return tuple(2 * (n - 12) for n in raw)
+    parsed = _parse_midi_tuning(raw)
+    return parsed if parsed is not None and len(parsed) == 6 else None
 
 
 def _measure_beats(measure: dict[str, Any]) -> list[dict[str, Any]]:
@@ -201,20 +208,29 @@ def _note_symbol(note: dict[str, Any], line_no: int, fret: int, next_frets: dict
     return "~" if note.get("vibrato") or note.get("leftHandVibrato") else ""
 
 
-def _valid_fret_pos(string_idx: object, fret: object) -> tuple[int, int] | None:
-    if isinstance(string_idx, int) and isinstance(fret, int):
-        return (string_idx + 1, fret) if 0 <= string_idx < 6 and 0 <= fret <= 24 else None
-    return None
+def _map_string_fret(
+    string_idx: object, fret: object, raw_tuning: tuple[int, ...]
+) -> tuple[int, int] | None:
+    if not (isinstance(string_idx, int) and isinstance(fret, int)):
+        return None
+    if not (0 <= string_idx < len(raw_tuning) and 0 <= fret <= 24):
+        return None
+    if len(raw_tuning) == 6:
+        return string_idx + 1, fret
+    candidates = note_candidates(raw_tuning[string_idx] + 2 * fret, _STANDARD_STRINGS)
+    return candidates[0] if candidates else None
 
 
 def _parse_beat_note(
-    note: object, next_frets: dict[int, int] | None = None
+    note: object,
+    next_frets: dict[int, int] | None = None,
+    raw_tuning: tuple[int, ...] = _STANDARD_STRINGS,
 ) -> tuple[int, str] | None:
     if not isinstance(note, dict) or note.get("rest"):
         return None
     if note.get("tie") and not _has_technique(note):
         return None
-    pos = _valid_fret_pos(note.get("string"), note.get("fret"))
+    pos = _map_string_fret(note.get("string"), note.get("fret"), raw_tuning)
     if pos is None:
         return None
     line_no, fret = pos
@@ -222,7 +238,9 @@ def _parse_beat_note(
 
 
 def _beat_notes(
-    beat: dict[str, Any], next_frets: dict[int, int] | None = None
+    beat: dict[str, Any],
+    next_frets: dict[int, int] | None = None,
+    raw_tuning: tuple[int, ...] = _STANDARD_STRINGS,
 ) -> list[tuple[int, str]]:
     raw_notes = beat.get("notes") if not beat.get("rest") else None
     if not isinstance(raw_notes, list):
@@ -230,24 +248,25 @@ def _beat_notes(
     out: list[tuple[int, str]] = []
     seen_lines: set[int] = set()
     for note in raw_notes:
-        parsed = _parse_beat_note(note, next_frets)
+        parsed = _parse_beat_note(note, next_frets, raw_tuning)
         if parsed and parsed[0] not in seen_lines:
             seen_lines.add(parsed[0])
             out.append(parsed)
     return out
 
 
-def _beat_fret_map(beat: dict[str, Any]) -> dict[int, int]:
+def _beat_fret_map(
+    beat: dict[str, Any], raw_tuning: tuple[int, ...] = _STANDARD_STRINGS
+) -> dict[int, int]:
     if beat.get("rest") or not isinstance(beat.get("notes"), list):
         return {}
     out: dict[int, int] = {}
     for note in beat["notes"]:
-        if (
-            isinstance(note, dict)
-            and isinstance(note.get("string"), int)
-            and isinstance(note.get("fret"), int)
-        ):
-            out[note["string"] + 1] = note["fret"]
+        if not isinstance(note, dict):
+            continue
+        pos = _map_string_fret(note.get("string"), note.get("fret"), raw_tuning)
+        if pos is not None:
+            out[pos[0]] = pos[1]
     return out
 
 
@@ -315,6 +334,7 @@ def _advance_measure_bar(
 def _render_measure_chunk(
     measures: list[dict[str, Any]],
     labels: tuple[str, ...],
+    raw_tuning: tuple[int, ...],
 ) -> str | None:
     cells: list[RenderCell] = []
     bars: list[int] = []
@@ -323,19 +343,21 @@ def _render_measure_chunk(
     col, prev_measure = 1, 0
     for idx, (m_idx, beat) in enumerate(flat):
         prev_measure, col = _advance_measure_bar(m_idx, prev_measure, col, bars, cells)
-        next_frets = _beat_fret_map(flat[idx + 1][1]) if idx + 1 < len(flat) else {}
-        notes = _beat_notes(beat, next_frets)
+        next_frets = _beat_fret_map(flat[idx + 1][1], raw_tuning) if idx + 1 < len(flat) else {}
+        notes = _beat_notes(beat, next_frets, raw_tuning)
         cells.extend(RenderCell(line_no, col, text) for line_no, text in notes)
         if notes or cells:
             col = min(col + _beat_ticks(beat), cells[-1].index + 16)
     return _format_chunk(headers, labels, col, bars, cells) if cells else None
 
 
-def _group_measures(measures: list[object]) -> list[list[dict[str, Any]]]:
+def _group_measures(
+    measures: list[object], raw_tuning: tuple[int, ...]
+) -> list[list[dict[str, Any]]]:
     groups: list[list[dict[str, Any]]] = []
     for measure in measures:
         if not isinstance(measure, dict) or not any(
-            _beat_notes(b) for b in _measure_beats(measure)
+            _beat_notes(b, raw_tuning=raw_tuning) for b in _measure_beats(measure)
         ):
             continue
         if not groups or len(groups[-1]) >= 4 or _measure_marker(measure) is not None:
@@ -345,15 +367,28 @@ def _group_measures(measures: list[object]) -> list[list[dict[str, Any]]]:
     return groups
 
 
-def render_songsterr_track(track: dict[str, Any], title: str = "Songsterr Tab") -> ImportedTab:
+def render_songsterr_track(
+    track: dict[str, Any],
+    title: str = "Songsterr Tab",
+    track_index: int | None = None,
+    tracks: tuple[ImportedTrack, ...] = (),
+) -> ImportedTab:
     """Render a Songsterr CloudFront track JSON dictionary into a 6-line `ImportedTab`."""
-    strings = _midi_tuning_to_strings(track.get("tuning"))
+    parsed_tuning = _parse_midi_tuning(track.get("tuning"))
+    raw_tuning = parsed_tuning or _STANDARD_STRINGS
+    strings = (
+        parsed_tuning
+        if parsed_tuning is not None and len(parsed_tuning) == 6
+        else (_STANDARD_STRINGS if parsed_tuning is not None else None)
+    )
     labels = tuple(ascii_name(s) for s in (strings or _STANDARD_STRINGS))
     measures = track.get("measures")
     if not isinstance(measures, list):
         raise ValueError("Songsterr track contained no measures.")
     rendered = [
-        b for group in _group_measures(measures) if (b := _render_measure_chunk(group, labels))
+        b
+        for group in _group_measures(measures, raw_tuning)
+        if (b := _render_measure_chunk(group, labels, raw_tuning))
     ]
     if not rendered:
         raise ValueError("Selected Songsterr track has no playable notes.")
@@ -364,42 +399,95 @@ def render_songsterr_track(track: dict[str, Any], title: str = "Songsterr Tab") 
         text="\n\n".join(rendered),
         strings=strings,
         tempo=_songsterr_tempo(track),
+        track_index=track_index,
+        tracks=tracks,
     )
 
 
-def _is_six_string_track(track: object, *, allow_vocal: bool = False) -> bool:
-    if not isinstance(track, dict):
+def _is_pitched_track(track: object) -> bool:
+    if not isinstance(track, dict) or track.get("isEmpty"):
         return False
-    if not allow_vocal and (track.get("isVocalTrack") or track.get("isEmpty")):
+    if str(track.get("instrument", "")).strip().lower() == "drums":
         return False
-    return _midi_tuning_to_strings(track.get("tuning")) is not None
+    return _parse_midi_tuning(track.get("tuning")) is not None
 
 
-def _first_six_string(tracks: list[object], indices: list[object]) -> int | None:
+def _track_label(track: dict[str, Any], idx: int) -> ImportedTrack:
+    inst = str(track.get("instrument") or "").strip()
+    name = str(track.get("name") or "").strip() or inst or f"Track {idx + 1}"
+    return ImportedTrack(
+        index=idx,
+        name=name,
+        instrument=inst,
+        is_vocal=bool(track.get("isVocalTrack")),
+    )
+
+
+def _songsterr_tracks(meta: dict[str, Any]) -> tuple[ImportedTrack, ...]:
+    tracks = meta.get("tracks")
+    if not isinstance(tracks, list):
+        return ()
+    return tuple(_track_label(t, idx) for idx, t in enumerate(tracks) if _is_pitched_track(t))
+
+
+def _find_track(
+    tracks: list[object], indices: list[object], pred: Callable[[dict[str, Any]], bool]
+) -> int | None:
     for idx in indices:
-        if isinstance(idx, int) and 0 <= idx < len(tracks) and _is_six_string_track(tracks[idx]):
-            return idx
+        if isinstance(idx, int) and 0 <= idx < len(tracks):
+            item = tracks[idx]
+            if _is_pitched_track(item) and isinstance(item, dict) and pred(item):
+                return idx
     return None
 
 
-def _pick_songsterr_track(meta: dict[str, Any], requested: int | None) -> int:
+def _is_nonvocal_six_string(track: dict[str, Any]) -> bool:
+    return _midi_tuning_to_strings(track.get("tuning")) is not None and not track.get(
+        "isVocalTrack"
+    )
+
+
+def _is_vocal_track(track: dict[str, Any]) -> bool:
+    text = f"{track.get('name', '')} {track.get('instrument', '')}".lower()
+    return bool(track.get("isVocalTrack")) or "vocal" in text
+
+
+def _is_bass_track(track: dict[str, Any]) -> bool:
+    return "bass" in f"{track.get('name', '')} {track.get('instrument', '')}".lower()
+
+
+def _url_hint_track(tracks: list[object], indices: list[object], url: str) -> int | None:
+    low = url.lower()
+    if "-vocal" in low:
+        return _find_track(tracks, indices, _is_vocal_track)
+    if "-bass" in low:
+        return _find_track(tracks, indices, _is_bass_track)
+    return None
+
+
+def _pick_songsterr_track(meta: dict[str, Any], requested: int | None, url: str = "") -> int:
     tracks = meta.get("tracks")
     if not isinstance(tracks, list) or not tracks:
         raise ValueError("Songsterr song metadata listed no tracks.")
     if requested is not None:
-        if 0 <= requested < len(tracks) and _is_six_string_track(
-            tracks[requested], allow_vocal=True
-        ):
+        if 0 <= requested < len(tracks) and _is_pitched_track(tracks[requested]):
             return requested
-        raise ValueError("Requested Songsterr track is not a 6-string guitar track.")
+        raise ValueError("Requested Songsterr track is not a playable pitched track.")
+    all_indices: list[object] = list(range(len(tracks)))
+    hinted = _url_hint_track(tracks, all_indices, url)
+    if hinted is not None:
+        return hinted
     candidates = [
         *[meta.get(key) for key in ("popularTrackGuitar", "defaultTrack", "popularTrack")],
-        *range(len(tracks)),
+        *all_indices,
     ]
-    picked = _first_six_string(tracks, candidates)
+    picked = _find_track(tracks, candidates, _is_nonvocal_six_string)
     if picked is not None:
         return picked
-    raise ValueError("No 6-string guitar track found in this Songsterr song.")
+    fallback = _find_track(tracks, candidates, lambda _: True)
+    if fallback is not None:
+        return fallback
+    raise ValueError("No playable pitched track found in this Songsterr song.")
 
 
 def _fetch_songsterr_chords(song_id: str, fetcher: Fetcher) -> ImportedTab:
@@ -430,7 +518,12 @@ def _fetch_songsterr_chords(song_id: str, fetcher: Fetcher) -> ImportedTab:
     )
 
 
-def _track_chords_fallback(track: dict[str, Any], title: str) -> ImportedTab:
+def _track_chords_fallback(
+    track: dict[str, Any],
+    title: str,
+    track_index: int | None = None,
+    tracks: tuple[ImportedTrack, ...] = (),
+) -> ImportedTab:
     strings = _midi_tuning_to_strings(track.get("tuning"))
     chords: list[str] = []
     for measure in track.get("measures", []):
@@ -451,6 +544,8 @@ def _track_chords_fallback(track: dict[str, Any], title: str) -> ImportedTab:
         strings=strings,
         capo=0,
         tempo=_songsterr_tempo(track),
+        track_index=track_index,
+        tracks=tracks,
     )
 
 
@@ -461,24 +556,41 @@ def _try_songsterr_chords(song_id: str, fetcher: Fetcher) -> ImportedTab | None:
         return None
 
 
+def _track_title(base_title: str, tracks: tuple[ImportedTrack, ...], track_idx: int) -> str:
+    if len(tracks) <= 1:
+        return base_title
+    chosen = next((t for t in tracks if t.index == track_idx), None)
+    if chosen is None or chosen.name.lower() in base_title.lower():
+        return base_title
+    return f"{base_title} — {chosen.name}"
+
+
 def _import_songsterr_meta(
-    song_id: str, track_arg: int | None, wants_chords: bool, fetcher: Fetcher
+    song_id: str,
+    track_arg: int | None,
+    wants_chords: bool,
+    fetcher: Fetcher,
+    url: str = "",
 ) -> ImportedTab:
     meta = _fetch_json(f"https://www.songsterr.com/api/meta/{song_id}", fetcher)
-    title = _join_title(
+    base_title = _join_title(
         str(meta.get("artist", "")), str(meta.get("title", "")), fallback="Songsterr Tab"
     )
-    track_idx = _pick_songsterr_track(meta, track_arg)
+    available_tracks = _songsterr_tracks(meta)
+    track_idx = _pick_songsterr_track(meta, track_arg, url=url)
     sid, rev, image = meta.get("songId", song_id), meta.get("revisionId"), meta.get("image")
     if not rev or not image:
         raise ValueError("Songsterr revision metadata is incomplete.")
     track = _fetch_json(
         f"https://dqsljvtekg760.cloudfront.net/{sid}/{rev}/{image}/{track_idx}.json", fetcher
     )
-    return (
-        _track_chords_fallback(track, title)
-        if wants_chords
-        else render_songsterr_track(track, title=title)
+    full_title = _track_title(base_title, available_tracks, track_idx)
+    if wants_chords:
+        return _track_chords_fallback(
+            track, full_title, track_index=track_idx, tracks=available_tracks
+        )
+    return render_songsterr_track(
+        track, title=full_title, track_index=track_idx, tracks=available_tracks
     )
 
 
@@ -486,19 +598,20 @@ def import_songsterr_url(
     url: str,
     preferred_kind: str = "auto",
     fetcher: Fetcher = default_fetch,
+    track: int | None = None,
 ) -> ImportedTab:
     """Import a Songsterr tab or chords URL into a 6-line `ImportedTab`."""
     match = _SONGSTERR_ID_RE.search(url)
     if match is None:
         raise ValueError("Could not find a Songsterr song ID in that URL.")
     song_id, raw_track = match.group(1), match.group(2)
-    track_arg = int(raw_track) if raw_track is not None else None
-    wants_chords = preferred_kind == "chords" or (
-        preferred_kind == "auto" and "-chords-" in url.lower()
+    track_arg = track if track is not None else (int(raw_track) if raw_track is not None else None)
+    wants_chords = track is None and (
+        preferred_kind == "chords" or (preferred_kind == "auto" and "-chords-" in url.lower())
     )
     if wants_chords and (chords := _try_songsterr_chords(song_id, fetcher)) is not None:
         return chords
-    return _import_songsterr_meta(song_id, track_arg, wants_chords, fetcher)
+    return _import_songsterr_meta(song_id, track_arg, wants_chords, fetcher, url=url)
 
 
 def import_ug_url(
@@ -515,6 +628,7 @@ def import_tab_url(
     url: str,
     kind: str = "auto",
     fetcher: Fetcher = default_fetch,
+    track: int | None = None,
 ) -> ImportedTab:
     """Import an Ultimate Guitar or Songsterr tab/chords URL into a 6-line `ImportedTab`."""
     cleaned = url.strip()
@@ -525,5 +639,5 @@ def import_tab_url(
     if host == "ultimate-guitar.com" or host.endswith(".ultimate-guitar.com"):
         return import_ug_url(cleaned, preferred_kind=kind, fetcher=fetcher)
     if host == "songsterr.com" or host.endswith(".songsterr.com"):
-        return import_songsterr_url(cleaned, preferred_kind=kind, fetcher=fetcher)
+        return import_songsterr_url(cleaned, preferred_kind=kind, fetcher=fetcher, track=track)
     raise ValueError("Enter a valid Ultimate Guitar or Songsterr URL.")

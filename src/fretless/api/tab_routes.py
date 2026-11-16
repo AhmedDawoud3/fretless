@@ -7,7 +7,14 @@ from fastapi import APIRouter, HTTPException
 
 from fretless.api.lookup import find
 from fretless.api.tab_mappers import convert_out
-from fretless.api.tab_schemas import ConvertIn, ConvertOut, ImportPdfIn, ImportTabOut, ImportUrlIn
+from fretless.api.tab_schemas import (
+    ConvertIn,
+    ConvertOut,
+    ImportedTrackOut,
+    ImportPdfIn,
+    ImportTabOut,
+    ImportUrlIn,
+)
 from fretless.tab.chords import clean_ug_markup, expand_chord_sheet
 from fretless.tab.convert import convert
 from fretless.tab.import_model import ImportedTab
@@ -29,6 +36,13 @@ def _import_out(imported: ImportedTab) -> ImportTabOut:
         strings=list(imported.strings) if imported.strings is not None else None,
         capo=imported.capo,
         tempo=imported.tempo,
+        track_index=imported.track_index,
+        tracks=[
+            ImportedTrackOut(
+                index=t.index, name=t.name, instrument=t.instrument, is_vocal=t.is_vocal
+            )
+            for t in imported.tracks
+        ],
     )
 
 
@@ -47,7 +61,7 @@ def convert_tab(body: ConvertIn) -> ConvertOut:
 @router.post("/api/tab/import-url")
 def import_url_tab(body: ImportUrlIn) -> ImportTabOut:
     try:
-        imported = import_tab_url(body.url, kind=body.kind)
+        imported = import_tab_url(body.url, kind=body.kind, track=body.track)
     except ValueError as err:
         raise HTTPException(status_code=422, detail=str(err)) from err
     return _import_out(imported)

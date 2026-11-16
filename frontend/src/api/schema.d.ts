@@ -479,6 +479,13 @@ export interface components {
             capo: number;
             /** Tempo */
             tempo?: number | null;
+            /** Track Index */
+            track_index?: number | null;
+            /**
+             * Tracks
+             * @default []
+             */
+            tracks: components["schemas"]["ImportedTrackOut"][];
         };
         /** ImportUrlIn */
         ImportUrlIn: {
@@ -490,6 +497,22 @@ export interface components {
              * @enum {string}
              */
             kind: "auto" | "tab" | "chords" | "sheet";
+            /** Track */
+            track?: number | null;
+        };
+        /** ImportedTrackOut */
+        ImportedTrackOut: {
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+            /** Instrument */
+            instrument: string;
+            /**
+             * Is Vocal
+             * @default false
+             */
+            is_vocal: boolean;
         };
         /** IntervalOut */
         IntervalOut: {
