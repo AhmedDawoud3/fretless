@@ -243,3 +243,43 @@ The agent hit the usage limit mid-unit and was resumed from its saved state.
 - Process slips reported by the agent: parser fix first committed half applied,
   then amended; some test edits broken by shell escaping and repaired by hand.
 - Not verified: no tab pasted from a real site; fingering not tried by a player.
+
+## 2026-11-16: phase 3, units I (chord reduction fixes) and J (converter page). Phase 3 feature-complete.
+
+Unit I, backend, three rounds:
+- A converted chord has at most 4 notes. Within a size, sets with the most
+  distinct pitch classes are tried, then cheapest placement. `_smaller_easy`
+  (marked `ponytail:`) takes a one-note-smaller set when the larger one needs a
+  position above 10 steps.
+- Whole-piece shift was too eager: one out-of-range bass note moved everything.
+  The lead's original rule was at fault. Now `best_shift` moves the piece only
+  if that rescues more than 25% of all notes (`SHIFT_GAIN`, `ponytail:`);
+  otherwise stray notes fold one by one.
+- Bug found by the lead reading the agent's pasted output against its claim:
+  022100 lost its third when it followed a G chord, because the path search
+  chose between different note sets. Now `options()` returns only fingerings of
+  one note set decided per event; the path search picks fingering only. Failing
+  test and Hypothesis property written first.
+- A general "third is kept" property was tried and is false (equal-class sets
+  tie on cost); concrete C, G, E, F tests in both tunings stand instead.
+- Known: 320003 lands at fret 7 because its top note exists only there.
+
+Unit J, frontend:
+- Third page "Tab converter": paste box, example loader, convert on button,
+  re-convert when tunings, capo, or output mode change. Summary in plain words,
+  list of changes, copy button, explanation panel.
+- Guitar tuning and capo are one shared persisted setting (`useGuitarTuning`)
+  for the Chords and converter pages. Pasted text persisted up to 200,000
+  characters. Output mode is its own setting.
+- Playback: `playTimed` in audio (chords strummed), `useRunner` shared by
+  `usePlayback` and `useTabPlayer`, gap cap of 16 ticks. Current column marked
+  exactly via `cells.ts`; a system whose text does not match gets no highlight.
+- Component tests were written first this time and seen failing.
+- Process slips reported by the agent: two commits amended after a failing
+  test and a type error; its process cleanup matched 14 PIDs by command line
+  and may have killed unrelated Edge processes.
+- Verified in headless Edge: convert, playback with marked column and oud
+  marker, 390 px. Lead checked the playback screenshot: marked cell and oud
+  marker agree (A3, course 2 fret 2).
+- Tests only, not browser: column click, 422 alert, copy, over-limit message.
+  Not done: tab pasted from a real site; sound unheard.
