@@ -57,12 +57,14 @@ export function ChordResult({ shared, neck, chord, quality }: ChordResultProps) 
           onSelect={select}
         />
       )}
-      <div className="neck-scroll">
+      <div className="neck-scroll studio-stage">
         <OudNeck
           neck={neck}
           markers={markers}
           showGuides={guides}
           snap={shared.snap}
+          zoom={shared.neckZoom}
+          system={system}
           onPlay={(hit) => playSteps(hit.pitch)}
           rulerLabel={rulerLabelFor(guides, labelMode)}
         />

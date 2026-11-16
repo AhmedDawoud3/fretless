@@ -131,3 +131,36 @@ test("clicking an alteration with a place does the same", async () => {
   expect(highlighted(output)).toEqual(["5", "0"]);
   expect(within(list).queryByRole("button", { name: /whole piece/ })).toBeNull();
 });
+
+test("Guitar track switches to Guitar neck & visual guitar staff and plays guitar timbre", async () => {
+  await converted();
+  fireEvent.click(screen.getByRole("button", { name: "Guitar track" }));
+  expect(screen.getByTitle(/Guitar neck/i)).toBeDefined();
+
+  fireEvent.click(screen.getByRole("button", { name: "Play" }));
+  expect(timed.mock.calls[0]?.[0].map((e) => e.steps)).toEqual([[106], [90, 114]]);
+  expect(timed.mock.calls[0]?.[3]).toBe("guitar");
+});
+
+test("Previous/Next event buttons step through visual staff columns", async () => {
+  await converted();
+  fireEvent.click(screen.getByRole("button", { name: "Next event" }));
+  expect(playStrum).toHaveBeenCalledWith([102]);
+  expect(screen.getByText(/Event 1\/2/)).toBeDefined();
+
+  fireEvent.click(screen.getByRole("button", { name: "Next event" }));
+  expect(playStrum).toHaveBeenCalledWith([86, 106]);
+  expect(screen.getByText(/Event 2\/2/)).toBeDefined();
+
+  fireEvent.click(screen.getByRole("button", { name: "Previous event" }));
+  expect(screen.getByText(/Event 1\/2/)).toBeDefined();
+});
+
+test("Edit on neck writes guitar frets directly back into the source tab", async () => {
+  await converted();
+  fireEvent.click(screen.getByRole("button", { name: "Guitar track" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit on neck" }));
+  fireEvent.click(screen.getByRole("button", { name: "String 1, fret 3" }));
+  const box = screen.getByLabelText("Guitar tab") as HTMLTextAreaElement;
+  expect(box.value).toContain("3");
+});

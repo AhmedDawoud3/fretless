@@ -1,3 +1,4 @@
+import { type DragEvent, useState } from "react";
 import type { TabMode } from "../api/client";
 import { Select } from "../explorer/Select";
 import { TAB_MODES } from "../tab/TabInput";
@@ -33,8 +34,9 @@ function LoadedAudioBar({ fileName, audioUrl }: { fileName: string; audioUrl: st
   );
 }
 
-/** Upload or load an example audio clip, tweak sensitivity, listen to original, and transcribe. */
+/** Drag-and-drop or browse MP3/WAV, tweak Basic Pitch sensitivity, listen, and transcribe. */
 export function AudioControls(props: AudioControlsProps) {
+  const [dragging, setDragging] = useState(false);
   const {
     fileName,
     audioUrl,
@@ -49,10 +51,26 @@ export function AudioControls(props: AudioControlsProps) {
     onTranscribe,
   } = props;
 
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    const file = event.dataTransfer.files[0];
+    if (file) onFile(file);
+  };
+
   return (
-    <section className="audio-input" aria-label="Audio input">
+    <section
+      className={dragging ? "audio-input studio-card audio-drop-active" : "audio-input studio-card"}
+      aria-label="Audio input"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+    >
       <div className="controls">
-        <label className="control">
+        <label className="control audio-file-pick">
           Audio file
           <input
             type="file"
@@ -78,7 +96,12 @@ export function AudioControls(props: AudioControlsProps) {
             onChange={(event) => onOnsetThreshold(toSensitivity(Number(event.target.value)))}
           />
         </label>
-        <button type="button" disabled={!canTranscribe || tooLarge} onClick={onTranscribe}>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={!canTranscribe || tooLarge}
+          onClick={onTranscribe}
+        >
           Transcribe to oud
         </button>
       </div>
@@ -87,7 +110,13 @@ export function AudioControls(props: AudioControlsProps) {
           That file is over 12 MB. Trim it to a shorter MP3 or WAV clip and try again.
         </p>
       )}
-      {fileName && <LoadedAudioBar fileName={fileName} audioUrl={audioUrl} />}
+      {fileName ? (
+        <LoadedAudioBar fileName={fileName} audioUrl={audioUrl} />
+      ) : (
+        <p className="drop-hint">
+          Drop an MP3, WAV, OGG, or FLAC clip here, or load the Maqam Rast example.
+        </p>
+      )}
     </section>
   );
 }

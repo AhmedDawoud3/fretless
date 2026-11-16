@@ -24,38 +24,46 @@ type TabInputProps = {
   onConvert: () => void;
 };
 
-/** Paste a guitar tab, say which guitar it is for and how to print the oud tab, then convert. */
+/** Paste a guitar tab inside a collapsible studio drawer, configure guitar tuning, and convert. */
 export function TabInput(props: TabInputProps) {
   const { text, onText, tooLong, mode, onMode, presets, tuning, names, onConvert } = props;
   return (
-    <section className="tab-input" aria-label="Guitar tab input">
-      <label className="tab-label">
-        Guitar tab
-        <textarea
-          className="tab-textarea"
-          value={text}
-          onChange={(event) => onText(event.target.value)}
-          wrap="off"
-          spellCheck={false}
-          rows={10}
-        />
-      </label>
-      {tooLong && (
-        <p className="tab-limit">
-          Too long: the limit is {TAB_TEXT_MAX.toLocaleString("en-US")} characters, this text has{" "}
-          {text.length.toLocaleString("en-US")}.
-        </p>
-      )}
-      <TuningControls presets={presets} tuning={tuning} names={names} />
+    <section className="tab-input studio-card" aria-label="Guitar tab input">
       <div className="controls">
         <Select label="Output" value={mode} options={TAB_MODES} onChange={onMode} />
         <button type="button" onClick={() => onText(EXAMPLE_TAB)}>
           Load example
         </button>
-        <button type="button" disabled={tooLong || text.trim() === ""} onClick={onConvert}>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={tooLong || text.trim() === ""}
+          onClick={onConvert}
+        >
           Convert
         </button>
       </div>
+      <details className="ascii-source" open>
+        <summary>Source Guitar Tab & Tuning</summary>
+        <label className="tab-label">
+          Guitar tab
+          <textarea
+            className="tab-textarea"
+            value={text}
+            onChange={(event) => onText(event.target.value)}
+            wrap="off"
+            spellCheck={false}
+            rows={7}
+          />
+        </label>
+        {tooLong && (
+          <p className="tab-limit">
+            Too long: the limit is {TAB_TEXT_MAX.toLocaleString("en-US")} characters, this text has{" "}
+            {text.length.toLocaleString("en-US")}.
+          </p>
+        )}
+        <TuningControls presets={presets} tuning={tuning} names={names} />
+      </details>
     </section>
   );
 }

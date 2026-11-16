@@ -1,5 +1,6 @@
 import type { TabMode } from "../api/client";
 import { CAPO_MAX, PITCH_MAX, PITCH_MIN, STRING_COUNT } from "../chords/shape";
+import type { NeckZoom } from "../neck/OudNeck";
 import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
 import { type DrillLevels, parseLevels } from "../practice/levels";
 import { type Progress, parseProgress } from "../practice/progress";
@@ -8,6 +9,7 @@ import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
 export const PAGE_IDS = ["maqam", "chords", "tab", "audio", "practice", "course"] as const;
 export type PageId = (typeof PAGE_IDS)[number];
+export const NECK_ZOOM_IDS = ["fingerboard", "full"] as const satisfies readonly NeckZoom[];
 
 export const TAB_MODE_IDS = ["frets", "names", "both"] as const satisfies readonly TabMode[];
 /** The most text the converter API takes. */
@@ -20,6 +22,7 @@ export type Settings = {
   guides: boolean;
   labelMode: LabelMode;
   system: NamingSystem;
+  neckZoom: NeckZoom;
   maqamId: string | null;
   /** Pitch class 0..23, or null for the maqam's traditional root. */
   root: number | null;
@@ -45,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   guides: true,
   labelMode: "both",
   system: "letters",
+  neckZoom: "fingerboard",
   maqamId: null,
   root: null,
   tempo: DEFAULT_TEMPO,
@@ -113,6 +117,7 @@ export function parseSettings(raw: string | null): Settings {
     guides: field(s, "guides", isBoolean, d.guides),
     labelMode: field(s, "labelMode", oneOf(LABEL_MODE_IDS), d.labelMode),
     system: field(s, "system", oneOf(NAMING_SYSTEMS), d.system),
+    neckZoom: field(s, "neckZoom", oneOf(NECK_ZOOM_IDS), d.neckZoom),
     maqamId: field(s, "maqamId", isText, d.maqamId),
     root: field(s, "root", isRoot, d.root),
     tempo: field(s, "tempo", isTempo, d.tempo),

@@ -74,18 +74,21 @@ export function TuningControls({ presets, tuning, names, children }: TuningContr
         />
       </label>
       {children}
-      <div className="string-tunings">
-        {tuning.strings.map((pitch, i) => (
-          <StringTuning
-            // biome-ignore lint/suspicious/noArrayIndexKey: the strings are a fixed list of six
-            key={i}
-            string={i + 1}
-            pitch={pitch}
-            name={names[pitch % 24]?.label ?? ""}
-            tuning={tuning}
-          />
-        ))}
-      </div>
+      <details className="tuning-tweak" open>
+        <summary>Fine-tune strings</summary>
+        <div className="string-tunings">
+          {tuning.strings.map((pitch, i) => (
+            <StringTuning
+              // biome-ignore lint/suspicious/noArrayIndexKey: the strings are a fixed list of six
+              key={i}
+              string={i + 1}
+              pitch={pitch}
+              name={names[pitch % 24]?.label ?? ""}
+              tuning={tuning}
+            />
+          ))}
+        </div>
+      </details>
     </div>
   );
 }

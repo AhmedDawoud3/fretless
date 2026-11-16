@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "../App";
+import { playSteps } from "../audio";
 import { rast, stubApi } from "../testApi";
 
 vi.mock("../audio", () => ({ playSteps: vi.fn(), playSequence: vi.fn() }));
@@ -36,4 +37,10 @@ test("the notes follow the naming system", async () => {
   await screen.findByText(rast.description);
   fireEvent.change(screen.getByLabelText("Note names"), { target: { value: "solfege" } });
   expect(screen.getByText(/Notes:/).textContent).toContain("Do Re Mi𝄳");
+});
+
+test("clicking a degree pill in the scale ribbon plays that note", async () => {
+  await openRast();
+  fireEvent.click(await screen.findByRole("button", { name: "Play degree 1 C" }));
+  expect(playSteps).toHaveBeenCalledWith(96);
 });

@@ -34,10 +34,14 @@ function App() {
   const { data } = shared;
   const Page = PAGES[shared.page];
   return (
-    <main>
-      <h1>Fretless</h1>
-      <p className="tagline">Oud learning tools for guitarists.</p>
-      <PageTabs page={shared.page} onPage={shared.setPage} />
+    <main className="studio-shell">
+      <header className="studio-header">
+        <div className="studio-brand">
+          <h1>Fretless</h1>
+          <p className="tagline">Oud learning tools for guitarists.</p>
+        </div>
+        <PageTabs page={shared.page} onPage={shared.setPage} />
+      </header>
       {data.status !== "ready" ? (
         <Status kind={data.status} />
       ) : (
@@ -55,6 +59,8 @@ function App() {
             onLabelMode={shared.setLabelMode}
             system={shared.system}
             onSystem={shared.setSystem}
+            neckZoom={shared.neckZoom}
+            onNeckZoom={shared.setNeckZoom}
           />
           <Page shared={shared} neck={data.neck} />
         </>

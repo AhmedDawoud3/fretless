@@ -2,8 +2,8 @@
   --wood-light: #a8642f;
   --wood-mid: #8a4b22;
   --wood-dark: #5e3016;
-  --ebony: #1b120d;
-  --ebony-light: #3a271b;
+  --ebony: #16100c;
+  --ebony-light: #352318;
   --spruce-light: #e9b872;
   --spruce-dark: #b8773a;
   --hole-edge: #2a1a10;
@@ -14,8 +14,8 @@
 
 .oud-neck {
   display: block;
-  width: 1620px;
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   height: auto;
   touch-action: pan-y;
   cursor: pointer;
@@ -51,7 +51,7 @@
   stroke-width: 5;
 }
 .nut {
-  fill: #eadfc4;
+  fill: #f0e4c8;
 }
 .neck {
   stroke: var(--wood-dark);
@@ -59,7 +59,7 @@
 }
 .fingerboard {
   stroke: #000;
-  stroke-opacity: 0.5;
+  stroke-opacity: 0.55;
 }
 
 .bowl-edge {
@@ -99,29 +99,38 @@
 }
 
 .string {
-  stroke: #efe4c8;
+  stroke: #f3e9d2;
   stroke-opacity: 0.92;
 }
 .string-wound {
-  stroke: #c98a4b;
+  stroke: #d49657;
 }
 .guide {
   stroke: #fff;
-  stroke-opacity: 0.22;
+  stroke-opacity: 0.2;
   stroke-width: 1;
 }
 .guide-fret {
   stroke-opacity: 0.55;
   stroke-width: 1.6;
 }
+.course-badge {
+  fill: #b4c0d4;
+  font:
+    600 10.5px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  text-anchor: end;
+  pointer-events: none;
+}
 .ruler rect {
-  fill: var(--ebony);
-  fill-opacity: 0.92;
-  stroke: var(--rib-light);
-  stroke-opacity: 0.7;
+  fill: #121620;
+  fill-opacity: 0.94;
+  stroke: #39445c;
 }
 .ruler text {
-  fill: #fff;
+  fill: #e8eef8;
   font:
     600 11px system-ui,
     sans-serif;
@@ -129,45 +138,60 @@
 }
 
 .marker circle {
-  fill: #f4c15d;
-  stroke: #1b120d;
+  fill: #f5b942;
+  stroke: #0b0d12;
   stroke-width: 2;
 }
 .marker-root circle {
-  fill: #e4572e;
+  fill: #f06449;
 }
 .marker-active circle {
-  fill: #5fd0c3;
-  stroke: #fff;
+  fill: #38d9c0;
+  stroke: #ffffff;
+  filter: drop-shadow(0 0 6px rgb(56 217 192 / 0.7));
+}
+.marker-hover circle {
+  fill: rgb(56 217 192 / 0.26);
+  stroke: #38d9c0;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.marker-hover text {
+  fill: #38d9c0;
+  font:
+    600 10.5px ui-monospace,
+    monospace;
+  text-anchor: middle;
+  pointer-events: none;
 }
 .marker-pill {
-  fill: #1b120d;
-  fill-opacity: 0.88;
-  stroke: #f4c15d;
+  fill: #121620;
+  fill-opacity: 0.92;
+  stroke: #f5b942;
 }
 .marker text {
   fill: #fff;
   font:
-    600 13px "Segoe UI Symbol",
+    600 12.5px "Segoe UI Symbol",
     "Noto Music",
     system-ui,
     sans-serif;
   text-anchor: middle;
 }
 .marker-compact rect {
-  fill: #f4c15d;
-  stroke: #1b120d;
+  fill: #f5b942;
+  stroke: #0b0d12;
   stroke-width: 1.5;
 }
 .marker-compact.marker-root rect {
-  fill: #e4572e;
+  fill: #f06449;
 }
 .marker-compact.marker-active rect {
-  fill: #5fd0c3;
+  fill: #38d9c0;
   stroke: #fff;
 }
 .marker-compact text {
-  fill: #1b120d;
+  fill: #0b0d12;
   font-size: 11px;
 }
 .marker-compact.marker-root text {

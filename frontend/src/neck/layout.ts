@@ -5,6 +5,9 @@ export const NECK_LAYOUT: Layout = { nutX: 230, length: 1200, topY: 175, courseS
 
 export const VIEW_WIDTH = 1620;
 export const VIEW_HEIGHT = 480;
+export const FULL_VIEWBOX = `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
+/** Zoomed onto the nut, open-course badges, and positions 0..24 without the full bowl. */
+export const FINGERBOARD_VIEWBOX = "170 125 710 215";
 export const CENTER_Y = NECK_LAYOUT.topY + 2.5 * NECK_LAYOUT.courseSpacing;
 
 export const NUT_X = NECK_LAYOUT.nutX;

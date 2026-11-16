@@ -1,4 +1,4 @@
 export { stepsToFrequency } from "./frequency";
-export type { Run, TimedEvent } from "./player";
+export type { Instrument, Run, TimedEvent } from "./player";
 export { playSequence, playSteps, playStrum, playTimed } from "./player";
 export { noteStartTimes } from "./schedule";

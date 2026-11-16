@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderPluck } from "./pluck";
+import { renderGuitarPluck, renderPluck } from "./pluck";
 
 const SAMPLE_RATE = 22050;
 /** Browsers run audio at 44.1 or 48 kHz; the averaging filter darkens high notes more at 22 kHz. */
@@ -113,4 +113,14 @@ describe("renderPluck", () => {
       expect(t).toBeLessThanOrEqual(latest);
     },
   );
+});
+
+describe("renderGuitarPluck", () => {
+  it("renders a distinct single-string steel timbre within [-1, 1]", () => {
+    const guitar = renderGuitarPluck(220, SAMPLE_RATE, 1, seeded(7));
+    const oud = renderPluck(220, SAMPLE_RATE, 1, seeded(7));
+    expect(guitar).toHaveLength(SAMPLE_RATE);
+    for (const x of guitar) expect(Math.abs(x)).toBeLessThanOrEqual(1);
+    expect(guitar).not.toEqual(oud);
+  });
 });

@@ -4,9 +4,10 @@ const DETUNE_CENTS = 3;
 const LOW_RING_SECONDS = 3.5;
 const LOW_FREQUENCY = 65;
 
-function ringSeconds(frequency: number): number {
+function ringSeconds(frequency: number, ringScale = 1): number {
   return (
-    LOW_RING_SECONDS / (1 + 0.08 * Math.log2(Math.max(frequency, LOW_FREQUENCY) / LOW_FREQUENCY))
+    (LOW_RING_SECONDS * ringScale) /
+    (1 + 0.08 * Math.log2(Math.max(frequency, LOW_FREQUENCY) / LOW_FREQUENCY))
   );
 }
 
@@ -51,15 +52,18 @@ function renderString(
   sampleRate: number,
   length: number,
   random: () => number,
+  blend = 0.5,
+  ringScale = 1,
 ): Float32Array {
   // Loop delay = whole + allpass (0.5..1.5) + averaging filter (0.5) = one period.
   const whole = Math.floor(sampleRate / frequency - 1);
   const allpassDelay = sampleRate / frequency - 0.5 - whole;
   const c = (1 - allpassDelay) / (1 + allpassDelay);
-  const gain = 10 ** (-3 / (ringSeconds(frequency) * frequency));
+  const gain = 10 ** (-3 / (ringSeconds(frequency, ringScale) * frequency));
   const out = new Float32Array(length);
   out.set(excitation(whole + 2, random).subarray(0, Math.min(length, whole + 2)));
-  const averaged = (i: number) => 0.5 * gain * (out[i - whole] + out[i - whole - 1]);
+  const averaged = (i: number) =>
+    gain * (blend * out[i - whole] + (1 - blend) * out[i - whole - 1]);
   let previous = averaged(whole + 1);
   for (let i = whole + 2; i < length; i++) {
     const current = averaged(i);
@@ -85,4 +89,15 @@ export function renderPluck(
   const sharp = renderString(frequency * ratio, sampleRate, length, random);
   const flat = renderString(frequency / ratio, sampleRate, length, random);
   return blockDc(sharp.map((x, i) => (x + flat[i]) / 2));
+}
+
+/** Renders a single steel-string acoustic guitar pluck (brighter loop, longer sustain). */
+export function renderGuitarPluck(
+  frequency: number,
+  sampleRate: number,
+  seconds: number,
+  random: () => number,
+): Float32Array<ArrayBuffer> {
+  const length = Math.round(sampleRate * seconds);
+  return blockDc(renderString(frequency, sampleRate, length, random, 0.65, 1.25));
 }

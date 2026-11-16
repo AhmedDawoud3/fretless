@@ -4,9 +4,9 @@
 
 .lesson-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .lesson-badge {
@@ -15,22 +15,29 @@
 }
 
 .lesson-card[aria-pressed="true"] .lesson-badge {
-  color: #1b120d;
+  color: #111318;
 }
 
 .lesson-done {
-  color: #5fd0a0;
+  color: var(--cyan);
   font-weight: 600;
 }
 
+.lesson-view {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
 .lesson-head h2 {
-  margin: 12px 0 4px;
+  margin: 0 0 4px;
   font-size: 1.2rem;
   color: var(--accent);
 }
 
 .lesson-tip {
-  max-width: 65ch;
+  max-width: 68ch;
   margin: 0 0 12px;
   color: var(--muted);
 }
@@ -41,8 +48,9 @@
 }
 
 .lesson-feedback {
-  margin: 4px 0 8px;
-  padding: 6px 12px;
+  margin: 6px 0 8px;
+  padding: 8px 12px;
   background: var(--panel);
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
 }

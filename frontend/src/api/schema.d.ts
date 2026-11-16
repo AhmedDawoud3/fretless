@@ -304,6 +304,16 @@ export interface components {
             /** Playback */
             playback: components["schemas"]["PlaybackEventOut"][];
             summary: components["schemas"]["SummaryOut"];
+            /**
+             * Guitar Systems
+             * @default []
+             */
+            guitar_systems: components["schemas"]["PlacedSystemOut"][];
+            /**
+             * Guitar Playback
+             * @default []
+             */
+            guitar_playback: components["schemas"]["PlaybackEventOut"][];
         };
         /** CourseOut */
         CourseOut: {

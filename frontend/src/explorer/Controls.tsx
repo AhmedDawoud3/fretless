@@ -1,4 +1,5 @@
 import type { Tuning } from "../api/client";
+import type { NeckZoom } from "../neck/OudNeck";
 import type { NamingSystem } from "../notation/noteName";
 import type { LabelMode } from "./readout";
 import { Select } from "./Select";
@@ -15,6 +16,8 @@ export type ControlsProps = {
   onLabelMode: (mode: LabelMode) => void;
   system: NamingSystem;
   onSystem: (system: NamingSystem) => void;
+  neckZoom: NeckZoom;
+  onNeckZoom: (zoom: NeckZoom) => void;
   /** The page forces snap itself, so the shared choice would do nothing. */
   hideSnap?: boolean;
 };
@@ -29,6 +32,11 @@ const LABEL_MODES: readonly [LabelMode, string][] = [
 const SYSTEMS: readonly [NamingSystem, string][] = [
   ["letters", "C D E"],
   ["solfege", "Do Re Mi"],
+];
+
+const ZOOMS: readonly [NeckZoom, string][] = [
+  ["fingerboard", "Fingerboard"],
+  ["full", "Full oud"],
 ];
 
 type CheckProps = { label: string; checked: boolean; onChange: (value: boolean) => void };
@@ -59,6 +67,12 @@ export function Controls(props: ControlsProps) {
         onChange={props.onLabelMode}
       />
       <Select label="Note names" value={props.system} options={SYSTEMS} onChange={props.onSystem} />
+      <Select
+        label="Neck view"
+        value={props.neckZoom}
+        options={ZOOMS}
+        onChange={props.onNeckZoom}
+      />
       {!props.hideSnap && (
         <Check label="Snap to quarter tones" checked={props.snap} onChange={props.onSnap} />
       )}

@@ -92,12 +92,14 @@ export function LessonView({ lesson, neck, shared, tuningId, onComplete }: Lesso
           {feedback}
         </p>
       )}
-      <div className="neck-scroll">
+      <div className="neck-scroll studio-stage">
         <OudNeck
           neck={neck}
           markers={lessonMarkers(lesson, stepIndex, playback.location)}
           showGuides={shared.guides}
           snap
+          zoom={shared.neckZoom}
+          system={shared.system}
           onPlay={handlePlay}
           rulerLabel={rulerLabelFor(shared.guides, shared.labelMode)}
         />

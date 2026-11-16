@@ -54,3 +54,24 @@ test("the pegbox has a peg for each of the 11 strings: six on one side, five on 
   expect(container.querySelectorAll(".peg-top")).toHaveLength(6);
   expect(container.querySelectorAll(".peg-bottom")).toHaveLength(5);
 });
+
+test("defaults to fingerboard zoom viewBox and switches to full oud viewBox", () => {
+  const { container, rerender } = render(<OudNeck neck={neck} showGuides snap />);
+  expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("170 125 710 215");
+  rerender(<OudNeck neck={neck} showGuides snap zoom="full" />);
+  expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 1620 480");
+});
+
+test("hovering over a string shows a ghost marker pill and leaving clears it", () => {
+  const { container } = render(<OudNeck neck={neck} showGuides snap />);
+  const svg = screen.getByRole("img", { name: /oud/i });
+  svg.getBoundingClientRect = () =>
+    ({ left: 0, top: 0, width: VIEW_WIDTH, height: VIEW_HEIGHT }) as DOMRect;
+  fireEvent.pointerMove(svg, {
+    clientX: positionToX(NECK_LAYOUT, 4),
+    clientY: courseY(NECK_LAYOUT, 1),
+  });
+  expect(container.querySelector(".marker-hover")?.textContent).toBe("2");
+  fireEvent.pointerLeave(svg);
+  expect(container.querySelector(".marker-hover")).toBeNull();
+});

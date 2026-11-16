@@ -21,12 +21,14 @@ export function MaqamPage({ shared, neck }: PageProps) {
         onTempo={x.setTempo}
       />
       <ReadoutLine readout={x.readout} />
-      <div className="neck-scroll">
+      <div className="neck-scroll studio-stage">
         <OudNeck
           neck={neck}
           markers={x.markers}
           showGuides={shared.guides}
           snap={shared.snap}
+          zoom={shared.neckZoom}
+          system={shared.system}
           onPlay={x.play}
           rulerLabel={rulerLabelFor(shared.guides, shared.labelMode)}
         />

@@ -15,12 +15,13 @@ const FAILED = "Could not reach the backend. Start it with `just api`, then try 
 function Outcome({
   conversion,
   inputKey,
+  mode,
   ...page
-}: PageProps & { conversion: Conversion; inputKey: string }) {
+}: PageProps & { conversion: Conversion; inputKey: string; mode: "frets" | "names" | "both" }) {
   if (conversion.status === "loading")
     return <p className="status">Transcribing audio with Basic Pitch...</p>;
   if (conversion.status === "done") {
-    return <TabResult converted={conversion.converted} inputKey={inputKey} {...page} />;
+    return <TabResult converted={conversion.converted} inputKey={inputKey} mode={mode} {...page} />;
   }
   if (conversion.status === "idle") return null;
   return (
@@ -85,7 +86,7 @@ export function AudioPage({ shared, neck }: PageProps) {
         onTranscribe={() => audio && transcribe(audio.base64)}
       />
       <Outcome
-        {...{ shared, neck, conversion }}
+        {...{ shared, neck, conversion, mode }}
         inputKey={`${clip.id}|${tuningId}|${mode}|${onsetThreshold}`}
       />
       <AudioExplanation />

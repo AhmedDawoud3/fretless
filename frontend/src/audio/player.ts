@@ -1,6 +1,8 @@
 import { stepsToFrequency } from "./frequency";
-import { renderPluck } from "./pluck";
+import { renderGuitarPluck, renderPluck } from "./pluck";
 import { noteStartTimes } from "./schedule";
+
+export type Instrument = "oud" | "guitar";
 
 const NOTE_SECONDS = 2.5;
 const MAX_CACHED = 64;
@@ -8,7 +10,8 @@ const MAX_CACHED = 64;
 const FADE_SECONDS = 0.03;
 
 let context: AudioContext | undefined;
-const buffers = new Map<number, AudioBuffer>();
+const buffers = new Map<string, AudioBuffer>();
+const activeVoices = new Map<string, Note>();
 
 /** Browsers only allow audio after a user gesture, so create (and resume) on first play. */
 function audioContext(): AudioContext {
@@ -17,13 +20,15 @@ function audioContext(): AudioContext {
   return context;
 }
 
-/** Rendered buffers are cached per tenth of a step (5 cents), oldest dropped first. */
-function bufferFor(ctx: AudioContext, steps: number): AudioBuffer {
-  const key = Math.round(steps * 10);
+/** Rendered buffers are cached per tenth of a step (5 cents) and instrument, oldest dropped first. */
+function bufferFor(ctx: AudioContext, steps: number, instrument: Instrument): AudioBuffer {
+  const stepKey = Math.round(steps * 10);
+  const key = `${instrument}:${stepKey}`;
   const cached = buffers.get(key);
   if (cached) return cached;
-  const samples = renderPluck(
-    stepsToFrequency(key / 10),
+  const renderer = instrument === "guitar" ? renderGuitarPluck : renderPluck;
+  const samples = renderer(
+    stepsToFrequency(stepKey / 10),
     ctx.sampleRate,
     NOTE_SECONDS,
     Math.random,
@@ -37,34 +42,50 @@ function bufferFor(ctx: AudioContext, steps: number): AudioBuffer {
 
 type Note = { source: AudioBufferSourceNode; gain: GainNode };
 
-function startNote(ctx: AudioContext, steps: number, when: number): Note {
+function fadeAt(note: Note, at: number): void {
+  note.gain.gain.setTargetAtTime(0, at, FADE_SECONDS / 4);
+  note.source.stop(at + FADE_SECONDS);
+}
+
+function fadeOut(ctx: AudioContext, note: Note): void {
+  fadeAt(note, ctx.currentTime);
+}
+
+function startNote(
+  ctx: AudioContext,
+  steps: number,
+  when: number,
+  instrument: Instrument = "oud",
+): Note {
+  const voiceKey = `${instrument}:${Math.round(steps * 10)}`;
+  const prior = activeVoices.get(voiceKey);
+  if (prior) fadeAt(prior, when);
   const source = ctx.createBufferSource();
-  source.buffer = bufferFor(ctx, steps);
+  source.buffer = bufferFor(ctx, steps, instrument);
   const gain = ctx.createGain();
   source.connect(gain);
   gain.connect(ctx.destination);
   source.start(when);
-  return { source, gain };
-}
-
-function fadeOut(ctx: AudioContext, { source, gain }: Note): void {
-  gain.gain.setTargetAtTime(0, ctx.currentTime, FADE_SECONDS / 4);
-  source.stop(ctx.currentTime + FADE_SECONDS);
+  const created = { source, gain };
+  activeVoices.set(voiceKey, created);
+  return created;
 }
 
 /** Pluck one pitch (steps, fractional allowed) now, or at AudioContext time `when`. */
-export function playSteps(steps: number, when?: number): void {
+export function playSteps(steps: number, when?: number, instrument: Instrument = "oud"): void {
   const ctx = audioContext();
-  startNote(ctx, steps, when ?? ctx.currentTime);
+  startNote(ctx, steps, when ?? ctx.currentTime, instrument);
 }
 
 /** Strum: the notes in order, each this much later than the one before. */
 const STRUM_GAP_SECONDS = 0.035;
 
 /** Pluck `steps` low to high in quick succession, as one strummed chord. */
-export function playStrum(steps: readonly number[]): void {
+export function playStrum(steps: readonly number[], instrument: Instrument = "oud"): void {
   const ctx = audioContext();
-  for (const [i, s] of steps.entries()) startNote(ctx, s, ctx.currentTime + i * STRUM_GAP_SECONDS);
+  for (const [i, s] of steps.entries()) {
+    startNote(ctx, s, ctx.currentTime + i * STRUM_GAP_SECONDS, instrument);
+  }
 }
 
 /** Something that sounds at `at` seconds from the start: one pitch, or a strummed chord (given low to high). */
@@ -81,10 +102,13 @@ export function playTimed(
   events: readonly TimedEvent[],
   endSeconds: number,
   onEvent?: (index: number) => void,
+  instrument: Instrument = "oud",
 ): Run {
   const ctx = audioContext();
   const notes = events.flatMap((e) =>
-    e.steps.map((s, i) => startNote(ctx, s, ctx.currentTime + e.at + i * STRUM_GAP_SECONDS)),
+    e.steps.map((s, i) =>
+      startNote(ctx, s, ctx.currentTime + e.at + i * STRUM_GAP_SECONDS, instrument),
+    ),
   );
   const timers = events.map((e, i) => setTimeout(() => onEvent?.(i), e.at * 1000));
   let finish: () => void = () => {};

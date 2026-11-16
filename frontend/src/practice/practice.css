@@ -1,13 +1,13 @@
 .how-to-practise {
-  max-width: 60ch;
+  max-width: 68ch;
   color: var(--muted);
 }
 
 .drill-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .drill-card {
@@ -17,8 +17,9 @@
   align-items: flex-start;
   padding: 12px 14px;
   text-align: left;
-  background: var(--panel);
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 .drill-card small {
@@ -26,11 +27,15 @@
 }
 
 .drill-card[aria-pressed="true"] small {
-  color: #1b120d;
+  color: #111318;
 }
 
 .drill-shell {
   margin-top: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .score-line {
@@ -41,7 +46,7 @@
 }
 
 .drill-prompt {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   margin: 8px 0;
 }
 
@@ -73,36 +78,37 @@
 }
 
 .option-right {
-  background: #2f6b4f;
-  border-color: #5fd0a0;
+  background: #1f4d3b;
+  border-color: var(--cyan);
 }
 
 .option-wrong {
-  background: #7a2d1a;
-  border-color: #e4572e;
+  background: #5c2216;
+  border-color: var(--coral);
 }
 
 .echo-hint {
   min-height: 1.5em;
   margin: 4px 0;
   color: var(--accent);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .feedback {
   margin: 12px 0 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-left: 3px solid var(--muted);
   background: var(--panel);
+  border-radius: 6px;
 }
 
 .feedback-right {
-  border-left-color: #5fd0a0;
+  border-left-color: var(--cyan);
 }
 
 .feedback-wrong {
-  border-left-color: #e4572e;
+  border-left-color: var(--coral);
 }
 
 .next-button {
@@ -110,5 +116,5 @@
 }
 
 .reset-progress {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
 }

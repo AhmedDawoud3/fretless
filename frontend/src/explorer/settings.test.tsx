@@ -7,6 +7,7 @@ const saved = {
   guides: false,
   labelMode: "names",
   system: "solfege",
+  neckZoom: "full",
   maqamId: "bayati",
   root: 8,
   tempo: 90,
@@ -51,6 +52,7 @@ test("each bad value falls back on its own, good ones are kept", () => {
   expect(parseSettings(raw)).toEqual({
     ...DEFAULT_SETTINGS,
     guides: false,
+    neckZoom: saved.neckZoom,
     maqamId: "bayati",
     guitarStrings: saved.guitarStrings,
     guitarCapo: 2,

@@ -25,35 +25,39 @@ export function ChordsView({ shared, neck, qualities, presets }: ChordsViewProps
   const names = rootOptions(neck.locations, shared.system);
   const chooseMatch = (m: ChordMatch) => setChoice({ root: m.root, qualityId: m.quality_id });
   return (
-    <>
-      <ChordPicker
-        roots={names.filter(isChordRoot)}
-        qualities={qualities}
-        choice={choice}
-        system={shared.system}
-        onChoice={setChoice}
-      />
-      <GuitarPanel
-        presets={presets}
-        names={names}
-        system={shared.system}
-        choice={choice}
-        onChoose={chooseMatch}
-      />
-      {failed && (
-        <p className="status status-error" role="alert">
-          Could not load this chord.
-        </p>
-      )}
-      {chord && (
-        <ChordResult
-          key={key}
-          shared={shared}
-          neck={neck}
-          chord={chord}
-          quality={qualities.find((q) => q.id === choice.qualityId)}
+    <div className="chords-studio">
+      <div className="chords-left studio-card">
+        <ChordPicker
+          roots={names.filter(isChordRoot)}
+          qualities={qualities}
+          choice={choice}
+          system={shared.system}
+          onChoice={setChoice}
         />
-      )}
-    </>
+        <GuitarPanel
+          presets={presets}
+          names={names}
+          system={shared.system}
+          choice={choice}
+          onChoose={chooseMatch}
+        />
+      </div>
+      <div className="chords-right">
+        {failed && (
+          <p className="status status-error" role="alert">
+            Could not load this chord.
+          </p>
+        )}
+        {chord && (
+          <ChordResult
+            key={key}
+            shared={shared}
+            neck={neck}
+            chord={chord}
+            quality={qualities.find((q) => q.id === choice.qualityId)}
+          />
+        )}
+      </div>
+    </div>
   );
 }

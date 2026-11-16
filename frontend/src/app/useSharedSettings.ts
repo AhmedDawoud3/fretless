@@ -3,11 +3,12 @@ import { fetchIntervals, fetchMaqamat, type NeckOut } from "../api/client";
 import type { LabelMode } from "../explorer/readout";
 import { loadSettings, type PageId, saveSettings } from "../explorer/settings";
 import { useNeckData } from "../explorer/useNeckData";
+import type { NeckZoom } from "../neck/OudNeck";
 import type { NamingSystem } from "../notation/noteName";
 import { useRequest } from "./useRequest";
 
 /**
- * The settings both pages share, and the oud neck they are drawn on. The one owner
+ * The settings all pages share, and the oud neck they are drawn on. The one owner
  * of these: pages read them and never keep a copy.
  */
 export function useSharedSettings() {
@@ -18,19 +19,20 @@ export function useSharedSettings() {
   const [guides, setGuides] = useState(saved.guides);
   const [labelMode, setLabelMode] = useState<LabelMode>(saved.labelMode);
   const [system, setSystem] = useState<NamingSystem>(saved.system);
+  const [neckZoom, setNeckZoom] = useState<NeckZoom>(saved.neckZoom);
   const { value: intervals, failed: intervalsFailed } = useRequest("intervals", fetchIntervals);
   const { value: maqamat, failed: maqamatFailed } = useRequest("maqamat", fetchMaqamat);
 
   useEffect(() => {
     // Until the tuning is known there is nothing to save: that would erase the stored one.
     if (tuningId === null) return;
-    saveSettings({ page, tuningId, snap, guides, labelMode, system });
-  }, [page, tuningId, snap, guides, labelMode, system]);
+    saveSettings({ page, tuningId, snap, guides, labelMode, system, neckZoom });
+  }, [page, tuningId, snap, guides, labelMode, system, neckZoom]);
 
   return {
     ...{ data, tuningId, setTuningId, page, setPage, snap, setSnap },
     ...{ intervals, intervalsFailed, maqamat, maqamatFailed },
-    ...{ guides, setGuides, labelMode, setLabelMode, system, setSystem },
+    ...{ guides, setGuides, labelMode, setLabelMode, system, setSystem, neckZoom, setNeckZoom },
   };
 }
 

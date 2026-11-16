@@ -1,4 +1,5 @@
 import type { Interval, Maqam, Scale } from "../api/client";
+import { playSteps } from "../audio";
 import { formatNoteName, type NamingSystem } from "../notation/noteName";
 import { describeGaps } from "./intervals";
 
@@ -17,6 +18,29 @@ function noteNames(scale: Scale, system: NamingSystem): string {
     .join(" ");
 }
 
+function ScaleRibbon({ scale, system }: { scale: Scale; system: NamingSystem }) {
+  return (
+    <section className="scale-ribbon" aria-label="Scale degrees">
+      {scale.playback.map((entry, idx) => {
+        const label = formatNoteName(entry.name, system);
+        return (
+          <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: ordered scale playback steps 1..8
+            key={idx}
+            type="button"
+            className={idx === 0 || idx === 7 ? "degree-pill degree-root" : "degree-pill"}
+            aria-label={`Play degree ${idx + 1} ${label}`}
+            onClick={() => playSteps(entry.pitch)}
+          >
+            <small>{(idx % 7) + 1}</small>
+            <strong>{label}</strong>
+          </button>
+        );
+      })}
+    </section>
+  );
+}
+
 /** What the chosen maqam is, which notes it uses, and its gaps as a guitarist counts them. */
 export function MaqamPanel({ maqam, scale, failed, system, intervals }: MaqamPanelProps) {
   return (
@@ -28,7 +52,12 @@ export function MaqamPanel({ maqam, scale, failed, system, intervals }: MaqamPan
         </span>
       </h2>
       <p>{maqam.description}</p>
-      {scale && <p>Notes: {noteNames(scale, system)}</p>}
+      {scale && (
+        <>
+          <p>Notes: {noteNames(scale, system)}</p>
+          <ScaleRibbon scale={scale} system={system} />
+        </>
+      )}
       {failed && <p role="alert">Could not load this scale.</p>}
       {intervals && (
         <p>

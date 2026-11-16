@@ -1,19 +1,18 @@
 .guitar-scroll {
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .guitar-neck {
   display: block;
   width: 100%;
-  min-width: 640px;
-  max-width: 900px;
+  max-width: 100%;
   height: auto;
   user-select: none;
 }
 
 .guitar-board {
-  fill: #6b3d1c;
+  fill: #5c3318;
 }
 .guitar-inlays circle {
   fill: #e8c98f;
@@ -42,14 +41,15 @@
 }
 .guitar-cell:hover,
 .guitar-cell:focus-visible {
-  fill: rgb(244 193 93 / 0.25);
+  fill: rgb(56 217 192 / 0.22);
   outline: none;
 }
 .guitar-finger {
-  fill: var(--accent);
-  stroke: #1b120d;
+  fill: var(--cyan);
+  stroke: #0b0d12;
   stroke-width: 2;
   pointer-events: none;
+  filter: drop-shadow(0 0 5px rgb(56 217 192 / 0.5));
 }
 .guitar-capo rect {
   fill: #8d949c;
@@ -70,7 +70,7 @@
 }
 .guitar-nut-control:hover rect,
 .guitar-nut-control:focus-visible rect {
-  fill: rgb(244 193 93 / 0.25);
+  fill: rgb(56 217 192 / 0.22);
   outline: none;
 }
 .guitar-nut-control text {

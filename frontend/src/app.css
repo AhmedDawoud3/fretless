@@ -1,10 +1,19 @@
 :root {
   color-scheme: dark;
-  --bg: #17100b;
-  --panel: #241810;
-  --text: #f1e4cf;
-  --muted: #b9a58a;
-  --accent: #f4c15d;
+  --bg: #0b0d12;
+  --surface: #121620;
+  --panel: #171c28;
+  --panel-hover: #1f2636;
+  --border: #262e40;
+  --text: #eef1f6;
+  --muted: #9aa6be;
+  --accent: #f5b942;
+  --cyan: #38d9c0;
+  --coral: #f06449;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -12,48 +21,102 @@ body {
   background: var(--bg);
   color: var(--text);
   font:
-    16px / 1.5 system-ui,
+    15px / 1.5 system-ui,
+    -apple-system,
     "Segoe UI",
     "Segoe UI Symbol",
     "Noto Music",
     sans-serif;
 }
 
-main {
-  max-width: 1700px;
+.studio-shell {
+  max-width: 1560px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 24px 40px;
+}
+
+.studio-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 12px;
+}
+
+.studio-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 h1 {
   margin: 0;
+  font-size: 1.55rem;
   color: var(--accent);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 
 .tagline {
-  margin: 0 0 16px;
+  margin: 0;
   color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.tab {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--panel);
+}
+
+.tab[aria-selected="true"] {
+  background: var(--accent);
+  color: #111318;
+  font-weight: 600;
 }
 
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 24px;
+  gap: 10px 18px;
   align-items: center;
-  padding: 12px 16px;
-  background: var(--panel);
-  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 .control {
   display: flex;
   gap: 8px;
   align-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .maqam-controls {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .maqam-picker {
@@ -62,46 +125,96 @@ h1 {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 button {
-  background: var(--bg);
+  background: var(--panel);
   color: var(--text);
-  border: 1px solid #5a3f28;
-  border-radius: 4px;
-  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 12px;
   font: inherit;
   cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--panel-hover);
+  border-color: #3a4661;
 }
 
 button[aria-pressed="true"] {
   background: var(--accent);
-  color: #1b120d;
+  color: #111318;
   border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #111318;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #f8c664;
+  border-color: #f8c664;
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
+}
+
+.segmented {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0;
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented button {
+  border: 0;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--cyan);
+  color: #0b0d12;
 }
 
 .arabic {
   font-size: 1.05em;
 }
 
-select {
+select,
+input[type="number"] {
   background: var(--bg);
   color: var(--text);
-  border: 1px solid #5a3f28;
-  border-radius: 4px;
-  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+}
+
+input[type="range"],
+input[type="checkbox"] {
+  accent-color: var(--cyan);
 }
 
 .readout {
   min-height: 1.5em;
-  margin: 16px 0 8px;
-  font-size: 1.1rem;
+  margin: 12px 0 8px;
+  font-size: 1.05rem;
 }
 
 .cents {
@@ -110,63 +223,98 @@ select {
 
 .neck-scroll {
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.studio-card {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.studio-stage {
+  margin-top: 12px;
+  padding: 14px;
+  background: radial-gradient(ellipse at center, #1b2232 0%, #0e121a 78%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 
 .why {
-  max-width: 60ch;
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: var(--panel);
+  max-width: 72ch;
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 4px;
+  border-radius: 10px;
 }
 
 .why h2 {
-  margin: 0 0 4px;
-  font-size: 1rem;
+  margin: 0 0 6px;
+  font-size: 1.05rem;
 }
 
 .why p {
-  margin: 0;
+  margin: 6px 0 0;
   color: var(--muted);
 }
 
-.status {
-  padding: 16px;
+.scale-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.degree-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+  padding: 6px 10px;
   background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
+.degree-pill small {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.degree-pill.degree-root {
+  border-color: var(--coral);
+}
+
+.degree-pill.degree-root small {
+  color: var(--coral);
+}
+
+.status {
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
 .status-error {
-  border-left: 3px solid #e4572e;
+  border-left: 3px solid var(--coral);
 }
 
-@media (max-width: 600px) {
-  .controls {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.chords-studio {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.35fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 12px;
 }
 
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #5a3f28;
-}
-
-.tab {
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
-  padding: 6px 16px;
-}
-
-.tab[aria-selected="true"] {
-  background: var(--accent);
-  color: #1b120d;
-  border-color: var(--accent);
+.chords-left {
+  margin-top: 0;
 }
 
 .chord-picker,
@@ -176,33 +324,39 @@ select {
 }
 
 .guitar-panel h2 {
-  margin: 16px 0 8px;
-  font-size: 1.1rem;
+  margin: 14px 0 8px;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.tuning-tweak {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.tuning-tweak summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .string-tunings,
 .matches {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  border: 0;
-  margin: 0;
-  padding: 0;
+  gap: 8px 14px;
+  margin-top: 8px;
 }
 
 .string-tuning {
   display: flex;
   gap: 6px;
   align-items: center;
+  font-size: 0.85rem;
 }
 
 .guitar-controls input[type="number"] {
   width: 4em;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid #5a3f28;
-  border-radius: 4px;
-  padding: 4px 8px;
 }
 
 .voicings {
@@ -210,7 +364,7 @@ select {
   flex-wrap: wrap;
   gap: 8px;
   list-style: none;
-  margin: 8px 0;
+  margin: 10px 0;
   padding: 0;
 }
 
@@ -219,12 +373,12 @@ select {
   flex-direction: column;
   gap: 4px;
   text-align: left;
-  max-width: 100%;
 }
 
 .voicing-notes {
   display: flex;
   flex-direction: column;
+  font-size: 0.9rem;
 }
 
 .voicing-tags {
@@ -234,16 +388,28 @@ select {
 }
 
 .tag {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   padding: 0 6px;
   border: 1px solid currentColor;
   border-radius: 8px;
 }
 
 .chord-panel {
-  max-width: 60ch;
+  max-width: 65ch;
 }
 
-.chord-panel p {
-  margin-top: 8px;
+@media (max-width: 900px) {
+  .chords-studio {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-shell {
+    padding: 12px 12px 28px;
+  }
+  .controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

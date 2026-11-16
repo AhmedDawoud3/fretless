@@ -5,6 +5,7 @@ import { rootOptions } from "../explorer/rootOptions";
 import { TabExplanation } from "./TabExplanation";
 import { TabInput } from "./TabInput";
 import { TabResult } from "./TabResult";
+import { toggleGuitarNote } from "./tabEdit";
 import { type Conversion, useConversion } from "./useConversion";
 import { useTabInput } from "./useTabInput";
 
@@ -12,12 +13,27 @@ const REJECTED =
   "The converter could not take that text. It needs between 1 and 200,000 characters.";
 const FAILED = "Could not convert the tab. Start the backend with `just api`, then press Convert.";
 
-type OutcomeProps = PageProps & { conversion: Conversion; inputKey: string };
+type OutcomeProps = PageProps & {
+  conversion: Conversion;
+  inputKey: string;
+  mode: "frets" | "names" | "both";
+  guitar: { strings: readonly number[]; capo: number };
+  onEditGuitar: (line: number, columnIndex: number | null, fret: number) => void;
+};
 
-function Outcome({ conversion, inputKey, ...page }: OutcomeProps) {
+function Outcome({ conversion, inputKey, mode, guitar, onEditGuitar, ...page }: OutcomeProps) {
   if (conversion.status === "loading") return <p className="status">Converting...</p>;
   if (conversion.status === "done") {
-    return <TabResult converted={conversion.converted} inputKey={inputKey} {...page} />;
+    return (
+      <TabResult
+        converted={conversion.converted}
+        inputKey={inputKey}
+        mode={mode}
+        guitar={guitar}
+        onEditGuitar={onEditGuitar}
+        {...page}
+      />
+    );
   }
   if (conversion.status === "idle") return null;
   const message = conversion.status === "rejected" ? REJECTED : FAILED;
@@ -28,7 +44,7 @@ function Outcome({ conversion, inputKey, ...page }: OutcomeProps) {
   );
 }
 
-/** Guitar tab to oud tab: paste, pick the guitar, convert. */
+/** Guitar tab to oud tab: paste or edit on the neck, switch Guitar/Oud track, and play. */
 export function TabView({
   shared,
   neck,
@@ -41,6 +57,11 @@ export function TabView({
     ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode, tuningId },
   });
   const inputKey = JSON.stringify([input.text, tuning.strings, tuning.capo, input.mode, tuningId]);
+  const handleEditGuitar = (line: number, columnIndex: number | null, fret: number) => {
+    const next = toggleGuitarNote(input.text, line, columnIndex, fret);
+    input.setText(next);
+    convert(next);
+  };
   return (
     <>
       <TabInput
@@ -50,7 +71,12 @@ export function TabView({
         names={rootOptions(neck.locations, shared.system)}
         onConvert={() => convert(input.text)}
       />
-      <Outcome {...{ shared, neck, conversion, inputKey }} />
+      <Outcome
+        {...{ shared, neck, conversion, inputKey }}
+        mode={input.mode}
+        guitar={{ strings: tuning.strings, capo: tuning.capo }}
+        onEditGuitar={handleEditGuitar}
+      />
       <TabExplanation />
     </>
   );

@@ -46,6 +46,30 @@ export const CONVERTED: Converted = {
     chords_reduced: 1,
     unsupported_systems: 0,
   },
+  guitar_systems: [
+    {
+      index: 0,
+      width: 6,
+      bars: [],
+      labels: ["E", "B", "G", "D", "A", "E"],
+      columns: [
+        { index: 2, notes: [note(1, 1, 106, "F")] },
+        { index: 4, notes: [note(1, 5, 114, "A"), note(3, 2, 90, "A")] },
+      ],
+    },
+  ],
+  guitar_playback: [
+    { system: 0, column: 2, tick: 2, notes: [{ pitch: 106, course: 1, position: 1 }] },
+    {
+      system: 0,
+      column: 4,
+      tick: 4,
+      notes: [
+        { pitch: 114, course: 1, position: 5 },
+        { pitch: 90, course: 3, position: 2 },
+      ],
+    },
+  ],
 };
 
 /** Text with no tab in it comes back unchanged and with nothing found. */
@@ -61,4 +85,6 @@ export const noTab = (text: string): Converted => ({
     transposed_steps: 0,
     chords_reduced: 0,
   },
+  guitar_systems: [],
+  guitar_playback: [],
 });
