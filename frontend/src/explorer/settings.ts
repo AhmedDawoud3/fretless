@@ -1,6 +1,8 @@
 import type { TabMode } from "../api/client";
 import { CAPO_MAX, PITCH_MAX, PITCH_MIN, STRING_COUNT } from "../chords/shape";
 import { NAMING_SYSTEMS, type NamingSystem } from "../notation/noteName";
+import { type DrillLevels, parseLevels } from "../practice/levels";
+import { type Progress, parseProgress } from "../practice/progress";
 import { LABEL_MODE_IDS, type LabelMode } from "./readout";
 import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "./tempo";
 
@@ -28,6 +30,10 @@ export type Settings = {
   /** The tab pasted into the converter; "" when none, or too long to be kept. */
   tabText: string;
   tabMode: TabMode;
+  /** What the user has done in each Practice drill. */
+  progress: Progress;
+  /** The difficulty chosen for each Practice drill. */
+  drillLevels: DrillLevels;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -44,6 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
   guitarCapo: 0,
   tabText: "",
   tabMode: "frets",
+  progress: {},
+  drillLevels: {},
 };
 
 const STORAGE_KEY = "fretless.settings";
@@ -106,6 +114,8 @@ export function parseSettings(raw: string | null): Settings {
     guitarCapo: field(s, "guitarCapo", isCapo, d.guitarCapo),
     tabText: field(s, "tabText", isTabText, d.tabText),
     tabMode: field(s, "tabMode", oneOf(TAB_MODE_IDS), d.tabMode),
+    progress: parseProgress(s.progress),
+    drillLevels: parseLevels(s.drillLevels),
   };
 }
 

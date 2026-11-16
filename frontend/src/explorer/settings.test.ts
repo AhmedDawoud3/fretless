@@ -15,6 +15,10 @@ const saved = {
   guitarCapo: 2,
   tabText: "e|--0--|",
   tabMode: "names",
+  progress: {
+    find: { attempts: 4, correct: 3, bestStreak: 2, items: { "4": { attempts: 4, correct: 3 } } },
+  },
+  drillLevels: { find: 2 },
 };
 
 test("nothing stored means the defaults", () => {
@@ -51,7 +55,16 @@ test("each bad value falls back on its own, good ones are kept", () => {
     guitarCapo: 2,
     tabText: "e|--0--|",
     tabMode: "names",
+    progress: saved.progress,
+    drillLevels: saved.drillLevels,
   });
+});
+
+test("practice progress and levels that are garbled fall back to none, the rest is kept", () => {
+  const parsed = parseSettings(JSON.stringify({ ...saved, progress: 7, drillLevels: [1] }));
+  expect(parsed.progress).toEqual({});
+  expect(parsed.drillLevels).toEqual({});
+  expect(parsed.tabText).toBe(saved.tabText);
 });
 
 test("a root must be a whole pitch class, 0 to 23, or null for the traditional one", () => {
