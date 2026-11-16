@@ -530,3 +530,47 @@ Quality & checks:
   (`Longa Riyad - Piano Chords.pdf` and `أغدًا ألقاك` 5-line notation staff):
   all checks pass (`ruff`, `biome`, `ty check`, `tsc -b`, `pytest`, `vitest`,
   `dryer`).
+
+## 2026-11-16: musical beat timing, tempo detection, articulation techniques, and imported tab library
+
+Backend:
+- Musical timing: `src/fretless/tab/url_import.py` now spaces Songsterr beats by
+  `beat["duration"]` (`max(2, min(16, round(32 * num / den)))`) without inserting
+  extra pause ticks across barlines; `src/fretless/tab/pdf_geometry.py`
+  (`render_quantized_columns`, `_base_unit`, `_snap_musical_step`) computes base
+  spacing from within-measure gaps only, subtracts barline visual margins, and
+  snaps column gaps to discrete musical subdivisions `(2, 3, 4, 6, 8, 12, 16)`.
+- Tempo extraction: added `extract_tempo_from_text` in
+  `src/fretless/tab/tuning_parse.py`, `_songsterr_tempo` in `url_import.py`, and
+  `tempo: int | None` on `ImportedTab` and `ImportTabOut`
+  (`src/fretless/tab/import_model.py`, `src/fretless/api/tab_schemas.py`,
+  `tab_routes.py`), regenerating `frontend/src/api/schema.d.ts`.
+- Articulation techniques: added `line_techniques` in `src/fretless/tab/columns.py`,
+  `techniques` on `TabSystem` (`model.py`), `PlacedSystem` (`convert_model.py`),
+  and `PlacedSystemOut` (`tab_mappers.py`, `tab_schemas.py`). Preserved
+  techniques across guitar-to-oud placement in `src/fretless/tab/convert.py`
+  (`_map_column_techniques`) and rendered suffixes in `src/fretless/tab/oud_render.py`.
+  Extracted Songsterr `hp` (`h`/`p` via lookahead), `slide` (`/`/`\\`), `bend`
+  (`b`), and `vibrato`/`leftHandVibrato` (`~`), plus PDF inline techniques,
+  curved Bezier slur arcs (`h`/`p`), and diagonal slide lines (`/`/`\\`) in
+  `src/fretless/tab/pdf_import.py`.
+
+Frontend:
+- System-break timing: `frontend/src/tab/timedEvents.ts` (`inSystemMedianGap`,
+  `normalizedTicks`) replaces cross-system gaps with the in-system median beat
+  step when in-system gaps exist, removing artificial pauses at system breaks.
+- Technique rendering & tempo sync: `frontend/src/tab/VisualTabStaff.tsx` appends
+  `system.techniques` symbols onto visual staff cells on both Oud and Guitar
+  tracks; `TabView.tsx` and `TabResult.tsx` initialize and sync playback speed
+  to `imported.tempo`.
+- Imported tab library: added `frontend/src/tab/importLibrary.ts` (`localStorage`
+  under `fretless.importLibrary`, capped at 50 items) and wired `TabImportBar.tsx`
+  and `tab.css` to reload matching URL/PDF imports locally without re-fetching
+  and display a Saved library shelf with load/remove buttons.
+
+Quality & checks:
+- `just check` passes: `ruff format --check` (113 files), `ruff check`, `biome`
+  (297 files), `ty check`, `tsc -b`, `pytest` (330 passed, including
+  `tests/tab/test_tab_techniques.py`), and `vitest run` (80 files, 499 passed).
+- `dryer --threshold 0.8`: no duplicate candidates found;
+  `crapper --changed --no-coverage`: all changed/new functions score CC `<= 9`.
