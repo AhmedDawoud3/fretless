@@ -26,7 +26,13 @@ Each phase is usable alone and is reused by the next.
    column spacing as rough timing, with a tempo slider. PDF and other inputs later.
 4. **Drills.** Find the note on the neck; identify a note or interval by ear;
    identify a maqam by ear; microphone pitch check against a real oud.
-5. **Course.** Guided lessons with progress. Authoring format decided when reached.
+5. **Course.** Seven progressive guitar-to-oud lessons computed in Python for the
+   active tuning, with interactive neck step checks, reference playback, and
+   progress kept in browser localStorage.
+6. **Audio to Oud.** MP3/WAV/OGG/FLAC audio transcription powered by Spotify's
+   Basic Pitch ONNX model (`nmp.onnx`) in Python, mapping contour pitch bends to
+   24-TET quarter tones and arranging detected notes/chords onto the oud with the
+   shared Viterbi pathfinder.
 
 Later, not scheduled: full maqam system (ajnas, modulation, regional intonation).
 

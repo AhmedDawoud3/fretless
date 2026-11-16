@@ -382,3 +382,48 @@ Unit O, test suite stability:
 - Suite went from about 60 s to about 36 s. 8 of 8 clean runs and 3 of 3 runs
   under CPU load passed; lead's own two further runs passed.
 - Convention recorded in AGENTS.md.
+
+## 2026-11-16: phase 5 (guided course) and phase 6 (audio to oud via Basic Pitch)
+
+Phase 5, Guided Course:
+- New pure domain module `src/fretless/course.py` returning 7 progressive
+  guitar-to-oud lessons (`open-courses`, `first-position`, `quarter-tone`,
+  `maqam-rast`, `maqam-bayati`, `maqam-hijaz`, `oud-cadence`) mapped to the
+  requested oud tuning.
+- Added `GET /api/courses` (`course_schemas.py`, `course_mappers.py`,
+  `course_routes.py`).
+- Frontend Course page (`frontend/src/course/`): lesson picker with completion
+  badges, guitarist tips, step-by-step neck verification (`snap` forced on),
+  reference playback via `usePlayback` (structural `Entry` type shared with
+  maqam/chords), and `completedLessons` persisted in `localStorage` with two-step
+  reset reusing `ResetProgress`.
+
+Phase 6, Audio to Oud (Spotify Basic Pitch):
+- Added `numpy`, `onnxruntime`, and `soundfile` to `pyproject.toml`, and vendored
+  Spotify's `nmp.onnx` (`basic-pitch` 0.4.0, 230 KB) into `src/fretless/audio/`
+  because `basic-pitch`/`tensorflow` lacks Python 3.13 wheels.
+- `src/fretless/audio/`: `decode.py` (MP3/WAV/OGG/FLAC -> mono 22.05 kHz,
+  max 180 s), `inference.py` (2-second sliding window with 30-frame overlap),
+  `notes.py` (onset peak tracing and 24-TET quarter-tone mapping from contour
+  bins centered at `3 * freq_idx + 1`, tolerance `±2` bins; empirically verified
+  24/24 quarter-tone accuracy across C4..B+4 against `nmp.onnx`), `arrange.py`
+  (chord clustering within 60 ms, column spacing, and shared `place_events`
+  Viterbi oud placement from `fretless.tab.convert`).
+- Added `POST /api/audio/transcribe` (`audio_schemas.py`, `audio_routes.py`,
+  reusing `convert_placed_out` in `tab_mappers.py`). Regenerated
+  `frontend/src/api/schema.d.ts` via `just gen-api`.
+- Frontend Audio to Oud page (`frontend/src/transcribe/`): file upload (`.mp3`,
+  `.wav`, `.ogg`, `.flac`, `.m4a`, 12 MB client limit), deterministic synthesized
+  Maqam Rast WAV example (`exampleWav.ts`), `<audio>` player bar for the
+  original recording, sensitivity slider, shared `useConvertReply` request hook
+  (`convertState.ts`), and `TabResult` for Oud tab, alterations, Karplus-Strong
+  synth playback, and synchronized neck markers.
+
+Quality & checks:
+- `dryer --threshold 0.8`: no duplicate candidates found.
+- Refactored `AudioPage`, `LessonView`, `CoursePage`, `courseProgress`,
+  `AudioControls`, `useTranscription`, and `arrange.py` after `crapper` flagged
+  higher branching counts; `crapper` still sees 0% coverage on Windows, while
+  `pytest --cov` measured 91–100% across the new Python modules.
+- Not verified: live browser run against real MP3 songs or listening to audio
+  output by ear.
