@@ -18,6 +18,7 @@ export function DrillShell<Q, A, R extends DrillResult>({
   random = Math.random,
 }: DrillShellProps<Q, A, R>) {
   const [question, setQuestion] = useState(() => drill.makeQuestion(context, random));
+  const [round, setRound] = useState(0);
   const [result, setResult] = useState<R | null>(null);
   const [session, setSession] = useState(NEW_SESSION);
   const nextButton = useRef<HTMLButtonElement>(null);
@@ -25,6 +26,7 @@ export function DrillShell<Q, A, R extends DrillResult>({
   const next = useCallback(() => {
     setQuestion(drill.makeQuestion(context, random));
     setResult(null);
+    setRound((n) => n + 1);
   }, [drill, context, random]);
   useAdvanceKeys(result !== null, next, nextButton);
 
@@ -40,7 +42,13 @@ export function DrillShell<Q, A, R extends DrillResult>({
   return (
     <section className="drill-shell" aria-label={drill.title}>
       <ScoreLine session={session} />
-      <drill.View context={context} question={question} result={result} onAnswer={answer} />
+      <drill.View
+        key={round}
+        context={context}
+        question={question}
+        result={result}
+        onAnswer={answer}
+      />
       {result && (
         <>
           <Feedback correct={result.correct} sentence={drill.describe(question, result, context)} />
