@@ -1,4 +1,5 @@
-from fretless.guitar import GUITAR_TUNINGS
+from fretless.guitar import GUITAR_TUNINGS, fretted_pitch
+from fretless.pitch import STEPS_PER_OCTAVE
 from fretless.tab.chords import (
     clean_ug_markup,
     expand_chord_sheet,
@@ -85,3 +86,12 @@ def test_expand_chord_sheet_converts_ug_chords_and_chordpro_into_tab_systems() -
     cp_systems = [b for b in parse_tab(cp_expanded).blocks if isinstance(b, TabSystem)]
     assert len(cp_systems) == 1
     assert len(cp_systems[0].columns) == 3
+
+
+def test_slash_chord_voices_requested_bass_note_lowest() -> None:
+    slash_tab = expand_chord_sheet("C/G", STANDARD, 0)
+    systems = [b for b in parse_tab(slash_tab).blocks if isinstance(b, TabSystem)]
+    assert len(systems) == 1
+    bass_note = max(systems[0].columns[0].notes, key=lambda n: n.line)
+    bass_pc = fretted_pitch(STANDARD[bass_note.line - 1], 0, bass_note.fret) % STEPS_PER_OCTAVE
+    assert bass_pc == 14  # G in quarter-tone steps above C

@@ -25,7 +25,7 @@ def decode_audio(raw: bytes) -> NDArray[np.float32]:
         raise ValueError("audio file is empty")
     try:
         data, sample_rate = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
-    except Exception as err:
+    except (sf.LibsndfileError, RuntimeError, ValueError, OSError) as err:
         raise ValueError(f"could not decode audio: {err}") from err
     if data.size == 0:
         raise ValueError("audio file contains no samples")

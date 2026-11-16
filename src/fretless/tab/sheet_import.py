@@ -253,7 +253,7 @@ def extract_sheet_systems(
     """Extract 5-line notation staves from `doc` and render each as a 6-line guitar tab."""
     rendered: list[str] = []
     active_key: dict[Letter, int] = {}
-    for page in doc:
+    for page in doc[:30]:
         horz, vert = collect_segments(page)
         staves = group_staves(merge_y_buckets(horz), vert, line_count=5)
         glyphs = _page_glyphs(page)

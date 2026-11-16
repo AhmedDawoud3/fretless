@@ -8,6 +8,7 @@ STEPS_PER_OCTAVE = 24
 Letter = Literal["C", "D", "E", "F", "G", "A", "B"]
 
 LETTERS: tuple[Letter, ...] = ("C", "D", "E", "F", "G", "A", "B")
+LETTER_BY_NAME: dict[str, Letter] = {le: le for le in LETTERS}
 LETTER_STEPS: dict[Letter, int] = {"C": 0, "D": 4, "E": 8, "F": 10, "G": 14, "A": 18, "B": 22}
 
 # Fixed spelling per pitch class: (letter, alter).

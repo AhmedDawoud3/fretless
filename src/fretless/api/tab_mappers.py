@@ -90,10 +90,6 @@ def summary_from_count(notes_in: int, converted: Converted) -> SummaryOut:
     )
 
 
-def summary_out(document: TabDocument, converted: Converted) -> SummaryOut:
-    return summary_from_count(_notes_in(document), converted)
-
-
 def _guitar_note_out(strings: tuple[int, ...], capo: int, line: int, fret: int) -> PlacedNoteOut:
     pitch = fretted_pitch(strings[line - 1], capo, fret)
     return PlacedNoteOut(course=line, position=fret, pitch=pitch, name=ascii_name(pitch))

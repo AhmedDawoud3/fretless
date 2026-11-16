@@ -237,3 +237,18 @@ def test_import_songsterr_multitrack_discovers_vocals_guitar_and_bass() -> None:
 
     with pytest.raises(ValueError, match="pitched track"):
         import_tab_url(vocal_url, fetcher=responses.__getitem__, track=2)
+
+
+def test_import_songsterr_rejects_malformed_cloudfront_image_path() -> None:
+    bad_meta = {
+        "songId": 42,
+        "revisionId": 99,
+        "image": "../evil/path",
+        "tracks": [{"instrument": "Guitar", "tuning": [64, 59, 55, 50, 45, 40]}],
+    }
+    responses = {"https://www.songsterr.com/api/meta/42": json.dumps(bad_meta).encode()}
+    with pytest.raises(ValueError, match="malformed"):
+        import_tab_url(
+            "https://www.songsterr.com/a/wsa/band-song-tab-s42",
+            fetcher=responses.__getitem__,
+        )

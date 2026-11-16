@@ -18,14 +18,10 @@ def parse_tab(text: str) -> TabDocument:
     """Split `text` into tab systems and the text between them, in order. Never raises."""
     if text == "":
         return TabDocument(())
-    lines = _NEWLINE.split(text)
-    parsed = [parse_tab_line(line) for line in lines]
+    pairs = [(line, parse_tab_line(line)) for line in _NEWLINE.split(text)]
     blocks: list[Block] = []
-    start = 0
-    for is_tab, run in groupby(parsed, key=lambda p: p is not None):
-        count = len(list(run))
-        blocks.extend(_blocks(lines[start : start + count], parsed[start : start + count], is_tab))
-        start += count
+    for is_tab, run in groupby(pairs, key=lambda pair: pair[1] is not None):
+        blocks.extend(_blocks(list(run), is_tab))
     return TabDocument(tuple(_merge_text(blocks)))
 
 
@@ -33,12 +29,12 @@ def _is_stack(count: int) -> bool:
     return count <= _MAX_STACKED and count % _STACK_LINES == 0
 
 
-def _blocks(lines: list[str], parsed: list[TabLine | None], is_tab: bool) -> list[Block]:
+def _blocks(pairs: list[tuple[str, TabLine | None]], is_tab: bool) -> list[Block]:
     """A run of tab-looking lines is a system when it has 4 to 7 lines, else text.
 
     A run of 12 to 60 lines that divides into 6-line systems is that many systems.
     """
-    tab_lines = [p for p in parsed if p is not None]
+    tab_lines = [p for _, p in pairs if p is not None]
     if is_tab and _MIN_LINES <= len(tab_lines) <= _MAX_LINES:
         return [_system(tab_lines)]
     if is_tab and _is_stack(len(tab_lines)):
@@ -46,7 +42,7 @@ def _blocks(lines: list[str], parsed: list[TabLine | None], is_tab: bool) -> lis
             _system(tab_lines[at : at + _STACK_LINES])
             for at in range(0, len(tab_lines), _STACK_LINES)
         ]
-    return [TextBlock("\n".join(lines))]
+    return [TextBlock("\n".join(line for line, _ in pairs))]
 
 
 def _merge_text(blocks: list[Block]) -> list[Block]:

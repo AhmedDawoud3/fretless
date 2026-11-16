@@ -24,6 +24,7 @@ from fretless.tab.tuning_parse import extract_tempo_from_text, extract_tuning_fr
 _PUA_MAP = {"\uf062": "b", "\uf023": "#", "♭": "b", "♯": "#"}
 _GUITAR_LABELS = ("e", "B", "G", "D", "A", "E")
 _FRET_TECH_RE = re.compile(r"^\(?(\d{1,2})\)?([hp/\\b~]?)$")
+_MAX_PDF_PAGES = 30
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,38 @@ class _Word:
         return (self.y0 + self.y1) / 2.0
 
 
+@dataclass(frozen=True)
+class _SlurArc:
+    x0: float
+    x1: float
+    cy: float
+
+
+@dataclass(frozen=True)
+class _SlideMark:
+    x0: float
+    x1: float
+    ymid: float
+    symbol: str
+
+
+@dataclass(frozen=True)
+class _RawStaffNote:
+    xc: float
+    line: int
+    fret: int
+    inline_tech: str
+
+
+@dataclass(frozen=True)
+class _StaffContext:
+    y0: float
+    ys: tuple[float, ...]
+    dy: float
+    arcs: tuple[_SlurArc, ...]
+    slides: tuple[_SlideMark, ...]
+
+
 def _left_guard(staff: Staff, words: list[_Word], dy: float) -> float:
     clefs = [
         w.x1
@@ -54,27 +87,23 @@ def _left_guard(staff: Staff, words: list[_Word], dy: float) -> float:
     return max(staff.x0 + 2.0, max(clefs) + 2.0) if clefs else staff.x0 + 2.0
 
 
-def _slur_arcs(
-    page: pymupdf.Page, staff: Staff, dy: float, min_top: float
-) -> list[tuple[float, float, float]]:
+def _slur_arcs(page: pymupdf.Page, staff: Staff, dy: float, min_top: float) -> tuple[_SlurArc, ...]:
     top = max(min_top, staff.ys[0] - 9.0 * dy)
     bottom = staff.ys[-1] + 2.5 * dy
-    arcs: list[tuple[float, float, float]] = []
+    arcs: list[_SlurArc] = []
     for drawing in page.get_drawings():
         if not any(it[0] == "c" for it in drawing["items"]):
             continue
         rect = drawing["rect"]
         cy = (rect.y0 + rect.y1) / 2.0
         if 8.0 <= rect.width <= 90.0 and rect.height <= 20.0 and top <= cy <= bottom:
-            arcs.append((rect.x0, rect.x1, cy))
-    return arcs
+            arcs.append(_SlurArc(rect.x0, rect.x1, cy))
+    return tuple(arcs)
 
 
-def _slide_marks(
-    page: pymupdf.Page, staff: Staff, dy: float
-) -> list[tuple[float, float, float, str]]:
+def _slide_marks(page: pymupdf.Page, staff: Staff, dy: float) -> tuple[_SlideMark, ...]:
     top, bottom = staff.ys[0] - dy, staff.ys[-1] + dy
-    marks: list[tuple[float, float, float, str]] = []
+    marks: list[_SlideMark] = []
     for drawing in page.get_drawings():
         for item in drawing["items"]:
             if item[0] != "l":
@@ -84,14 +113,16 @@ def _slide_marks(
             ymid = (p1.y + p2.y) / 2.0
             if 4.0 <= abs(dx) <= 26.0 and 1.5 <= abs(d_y) <= 12.0 and top <= ymid <= bottom:
                 slope_up = (d_y < 0) if dx > 0 else (d_y > 0)
-                marks.append((min(p1.x, p2.x), max(p1.x, p2.x), ymid, "/" if slope_up else "\\"))
-    return marks
+                marks.append(
+                    _SlideMark(min(p1.x, p2.x), max(p1.x, p2.x), ymid, "/" if slope_up else "\\")
+                )
+    return tuple(marks)
 
 
-def _staff_notes(staff: Staff, words: list[_Word]) -> list[tuple[float, int, int, str]]:
+def _staff_notes(staff: Staff, words: list[_Word]) -> list[_RawStaffNote]:
     dy = (staff.ys[-1] - staff.ys[0]) / 5.0
     left = _left_guard(staff, words, dy)
-    notes: list[tuple[float, int, int, str]] = []
+    notes: list[_RawStaffNote] = []
     for word in words:
         if not (left <= word.xc <= staff.x1 - 1.0):
             continue
@@ -104,65 +135,49 @@ def _staff_notes(staff: Staff, words: list[_Word]) -> list[tuple[float, int, int
         distances = [(abs(word.yc - sy), idx + 1) for idx, sy in enumerate(staff.ys)]
         best_dist, line_no = min(distances)
         if best_dist <= 0.45 * dy:
-            notes.append((word.xc, line_no, fret, match.group(2)))
+            notes.append(_RawStaffNote(word.xc, line_no, fret, match.group(2)))
     return notes
 
 
-def _matches_arc(
-    xc: float,
-    nx: float,
-    sy: float,
-    staff_y0: float,
-    dy: float,
-    arc: tuple[float, float, float],
-) -> bool:
-    sx0, sx1, scy = arc
-    return sx0 <= xc + 5.0 and sx1 >= nx - 5.0 and (abs(scy - sy) <= 1.8 * dy or scy < staff_y0)
+def _matches_arc(xc: float, nx: float, sy: float, ctx: _StaffContext, arc: _SlurArc) -> bool:
+    return (
+        arc.x0 <= xc + 5.0
+        and arc.x1 >= nx - 5.0
+        and (abs(arc.cy - sy) <= 1.8 * ctx.dy or arc.cy < ctx.y0)
+    )
 
 
-def _matches_slide(
-    xc: float, nx: float, sy: float, dy: float, slide: tuple[float, float, float, str]
-) -> bool:
-    lx0, lx1, ly, _ = slide
-    return xc - 2.0 <= lx0 and lx1 <= nx + 2.0 and abs(ly - sy) <= dy
+def _matches_slide(xc: float, nx: float, sy: float, dy: float, slide: _SlideMark) -> bool:
+    return xc - 2.0 <= slide.x0 and slide.x1 <= nx + 2.0 and abs(slide.ymid - sy) <= dy
 
 
 def _note_technique(
-    xc: float,
-    fret: int,
-    inline_tech: str,
-    next_note: tuple[float, int, str] | None,
-    staff_y0: float,
-    sy: float,
-    dy: float,
-    arcs: list[tuple[float, float, float]],
-    slides: list[tuple[float, float, float, str]],
+    note: _RawStaffNote, next_note: _RawStaffNote | None, ctx: _StaffContext
 ) -> str:
-    if inline_tech or next_note is None:
-        return inline_tech
-    nx, nf, _ = next_note
-    if nf != fret and any(_matches_arc(xc, nx, sy, staff_y0, dy, arc) for arc in arcs):
-        return "h" if nf > fret else "p"
-    return next((s for sl in slides if _matches_slide(xc, nx, sy, dy, sl) for s in [sl[3]]), "")
+    if note.inline_tech or next_note is None:
+        return note.inline_tech
+    sy = ctx.ys[note.line - 1]
+    if next_note.fret != note.fret and any(
+        _matches_arc(note.xc, next_note.xc, sy, ctx, arc) for arc in ctx.arcs
+    ):
+        return "h" if next_note.fret > note.fret else "p"
+    return next(
+        (sl.symbol for sl in ctx.slides if _matches_slide(note.xc, next_note.xc, sy, ctx.dy, sl)),
+        "",
+    )
 
 
 def _attach_pdf_techniques(
-    notes: list[tuple[float, int, int, str]],
-    staff: Staff,
-    arcs: list[tuple[float, float, float]],
-    slides: list[tuple[float, float, float, str]],
+    notes: list[_RawStaffNote], ctx: _StaffContext
 ) -> list[tuple[float, int, str]]:
-    by_line: dict[int, list[tuple[float, int, str]]] = {}
-    for xc, line_no, fret, inline_tech in sorted(notes, key=lambda n: (n[1], n[0])):
-        by_line.setdefault(line_no, []).append((xc, fret, inline_tech))
-    dy = (staff.ys[-1] - staff.ys[0]) / 5.0
+    by_line: dict[int, list[_RawStaffNote]] = {}
+    for raw in sorted(notes, key=lambda n: (n.line, n.xc)):
+        by_line.setdefault(raw.line, []).append(raw)
     out: list[tuple[float, int, str]] = []
     for line_no, line_list in by_line.items():
-        sy = staff.ys[line_no - 1]
-        for idx, (xc, fret, tech) in enumerate(line_list):
+        for idx, note in enumerate(line_list):
             nxt = line_list[idx + 1] if idx + 1 < len(line_list) else None
-            sym = _note_technique(xc, fret, tech, nxt, staff.ys[0], sy, dy, arcs, slides)
-            out.append((xc, line_no, f"{fret}{sym}"))
+            out.append((note.xc, line_no, f"{note.fret}{_note_technique(note, nxt, ctx)}"))
     return out
 
 
@@ -229,7 +244,7 @@ def _clean_pdf_word(text: str) -> str:
 
 def _reconstruct_chord_lines(doc: pymupdf.Document) -> str:
     lines: list[str] = []
-    for page in doc:
+    for page in doc[:_MAX_PDF_PAGES]:
         cleaned = [
             _Word(w.x0, w.y0, w.x1, w.y1, txt)
             for w in _page_words(page)
@@ -253,7 +268,7 @@ def _reconstruct_chord_lines(doc: pymupdf.Document) -> str:
 
 def _extract_vector_systems(doc: pymupdf.Document, labels: tuple[str, ...]) -> list[str]:
     rendered: list[str] = []
-    for page in doc:
+    for page in doc[:_MAX_PDF_PAGES]:
         horz, vert = collect_segments(page)
         words = _page_words(page)
         prev_bottom = 0.0
@@ -261,23 +276,18 @@ def _extract_vector_systems(doc: pymupdf.Document, labels: tuple[str, ...]) -> l
             raw_notes = _staff_notes(staff, words)
             if raw_notes:
                 dy = (staff.ys[-1] - staff.ys[0]) / 5.0
-                tagged = _attach_pdf_techniques(
-                    raw_notes,
-                    staff,
-                    _slur_arcs(page, staff, dy, prev_bottom + 2.0),
-                    _slide_lines_wrap(page, staff, dy),
+                ctx = _StaffContext(
+                    y0=staff.ys[0],
+                    ys=staff.ys,
+                    dy=dy,
+                    arcs=_slur_arcs(page, staff, dy, prev_bottom + 2.0),
+                    slides=_slide_marks(page, staff, dy),
                 )
-                cols = _cluster_columns(tagged)
+                cols = _cluster_columns(_attach_pdf_techniques(raw_notes, ctx))
                 if cols:
                     rendered.append(render_quantized_columns(staff, cols, labels))
             prev_bottom = staff.ys[-1]
     return rendered
-
-
-def _slide_lines_wrap(
-    page: pymupdf.Page, staff: Staff, dy: float
-) -> list[tuple[float, float, float, str]]:
-    return _slide_marks(page, staff, dy)
 
 
 def _try_tab_pdf(
@@ -346,11 +356,16 @@ def import_pdf_bytes(data: bytes, filename: str = "", preferred_kind: str = "aut
     """Import a PDF byte buffer as a 6-line ASCII tab (`tab`, `sheet`, or expanded `chords`)."""
     try:
         doc = pymupdf.Document(stream=data, filetype="pdf")
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError) as err:
         raise ValueError("Could not read PDF file.") from err
-    if len(doc) == 0:
-        raise ValueError("PDF has no pages.")
-    page_texts = [page.get_text("text") for page in doc]
+    with doc:
+        if len(doc) == 0:
+            raise ValueError("PDF has no pages.")
+        return _parse_open_pdf(doc, filename, preferred_kind)
+
+
+def _parse_open_pdf(doc: pymupdf.Document, filename: str, preferred_kind: str) -> ImportedTab:
+    page_texts = [page.get_text("text") for page in doc[:_MAX_PDF_PAGES]]
     strings = extract_tuning_from_text(page_texts[0])
     tempo = extract_tempo_from_text(page_texts[0])
     labels = tuple(ascii_name(s) for s in strings) if strings else _GUITAR_LABELS

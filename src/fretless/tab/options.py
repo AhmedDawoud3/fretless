@@ -1,7 +1,7 @@
 """The playable placements of one event, cheapest first, thinning the chord only if it must."""
 
 from dataclasses import dataclass
-from functools import cache
+from functools import lru_cache
 from itertools import chain
 
 from fretless.tab.convert_model import PlacedNote
@@ -66,7 +66,7 @@ def _smaller_easy(
     return None
 
 
-@cache
+@lru_cache(maxsize=2048)
 def options(tuning: Tuning, span: Range, pitches: tuple[int, ...]) -> tuple[Option, ...]:
     """Placements for the first rung of `rungs(pitches)` that has any, at most MAX_OPTIONS.
 

@@ -3,7 +3,14 @@
 import re
 
 from fretless.guitar import GUITAR_TUNINGS
-from fretless.pitch import LETTER_STEPS, LETTERS, STEPS_PER_OCTAVE, Letter, NoteName, name_to_pitch
+from fretless.pitch import (
+    LETTER_BY_NAME,
+    LETTER_STEPS,
+    STEPS_PER_OCTAVE,
+    Letter,
+    NoteName,
+    name_to_pitch,
+)
 
 _STANDARD_LOW_TO_HIGH = GUITAR_TUNINGS["standard"].strings[::-1]
 _ALTER_STEPS: dict[str, int] = {"": 0, "#": 2, "♯": 2, "b": -2, "♭": -2}
@@ -21,8 +28,7 @@ _MAX_TEMPO = 240
 
 def parse_note_token(letter_raw: str, alter_raw: str) -> tuple[Letter, int, int]:
     """Return `(letter, alter_steps, pitch_class)` for a raw note letter + accidental."""
-    upper = letter_raw.upper()
-    letter = next(le for le in LETTERS if le == upper)
+    letter = LETTER_BY_NAME[letter_raw.upper()]
     alter = _ALTER_STEPS[alter_raw]
     pitch_class = (LETTER_STEPS[letter] + alter) % STEPS_PER_OCTAVE
     return letter, alter, pitch_class
