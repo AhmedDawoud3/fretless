@@ -79,3 +79,36 @@
     monospace;
   white-space: pre;
 }
+
+.tab-output mark {
+  background: var(--accent);
+  color: #1b120d;
+}
+
+.tab-output [data-event] {
+  cursor: pointer;
+}
+
+button.alteration {
+  display: flex;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.alteration:hover .alteration-where {
+  color: var(--accent);
+}
+
+.tab-player {
+  margin-top: 12px;
+}
+
+.tab-note {
+  margin: 0 0 8px;
+  color: var(--muted);
+}

@@ -5,16 +5,26 @@ type PlayScaleProps = {
   onToggle: () => void;
   tempo: number;
   onTempo: (notesPerMinute: number) => void;
+  /** What the button and the slider are called; a scale has a tempo, a text tab only a speed. */
+  words?: { play: string; rate: string };
 };
 
-export function PlayScale({ playing, onToggle, tempo, onTempo }: PlayScaleProps) {
+const SCALE_WORDS = { play: "Play scale", rate: "Tempo" };
+
+export function PlayScale({
+  playing,
+  onToggle,
+  tempo,
+  onTempo,
+  words = SCALE_WORDS,
+}: PlayScaleProps) {
   return (
     <div className="control">
       <button type="button" onClick={onToggle}>
-        {playing ? "Stop" : "Play scale"}
+        {playing ? "Stop" : words.play}
       </button>
       <label className="control">
-        Tempo ({tempo} notes per minute)
+        {words.rate} ({tempo} notes per minute)
         <input
           type="range"
           min={TEMPO_MIN}

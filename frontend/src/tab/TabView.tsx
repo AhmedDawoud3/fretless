@@ -11,9 +11,13 @@ const REJECTED =
   "The converter could not take that text. It needs between 1 and 200,000 characters.";
 const FAILED = "Could not convert the tab. Start the backend with `just api`, then press Convert.";
 
-function Outcome({ conversion }: { conversion: Conversion }) {
+type OutcomeProps = PageProps & { conversion: Conversion; inputKey: string };
+
+function Outcome({ conversion, inputKey, ...page }: OutcomeProps) {
   if (conversion.status === "loading") return <p className="status">Converting...</p>;
-  if (conversion.status === "done") return <TabResult converted={conversion.converted} />;
+  if (conversion.status === "done") {
+    return <TabResult converted={conversion.converted} inputKey={inputKey} {...page} />;
+  }
   if (conversion.status === "idle") return null;
   const message = conversion.status === "rejected" ? REJECTED : FAILED;
   return (
@@ -31,10 +35,11 @@ export function TabView({
 }: PageProps & { presets: readonly GuitarTuning[] }) {
   const tuning = useGuitarTuning(presets);
   const input = useTabInput();
+  const tuningId = shared.tuningId ?? neck.tuning.id;
   const { conversion, convert } = useConversion({
-    ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode },
-    tuningId: shared.tuningId ?? neck.tuning.id,
+    ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode, tuningId },
   });
+  const inputKey = JSON.stringify([input.text, tuning.strings, tuning.capo, input.mode, tuningId]);
   return (
     <>
       <TabInput
@@ -44,7 +49,7 @@ export function TabView({
         names={rootOptions(neck.locations, shared.system)}
         onConvert={() => convert(input.text)}
       />
-      <Outcome conversion={conversion} />
+      <Outcome {...{ shared, neck, conversion, inputKey }} />
     </>
   );
 }

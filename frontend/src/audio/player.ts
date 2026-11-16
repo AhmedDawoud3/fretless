@@ -67,25 +67,31 @@ export function playStrum(steps: readonly number[]): void {
   for (const [i, s] of steps.entries()) startNote(ctx, s, ctx.currentTime + i * STRUM_GAP_SECONDS);
 }
 
+/** Something that sounds at `at` seconds from the start: one pitch, or a strummed chord (given low to high). */
+export type TimedEvent = { at: number; steps: readonly number[] };
+/** A started run of sound: it can be stopped, and says when it has finished or been stopped. */
+export type Run = { stop(): void; done: Promise<void> };
+
 /**
- * Plays notes one after another at `notesPerMinute`. `onNote` fires as each note
- * starts (timer-based, so it can drift slightly from the audio clock).
- * `done` resolves when the last note's slot ends, or when stopped.
+ * Plays events at their times, ending `endSeconds` after the start. `onEvent` fires as
+ * each event starts (timer-based, so it can drift slightly from the audio clock).
+ * `done` resolves at the end, or when stopped.
  */
-export function playSequence(
-  steps: readonly number[],
-  notesPerMinute: number,
-  onNote?: (index: number) => void,
-): { stop(): void; done: Promise<void> } {
+export function playTimed(
+  events: readonly TimedEvent[],
+  endSeconds: number,
+  onEvent?: (index: number) => void,
+): Run {
   const ctx = audioContext();
-  const starts = noteStartTimes(steps.length, notesPerMinute);
-  const notes = steps.map((s, i) => startNote(ctx, s, ctx.currentTime + starts[i]));
-  const timers = starts.map((t, i) => setTimeout(() => onNote?.(i), t * 1000));
+  const notes = events.flatMap((e) =>
+    e.steps.map((s, i) => startNote(ctx, s, ctx.currentTime + e.at + i * STRUM_GAP_SECONDS)),
+  );
+  const timers = events.map((e, i) => setTimeout(() => onEvent?.(i), e.at * 1000));
   let finish: () => void = () => {};
   const done = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  timers.push(setTimeout(finish, (steps.length * 60000) / notesPerMinute));
+  timers.push(setTimeout(finish, endSeconds * 1000));
   return {
     done,
     stop() {
@@ -94,4 +100,15 @@ export function playSequence(
       finish();
     },
   };
+}
+
+/** Plays notes one after another at `notesPerMinute`; `onNote` fires as each note starts. */
+export function playSequence(
+  steps: readonly number[],
+  notesPerMinute: number,
+  onNote?: (index: number) => void,
+): Run {
+  const starts = noteStartTimes(steps.length, notesPerMinute);
+  const events = steps.map((s, i) => ({ at: starts[i] ?? 0, steps: [s] }));
+  return playTimed(events, (steps.length * 60) / notesPerMinute, onNote);
 }

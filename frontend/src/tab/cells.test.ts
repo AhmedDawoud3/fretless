@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { ConvertedSystem } from "../api/client";
-import { cellKey, locateCells } from "./cells";
+import { cellKey, locateCells, splitLine } from "./cells";
 
 const LABELS = ["C", "F", "A", "D", "G", "C"];
 const note = (course: number) => ({ course, position: 0, pitch: 0, name: "C" });
@@ -60,4 +60,24 @@ test("a system whose lines do not hold its cells gets no cells at all", () => {
 
 test("a system that is not in the text gets no cells", () => {
   expect(locateCells("just words\nand more", [system(0, column(1, 1))])).toEqual([]);
+});
+
+test("a line splits into plain stretches and the cells that belong to events", () => {
+  const cells = [
+    { key: "0:2", line: 0, start: 4, length: 1 },
+    { key: "0:4", line: 0, start: 6, length: 2 },
+    { key: "0:9", line: 3, start: 4, length: 1 },
+  ];
+  expect(splitLine("C|--3-12-|", 0, cells)).toEqual([
+    { text: "C|--", key: null },
+    { text: "3", key: "0:2" },
+    { text: "-", key: null },
+    { text: "12", key: "0:4" },
+    { text: "-|", key: null },
+  ]);
+});
+
+test("a line with no cells is one plain piece, and an empty line none", () => {
+  expect(splitLine("Title", 5, [])).toEqual([{ text: "Title", key: null }]);
+  expect(splitLine("", 5, [])).toEqual([]);
 });

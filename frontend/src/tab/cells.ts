@@ -62,3 +62,19 @@ export function locateCells(text: string, systems: readonly ConvertedSystem[]): 
   }
   return cells;
 }
+
+export type Piece = { text: string; key: string | null };
+
+/** One rendered line cut into plain stretches and the cells of events, in order. */
+export function splitLine(line: string, lineNumber: number, cells: readonly Cell[]): Piece[] {
+  const own = cells.filter((c) => c.line === lineNumber).sort((a, b) => a.start - b.start);
+  const pieces: Piece[] = [];
+  let at = 0;
+  for (const cell of own) {
+    pieces.push({ text: line.slice(at, cell.start), key: null });
+    pieces.push({ text: line.slice(cell.start, cell.start + cell.length), key: cell.key });
+    at = cell.start + cell.length;
+  }
+  pieces.push({ text: line.slice(at), key: null });
+  return pieces.filter((p) => p.text !== "");
+}
