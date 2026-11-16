@@ -2,7 +2,9 @@
 
 from fastapi import FastAPI
 
+from fretless.api.audio_routes import router as audio_router
 from fretless.api.chord_routes import router as chord_router
+from fretless.api.course_routes import router as course_router
 from fretless.api.guitar_routes import router as guitar_router
 from fretless.api.interval_routes import router as interval_router
 from fretless.api.routes import router
@@ -14,3 +16,5 @@ app.include_router(chord_router)
 app.include_router(guitar_router)
 app.include_router(tab_router)
 app.include_router(interval_router)
+app.include_router(course_router)
+app.include_router(audio_router)
