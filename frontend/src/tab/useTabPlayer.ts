@@ -4,7 +4,9 @@ import { playStrum, playTimed } from "../audio";
 import { useRunner } from "../explorer/useRunner";
 import { cellKey } from "./cells";
 import { secondsPerTick } from "./schedule";
-import { timedEvents } from "./timedEvents";
+import { lowToHigh, timedEvents } from "./timedEvents";
+
+const keyOf = (event: PlaybackEvent | null) => (event ? cellKey(event.system, event.column) : null);
 
 /**
  * Plays the converted piece, or one event of it, and tells which event is current:
@@ -23,18 +25,18 @@ export function useTabPlayer(events: readonly PlaybackEvent[], speed: number, re
 
   /** Shows the event of this column and plays it once; a column with no event does nothing. */
   const pick = (key: string) => {
-    const at = events.findIndex((e) => cellKey(e.system, e.column) === key);
+    const at = events.findIndex((e) => keyOf(e) === key);
     const event = events[at];
     if (!event) return;
     stop();
     setPicked(at);
-    playStrum(event.notes.map((n) => n.pitch).sort((a, b) => a - b));
+    playStrum(lowToHigh(event));
   };
 
   const current = events[(playing ? index : picked) ?? -1] ?? null;
   return {
     ...{ playing, pick, current },
-    toggle: () => (playing ? stop() : start()),
-    currentKey: current && cellKey(current.system, current.column),
+    toggle: playing ? stop : start,
+    currentKey: keyOf(current),
   };
 }

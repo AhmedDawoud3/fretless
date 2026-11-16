@@ -199,15 +199,18 @@ function respondChords(url: string, init?: RequestInit): unknown {
 }
 
 /** Text with a tab line (a bar) converts to the fixture; any other text finds no tab. */
-function convert(init: RequestInit | undefined) {
+function respondTab(url: string, init: RequestInit | undefined): unknown {
+  if (url !== "/api/tab/convert") return undefined;
   const { text } = JSON.parse(String(init?.body ?? "{}")) as { text: string };
   return text.includes("|") ? CONVERTED : noTab(text);
 }
 
 function respond(url: string, init?: RequestInit): unknown {
-  if (url === "/api/tab/convert") return convert(init);
-  const chords = respondChords(url, init);
-  if (chords !== undefined) return chords;
+  const known = respondChords(url, init) ?? respondTab(url, init);
+  return known !== undefined ? known : respondMaqam(url);
+}
+
+function respondMaqam(url: string): unknown {
   const scale = /^\/api\/maqamat\/(\w+)\/scale\?root=(\d+)/.exec(url);
   const found = [rast, bayati].find((m) => m.id === scale?.[1]);
   if (scale && found) return scaleFor(found, Number(scale[2]));

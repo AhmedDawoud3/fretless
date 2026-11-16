@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { NeckOut } from "../api/client";
+import type { NeckOut, Scale } from "../api/client";
 import type { SharedSettings } from "../app/useSharedSettings";
 import { playSteps } from "../audio";
 import type { Marker } from "../neck/OudNeck";
@@ -24,6 +24,21 @@ function lastMarker(last: Play | null, readout: Readout | null, mode: LabelMode)
   };
 }
 
+/** A note played on another tuning no longer says anything about this one. */
+const playedOn = (last: Last | null, tuningId: string | null) =>
+  last?.tuningId === tuningId ? last.play : null;
+
+/** The scale's markers with the one sounding highlighted, and the last played note on top. */
+function neckMarkers(
+  shared: SharedSettings,
+  scale: Scale | null,
+  location: { course: number; position: number } | null,
+  last: Marker | null,
+) {
+  const shown = scale ? scaleMarkers(scale.locations, shared.labelMode, shared.system) : [];
+  return withMarker(highlightAt(shown, location), last);
+}
+
 /** Maqam page state: the chosen maqam and its scale, playback, and the last played note. */
 export function useExplorer(shared: SharedSettings, neck: NeckOut) {
   const { tuningId, system, labelMode } = shared;
@@ -43,11 +58,9 @@ export function useExplorer(shared: SharedSettings, neck: NeckOut) {
     else if (maqam.scale) playback.start(roundTrip(maqam.scale.playback), tempo);
   };
 
-  // A note played on another tuning no longer says anything about this one.
-  const last = lastPlayed?.tuningId === tuningId ? lastPlayed.play : null;
+  const last = playedOn(lastPlayed, tuningId);
   const readout = last ? describePlay(neck, last, system) : null;
-  const shown = maqam.scale ? scaleMarkers(maqam.scale.locations, labelMode, system) : [];
-  const overlay = highlightAt(shown, playback.location);
-  const markers = withMarker(overlay, lastMarker(last, readout, labelMode));
+  const marker = lastMarker(last, readout, labelMode);
+  const markers = neckMarkers(shared, maqam.scale, playback.location, marker);
   return { play, readout, markers, maqam, playback, togglePlayback, tempo, setTempo };
 }
