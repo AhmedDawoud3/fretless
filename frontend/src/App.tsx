@@ -5,6 +5,7 @@ import { ChordsPage } from "./chords/ChordsPage";
 import { Controls } from "./explorer/Controls";
 import { MaqamPage } from "./explorer/MaqamPage";
 import type { PageId } from "./explorer/settings";
+import { PracticePage } from "./practice/PracticePage";
 import { TabPage } from "./tab/TabPage";
 import "./app.css";
 
@@ -21,6 +22,7 @@ const PAGES: Record<PageId, (props: PageProps) => ReactNode> = {
   maqam: MaqamPage,
   chords: ChordsPage,
   tab: TabPage,
+  practice: PracticePage,
 };
 
 function App() {

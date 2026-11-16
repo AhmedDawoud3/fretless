@@ -1,0 +1,110 @@
+.how-to-practise {
+  max-width: 60ch;
+  color: var(--muted);
+}
+
+.drill-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.drill-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--panel);
+  border-radius: 8px;
+}
+
+.drill-card small {
+  color: var(--muted);
+}
+
+.drill-card[aria-pressed="true"] small {
+  color: #1b120d;
+}
+
+.drill-shell {
+  margin-top: 12px;
+}
+
+.score-line {
+  display: flex;
+  gap: 24px;
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.drill-prompt {
+  font-size: 1.25rem;
+  margin: 8px 0;
+}
+
+.drill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.interval-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.interval-option kbd {
+  margin-right: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 0.8em;
+}
+
+.interval-option:disabled {
+  opacity: 1;
+}
+
+.option-right {
+  background: #2f6b4f;
+  border-color: #5fd0a0;
+}
+
+.option-wrong {
+  background: #7a2d1a;
+  border-color: #e4572e;
+}
+
+.echo-hint {
+  min-height: 1.5em;
+  margin: 4px 0;
+  color: var(--accent);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.feedback {
+  margin: 12px 0 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--muted);
+  background: var(--panel);
+}
+
+.feedback-right {
+  border-left-color: #5fd0a0;
+}
+
+.feedback-wrong {
+  border-left-color: #e4572e;
+}
+
+.reset-progress {
+  margin: 12px 0 0;
+}
