@@ -30,6 +30,7 @@ export function SelectedDrill({
   const context = {
     neck,
     intervals: shared.intervals ?? [],
+    maqamat: shared.maqamat ?? [],
     system: shared.system,
     guides: shared.guides,
     level,

@@ -48,6 +48,7 @@ export function DrillShell<Q, A, R extends DrillResult>({
         question={question}
         result={result}
         onAnswer={answer}
+        onSkip={next}
       />
       {result && (
         <>

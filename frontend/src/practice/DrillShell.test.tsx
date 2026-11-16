@@ -40,6 +40,7 @@ const drill: Drill<Q, number, R> = {
 const context: DrillContext = {
   neck,
   intervals: INTERVALS,
+  maqamat: [],
   system: "letters",
   guides: true,
   level: 1,

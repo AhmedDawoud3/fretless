@@ -8,6 +8,7 @@ import { makeFindQuestion } from "./question";
 const contextAt = (level: number, stats: DrillContext["stats"] = {}): DrillContext => ({
   neck: fullNeck,
   intervals: INTERVALS,
+  maqamat: [],
   system: "letters",
   guides: true,
   level,

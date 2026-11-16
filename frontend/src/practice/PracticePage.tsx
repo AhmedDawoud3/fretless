@@ -40,13 +40,15 @@ function PracticeBody({ shared, neck }: PageProps) {
 
 /** Practice: pick a drill, answer questions, see how you are doing. The drills share one frame. */
 export function PracticePage(props: PageProps) {
-  if (props.shared.intervalsFailed) {
+  if (props.shared.intervalsFailed || props.shared.maqamatFailed) {
     return (
       <p className="status status-error" role="alert">
-        Could not load the intervals. Start the backend with <code>just api</code>, then reload.
+        Could not load the intervals and maqamat. Start the backend with <code>just api</code>, then
+        reload.
       </p>
     );
   }
-  if (!props.shared.intervals) return <p className="status">Loading the drills...</p>;
+  if (!props.shared.intervals || !props.shared.maqamat)
+    return <p className="status">Loading the drills...</p>;
   return <PracticeBody {...props} />;
 }

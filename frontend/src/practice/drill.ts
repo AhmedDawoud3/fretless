@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import type { Interval, NeckOut } from "../api/client";
+import type { Interval, Maqam, NeckOut } from "../api/client";
 import type { NamingSystem } from "../notation/noteName";
 import type { Tally } from "./progress";
 
@@ -7,6 +7,7 @@ import type { Tally } from "./progress";
 export type DrillContext = {
   neck: NeckOut;
   intervals: readonly Interval[];
+  maqamat: readonly Maqam[];
   system: NamingSystem;
   guides: boolean;
   /** The chosen difficulty, one of the drill's `levels`. */
@@ -27,6 +28,8 @@ export type DrillViewProps<Q, A, R extends DrillResult> = {
   result: R | null;
   /** Called once per question, with the final answer. */
   onAnswer: (answer: A) => void;
+  /** Moves on to a new question without recording anything: for a question that cannot be answered. */
+  onSkip: () => void;
 };
 
 /**

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../App";
-import { fullNeck, INTERVALS, stubApi } from "../testApi";
+import { fullNeck, INTERVALS, MAQAMAT, stubApi } from "../testApi";
 import type { DrillContext } from "./drill";
 import { makeFindQuestion } from "./find/question";
 import { makeIntervalQuestion } from "./interval/question";
@@ -26,6 +26,7 @@ afterEach(() => {
 const context = (level = 1): DrillContext => ({
   neck: fullNeck,
   intervals: INTERVALS,
+  maqamat: MAQAMAT,
   system: "letters",
   guides: true,
   level,
@@ -152,4 +153,13 @@ test("the Practice page is remembered like the others", async () => {
   cleanup();
   render(<App />);
   expect(await screen.findByRole("button", { name: /Echo/ })).toBeDefined();
+});
+
+test("the shared Snap checkbox is hidden on Practice (every drill forces snap) and shown elsewhere", async () => {
+  stubApi(fullNeck);
+  render(<App />);
+  expect(await screen.findByLabelText(/Snap to quarter tones/)).toBeDefined();
+  fireEvent.click(await screen.findByRole("tab", { name: "Practice" }));
+  await screen.findByRole("button", { name: /Find the note/ });
+  expect(screen.queryByLabelText(/Snap to quarter tones/)).toBeNull();
 });

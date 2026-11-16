@@ -19,6 +19,7 @@ afterEach(() => {
 const contextAt = (level: number): DrillContext => ({
   neck: fullNeck,
   intervals: INTERVALS,
+  maqamat: [],
   system: "letters",
   guides: true,
   level,

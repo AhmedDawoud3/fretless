@@ -15,6 +15,8 @@ export type ControlsProps = {
   onLabelMode: (mode: LabelMode) => void;
   system: NamingSystem;
   onSystem: (system: NamingSystem) => void;
+  /** The page forces snap itself, so the shared choice would do nothing. */
+  hideSnap?: boolean;
 };
 
 const LABEL_MODES: readonly [LabelMode, string][] = [
@@ -57,7 +59,9 @@ export function Controls(props: ControlsProps) {
         onChange={props.onLabelMode}
       />
       <Select label="Note names" value={props.system} options={SYSTEMS} onChange={props.onSystem} />
-      <Check label="Snap to quarter tones" checked={props.snap} onChange={props.onSnap} />
+      {!props.hideSnap && (
+        <Check label="Snap to quarter tones" checked={props.snap} onChange={props.onSnap} />
+      )}
       <Check label="Guide marks" checked={props.guides} onChange={props.onGuides} />
     </div>
   );

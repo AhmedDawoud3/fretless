@@ -97,6 +97,30 @@ export const bayati: Maqam = {
   description: "Soft and plaintive, starting on a half-flat second.",
 };
 
+/** The rest of the API's eight maqamat (names, gaps, traditional roots as the backend has them). */
+const OTHER_MAQAMAT: readonly [string, string, string, number[], number, string][] = [
+  ["hijaz", "Hijaz", "حجاز", [2, 6, 2, 4, 2, 4, 4], 4, "A big gap between the 2nd and 3rd notes."],
+  ["nahawand", "Nahawand", "نهاوند", [4, 2, 4, 4, 2, 4, 4], 0, "Same as the natural minor scale."],
+  ["kurd", "Kurd", "كرد", [2, 4, 4, 4, 2, 4, 4], 4, "Same as the Phrygian mode."],
+  ["saba", "Saba", "صبا", [3, 3, 2, 6, 2, 4, 4], 4, "Sad and tense."],
+  ["ajam", "Ajam", "عجم", [4, 4, 2, 4, 4, 4, 2], 20, "Same as the major scale."],
+  ["sikah", "Sikah", "سيكاه", [3, 4, 4, 3, 3, 4, 3], 7, "Floating and unresolved."],
+]; // biome-ignore format: one row per maqam
+
+/** All eight maqamat, as `/api/maqamat` lists them. */
+export const MAQAMAT: Maqam[] = [
+  rast,
+  bayati,
+  ...OTHER_MAQAMAT.map(([id, name, arabic_name, intervals, default_root, description]) => ({
+    id,
+    name,
+    arabic_name,
+    intervals,
+    default_root,
+    description,
+  })),
+];
+
 const nameAt = (position: number): NoteName => neck.locations[position % 24]?.name ?? FALLBACK;
 const FALLBACK: NoteName = { letter: "C", alter: 0, octave: 4 };
 
@@ -261,9 +285,9 @@ function respond(url: string, init?: RequestInit): unknown {
 
 function respondMaqam(url: string): unknown {
   const scale = /^\/api\/maqamat\/(\w+)\/scale\?root=(\d+)/.exec(url);
-  const found = [rast, bayati].find((m) => m.id === scale?.[1]);
+  const found = MAQAMAT.find((m) => m.id === scale?.[1]);
   if (scale && found) return scaleFor(found, Number(scale[2]));
-  if (url === "/api/maqamat") return [rast, bayati];
+  if (url === "/api/maqamat") return MAQAMAT;
   if (url === "/api/intervals") return INTERVALS;
   if (url.startsWith("/api/neck")) return served;
   return [neck.tuning, { id: "ff", label: "F-F" }];

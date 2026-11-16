@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchIntervals, type NeckOut } from "../api/client";
+import { fetchIntervals, fetchMaqamat, type NeckOut } from "../api/client";
 import type { LabelMode } from "../explorer/readout";
 import { loadSettings, type PageId, saveSettings } from "../explorer/settings";
 import { useNeckData } from "../explorer/useNeckData";
@@ -19,6 +19,7 @@ export function useSharedSettings() {
   const [labelMode, setLabelMode] = useState<LabelMode>(saved.labelMode);
   const [system, setSystem] = useState<NamingSystem>(saved.system);
   const { value: intervals, failed: intervalsFailed } = useRequest("intervals", fetchIntervals);
+  const { value: maqamat, failed: maqamatFailed } = useRequest("maqamat", fetchMaqamat);
 
   useEffect(() => {
     // Until the tuning is known there is nothing to save: that would erase the stored one.
@@ -28,7 +29,7 @@ export function useSharedSettings() {
 
   return {
     ...{ data, tuningId, setTuningId, page, setPage, snap, setSnap },
-    ...{ intervals, intervalsFailed },
+    ...{ intervals, intervalsFailed, maqamat, maqamatFailed },
     ...{ guides, setGuides, labelMode, setLabelMode, system, setSystem },
   };
 }

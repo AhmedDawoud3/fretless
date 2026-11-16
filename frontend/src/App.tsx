@@ -44,6 +44,7 @@ function App() {
             onTuning={shared.setTuningId}
             snap={shared.snap}
             onSnap={shared.setSnap}
+            hideSnap={shared.page === "practice"}
             guides={shared.guides}
             onGuides={shared.setGuides}
             labelMode={shared.labelMode}

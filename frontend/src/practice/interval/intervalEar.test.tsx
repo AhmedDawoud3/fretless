@@ -19,6 +19,7 @@ afterEach(() => {
 const contextAt = (level: number): DrillContext => ({
   neck: fullNeck,
   intervals: INTERVALS,
+  maqamat: [],
   system: "letters",
   guides: true,
   level,
@@ -97,4 +98,10 @@ test("a number with no option does nothing", () => {
   const { onRecord } = show();
   fireEvent.keyDown(window, { key: "9" });
   expect(onRecord).not.toHaveBeenCalled();
+});
+
+test("with more than nine options only the first nine show a key hint", () => {
+  show(4);
+  expect(document.querySelectorAll(".interval-option").length).toBeGreaterThan(9);
+  expect(document.querySelectorAll(".interval-option kbd")).toHaveLength(9);
 });

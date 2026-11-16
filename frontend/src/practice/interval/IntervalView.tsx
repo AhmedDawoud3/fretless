@@ -3,12 +3,12 @@ import { OudNeck } from "../../neck/OudNeck";
 import type { DrillViewProps } from "../drill";
 import { noteMarker } from "../markers";
 import { lowestLocation } from "../neckLookup";
+import { useOptionKeys } from "../useOptionKeys";
 import { usePlayOnce } from "../usePlayOnce";
 import type { IntervalResult } from "./check";
 import { IntervalOptions } from "./IntervalOptions";
 import { playInterval } from "./playInterval";
 import type { IntervalQuestion } from "./question";
-import { useOptionKeys } from "./useOptionKeys";
 
 /** Plays two notes and asks for the interval. Once answered, shows both notes at their lowest places on the oud. */
 export function IntervalView({
