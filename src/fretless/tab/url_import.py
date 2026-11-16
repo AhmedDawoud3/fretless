@@ -16,7 +16,11 @@ from fretless.tab.import_model import ImportedTab
 from fretless.tab.oud_render import ascii_name
 from fretless.tab.render import render_system
 from fretless.tab.render_model import RenderCell, RenderSystem
-from fretless.tab.tuning_parse import extract_tuning_from_text, parse_tuning_spec
+from fretless.tab.tuning_parse import (
+    extract_tempo_from_text,
+    extract_tuning_from_text,
+    parse_tuning_spec,
+)
 
 Fetcher = Callable[[str], bytes]
 _STANDARD_STRINGS = GUITAR_TUNINGS["standard"].strings
@@ -118,6 +122,7 @@ def parse_ug_html(
 ) -> ImportedTab:
     """Parse an Ultimate Guitar tab or chords HTML document into an `ImportedTab`."""
     raw_content, title, strings, capo = _ug_metadata(_ug_store_data(html_text), strings_override)
+    tempo = extract_tempo_from_text(raw_content)
     cleaned = clean_ug_markup(raw_content).strip()
     is_tab_type = has_six_line_tab(cleaned)
     if preferred_kind != "chords" and is_tab_type:
@@ -128,6 +133,7 @@ def parse_ug_html(
             text=cleaned,
             strings=strings,
             capo=capo,
+            tempo=tempo,
         )
     expanded = expand_chord_sheet(raw_content, strings or _STANDARD_STRINGS, capo)
     if has_six_line_tab(expanded):
@@ -138,6 +144,7 @@ def parse_ug_html(
             text=expanded,
             strings=strings,
             capo=capo,
+            tempo=tempo,
         )
     if preferred_kind == "auto" and is_tab_type:
         return ImportedTab(
@@ -147,6 +154,7 @@ def parse_ug_html(
             text=cleaned,
             strings=strings,
             capo=capo,
+            tempo=tempo,
         )
     raise ValueError("No playable 6-line guitar tab or chords found on that Ultimate Guitar page.")
 
@@ -168,32 +176,105 @@ def _measure_beats(measure: dict[str, Any]) -> list[dict[str, Any]]:
     return [b for b in beats if isinstance(b, dict)] if isinstance(beats, list) else []
 
 
-def _parse_beat_note(note: object) -> tuple[int, int] | None:
-    if not isinstance(note, dict) or note.get("rest") or note.get("tie"):
-        return None
-    string_idx, fret = note.get("string"), note.get("fret")
-    if (
-        isinstance(string_idx, int)
-        and isinstance(fret, int)
-        and 0 <= string_idx < 6
-        and 0 <= fret <= 24
-    ):
-        return string_idx + 1, fret
+def _has_technique(note: dict[str, Any]) -> bool:
+    return bool(
+        note.get("hp")
+        or note.get("slide")
+        or note.get("bend")
+        or note.get("vibrato")
+        or note.get("leftHandVibrato")
+    )
+
+
+def _direction_symbol(next_fret: int | None, fret: int, up: str, down: str) -> str:
+    return down if next_fret is not None and next_fret < fret else up
+
+
+def _note_symbol(note: dict[str, Any], line_no: int, fret: int, next_frets: dict[int, int]) -> str:
+    next_fret = next_frets.get(line_no)
+    if note.get("hp"):
+        return _direction_symbol(next_fret, fret, "h", "p")
+    if note.get("slide"):
+        return _direction_symbol(next_fret, fret, "/", "\\")
+    if note.get("bend"):
+        return "b"
+    return "~" if note.get("vibrato") or note.get("leftHandVibrato") else ""
+
+
+def _valid_fret_pos(string_idx: object, fret: object) -> tuple[int, int] | None:
+    if isinstance(string_idx, int) and isinstance(fret, int):
+        return (string_idx + 1, fret) if 0 <= string_idx < 6 and 0 <= fret <= 24 else None
     return None
 
 
-def _beat_notes(beat: dict[str, Any]) -> list[tuple[int, int]]:
+def _parse_beat_note(
+    note: object, next_frets: dict[int, int] | None = None
+) -> tuple[int, str] | None:
+    if not isinstance(note, dict) or note.get("rest"):
+        return None
+    if note.get("tie") and not _has_technique(note):
+        return None
+    pos = _valid_fret_pos(note.get("string"), note.get("fret"))
+    if pos is None:
+        return None
+    line_no, fret = pos
+    return line_no, f"{fret}{_note_symbol(note, line_no, fret, next_frets or {})}"
+
+
+def _beat_notes(
+    beat: dict[str, Any], next_frets: dict[int, int] | None = None
+) -> list[tuple[int, str]]:
     raw_notes = beat.get("notes") if not beat.get("rest") else None
     if not isinstance(raw_notes, list):
         return []
-    out: list[tuple[int, int]] = []
+    out: list[tuple[int, str]] = []
     seen_lines: set[int] = set()
     for note in raw_notes:
-        parsed = _parse_beat_note(note)
+        parsed = _parse_beat_note(note, next_frets)
         if parsed and parsed[0] not in seen_lines:
             seen_lines.add(parsed[0])
             out.append(parsed)
     return out
+
+
+def _beat_fret_map(beat: dict[str, Any]) -> dict[int, int]:
+    if beat.get("rest") or not isinstance(beat.get("notes"), list):
+        return {}
+    out: dict[int, int] = {}
+    for note in beat["notes"]:
+        if (
+            isinstance(note, dict)
+            and isinstance(note.get("string"), int)
+            and isinstance(note.get("fret"), int)
+        ):
+            out[note["string"] + 1] = note["fret"]
+    return out
+
+
+def _beat_ticks(beat: dict[str, Any]) -> int:
+    dur = beat.get("duration")
+    if (
+        isinstance(dur, list)
+        and len(dur) == 2
+        and isinstance(dur[0], int)
+        and isinstance(dur[1], int)
+        and dur[1] > 0
+    ):
+        return max(2, min(16, round(32.0 * (dur[0] / dur[1]))))
+    return 4
+
+
+def _songsterr_tempo(track: dict[str, Any]) -> int | None:
+    auto = _as_dict(track.get("automations"))
+    entries = auto.get("tempo")
+    if not isinstance(entries, list) or not entries:
+        return None
+    first = entries[0] if isinstance(entries[0], dict) else {}
+    bpm = first.get("bpm") or first.get("tempo")
+    if isinstance(bpm, (int, float)) and not isinstance(bpm, bool):
+        rounded = round(bpm)
+        return rounded if 40 <= rounded <= 240 else None
+    return None
 
 
 def _measure_marker(measure: dict[str, Any]) -> str | None:
@@ -211,23 +292,42 @@ def _format_chunk(
     return f"{' '.join(headers)}\n{rendered}" if headers else rendered
 
 
+def _chunk_beats(
+    measures: list[dict[str, Any]],
+) -> list[tuple[int, dict[str, Any]]]:
+    return [(m_idx, beat) for m_idx, m in enumerate(measures) for beat in _measure_beats(m)]
+
+
+def _advance_measure_bar(
+    m_idx: int,
+    prev_measure: int,
+    col: int,
+    bars: list[int],
+    cells: list[RenderCell],
+) -> tuple[int, int]:
+    if m_idx <= prev_measure or not cells:
+        return prev_measure, col
+    bar_col = max(cells[-1].index + 1, col - 1)
+    bars.append(bar_col)
+    return m_idx, max(col, bar_col + 1)
+
+
 def _render_measure_chunk(
     measures: list[dict[str, Any]],
     labels: tuple[str, ...],
 ) -> str | None:
     cells: list[RenderCell] = []
     bars: list[int] = []
-    col = 1
     headers = [h for m in measures if (h := _measure_marker(m)) is not None]
-    for measure in measures:
-        start_col = col
-        for beat in _measure_beats(measure):
-            if notes := _beat_notes(beat):
-                cells.extend(RenderCell(line_no, col, str(fret)) for line_no, fret in notes)
-                col += 2
-        if col > start_col:
-            bars.append(col)
-            col += 2
+    flat = _chunk_beats(measures)
+    col, prev_measure = 1, 0
+    for idx, (m_idx, beat) in enumerate(flat):
+        prev_measure, col = _advance_measure_bar(m_idx, prev_measure, col, bars, cells)
+        next_frets = _beat_fret_map(flat[idx + 1][1]) if idx + 1 < len(flat) else {}
+        notes = _beat_notes(beat, next_frets)
+        cells.extend(RenderCell(line_no, col, text) for line_no, text in notes)
+        if notes or cells:
+            col = min(col + _beat_ticks(beat), cells[-1].index + 16)
     return _format_chunk(headers, labels, col, bars, cells) if cells else None
 
 
@@ -258,7 +358,12 @@ def render_songsterr_track(track: dict[str, Any], title: str = "Songsterr Tab") 
     if not rendered:
         raise ValueError("Selected Songsterr track has no playable notes.")
     return ImportedTab(
-        title=title, source="songsterr", kind="tab", text="\n\n".join(rendered), strings=strings
+        title=title,
+        source="songsterr",
+        kind="tab",
+        text="\n\n".join(rendered),
+        strings=strings,
+        tempo=_songsterr_tempo(track),
     )
 
 
@@ -321,6 +426,7 @@ def _fetch_songsterr_chords(song_id: str, fetcher: Fetcher) -> ImportedTab:
         text=expanded,
         strings=strings,
         capo=0,
+        tempo=extract_tempo_from_text(chordpro),
     )
 
 
@@ -344,6 +450,7 @@ def _track_chords_fallback(track: dict[str, Any], title: str) -> ImportedTab:
         text=expanded,
         strings=strings,
         capo=0,
+        tempo=_songsterr_tempo(track),
     )
 
 

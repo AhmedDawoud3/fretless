@@ -3,7 +3,7 @@
 import re
 from itertools import groupby
 
-from fretless.tab.columns import bar_offsets, build_columns, line_notes
+from fretless.tab.columns import bar_offsets, build_columns, line_notes, line_techniques
 from fretless.tab.lines import TabLine, parse_tab_line
 from fretless.tab.model import Block, TabDocument, TabSystem, TextBlock
 
@@ -64,10 +64,16 @@ def _system(tab_lines: list[TabLine]) -> TabSystem:
     contents = [line.content for line in tab_lines]
     bars = sorted({bar for content in contents for bar in bar_offsets(content)})
     columns = build_columns([line_notes(content) for content in contents])
+    techniques = tuple(
+        (line_no, col_idx, symbol)
+        for line_no, content in enumerate(contents, start=1)
+        for col_idx, symbol in sorted(line_techniques(content).items())
+    )
     return TabSystem(
         lines=len(tab_lines),
         width=max(len(content) for content in contents),
         bars=tuple(bars),
         columns=columns,
         labels=tuple(line.label for line in tab_lines),
+        techniques=techniques,
     )

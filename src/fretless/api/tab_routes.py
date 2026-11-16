@@ -28,6 +28,7 @@ def _import_out(imported: ImportedTab) -> ImportTabOut:
         text=imported.text,
         strings=list(imported.strings) if imported.strings is not None else None,
         capo=imported.capo,
+        tempo=imported.tempo,
     )
 
 

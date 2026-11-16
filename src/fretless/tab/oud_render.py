@@ -36,8 +36,14 @@ def cell_text(note: PlacedNote, mode: Mode) -> str:
 
 
 def _render_system(system: PlacedSystem, tuning: Tuning, mode: Mode) -> RenderSystem:
+    tech = {(course, col): sym for course, col, sym in system.techniques}
     cells = tuple(
-        RenderCell(note.course, column.index, cell_text(note, mode))
+        RenderCell(
+            note.course,
+            column.index,
+            cell_text(note, mode)
+            + (tech.get((note.course, column.index), "") if mode == "frets" else ""),
+        )
         for column in system.columns
         for note in column.notes
     )

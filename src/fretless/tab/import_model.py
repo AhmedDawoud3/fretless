@@ -13,3 +13,4 @@ class ImportedTab:
     text: str
     strings: tuple[int, ...] | None = None
     capo: int = 0
+    tempo: int | None = None

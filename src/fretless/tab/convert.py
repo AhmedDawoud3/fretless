@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from fretless.guitar import fretted_pitch
+from fretless.pitch import STEPS_PER_OCTAVE
 from fretless.tab import alterations as note
 from fretless.tab.convert_model import (
     Alteration,
@@ -12,7 +14,7 @@ from fretless.tab.convert_model import (
     PlacedSystem,
 )
 from fretless.tab.events import GUITAR_LINES, Event, extract_events
-from fretless.tab.model import TabDocument, TabSystem, TextBlock
+from fretless.tab.model import TabDocument, TabNote, TabSystem, TextBlock
 from fretless.tab.options import Option, options
 from fretless.tab.path import best_path
 from fretless.tab.render import render_system, to_render_system
@@ -63,15 +65,55 @@ def place_events(
     return shift, done
 
 
+def _map_column_techniques(
+    src_notes: tuple[TabNote, ...],
+    col_index: int,
+    placed_notes: tuple[PlacedNote, ...],
+    tech_lookup: dict[tuple[int, int], str],
+    strings: tuple[int, ...],
+    capo: int,
+) -> list[tuple[int, int, str]]:
+    mapped: list[tuple[int, int, str]] = []
+    used_courses: set[int] = set()
+    for src in src_notes:
+        sym = tech_lookup.get((src.line, col_index))
+        if sym is None or not placed_notes:
+            continue
+        target_pc = fretted_pitch(strings[src.line - 1], capo, src.fret) % STEPS_PER_OCTAVE
+        match = next(
+            (
+                pn.course
+                for pn in placed_notes
+                if pn.course not in used_courses and pn.pitch % STEPS_PER_OCTAVE == target_pc
+            ),
+            placed_notes[0].course,
+        )
+        used_courses.add(match)
+        mapped.append((match, col_index, sym))
+    return mapped
+
+
 def _system(
-    system: TabSystem, number: int, done: dict[tuple[int, int], PlacedEvent]
+    system: TabSystem,
+    number: int,
+    done: dict[tuple[int, int], PlacedEvent],
+    strings: tuple[int, ...],
+    capo: int,
 ) -> tuple[PlacedSystem, list[Alteration]]:
-    columns, altered = [], []
+    columns, altered, mapped_tech = [], [], []
+    tech_lookup = {(line, col): sym for line, col, sym in system.techniques}
     for column in system.columns:
         placed = done[(number, column.index)]
         columns.append(PlacedColumn(column.index, placed.notes))
         altered.extend(placed.alterations)
-    return PlacedSystem(number, system.width, system.bars, tuple(columns)), altered
+        mapped_tech.extend(
+            _map_column_techniques(
+                column.notes, column.index, placed.notes, tech_lookup, strings, capo
+            )
+        )
+    return PlacedSystem(
+        number, system.width, system.bars, tuple(columns), tuple(mapped_tech)
+    ), altered
 
 
 def convert(
@@ -87,7 +129,7 @@ def convert(
             blocks.append(block)
             continue
         if block.lines == GUITAR_LINES:
-            placed, more = _system(block, number, done)
+            placed, more = _system(block, number, done, strings, capo)
             blocks.append(placed)
             altered += more
         else:

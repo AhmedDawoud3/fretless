@@ -25,6 +25,7 @@ class PlacedSystem:
     width: int
     bars: tuple[int, ...]
     columns: tuple[PlacedColumn, ...]
+    techniques: tuple[tuple[int, int, str], ...] = ()  # (course, column_index, symbol)
 
 
 type ConvertedBlock = PlacedSystem | TextBlock

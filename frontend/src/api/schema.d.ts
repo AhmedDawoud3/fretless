@@ -477,6 +477,8 @@ export interface components {
              * @default 0
              */
             capo: number;
+            /** Tempo */
+            tempo?: number | null;
         };
         /** ImportUrlIn */
         ImportUrlIn: {
@@ -627,6 +629,13 @@ export interface components {
             labels: string[];
             /** Columns */
             columns: components["schemas"]["PlacedColumnOut"][];
+            /**
+             * Techniques
+             * @default {}
+             */
+            techniques: {
+                [key: string]: string;
+            };
         };
         /** PlaybackEventOut */
         PlaybackEventOut: {

@@ -34,6 +34,7 @@ class TabSystem:
     bars: tuple[int, ...]  # character offsets of bar lines inside the content
     columns: tuple[Column, ...]  # ordered by index
     labels: tuple[str, ...]  # original line labels, top to bottom ("" when absent)
+    techniques: tuple[tuple[int, int, str], ...] = ()  # (line, column_index, symbol)
 
     def __post_init__(self) -> None:
         if len(self.labels) != self.lines:

@@ -6,6 +6,7 @@ from fretless.tab.model import Column, TabNote
 
 _MAX_FRET = 24
 _DIGITS = re.compile(r"\d+")
+_TECHNIQUE_CHARS = frozenset("hp/\\br~")
 
 
 def split_frets(digits: str) -> list[tuple[int, int]]:
@@ -33,6 +34,18 @@ def line_notes(content: str) -> list[tuple[int, int]]:
         for run in _DIGITS.finditer(content)
         for offset, fret in split_frets(run.group())
     ]
+
+
+def line_techniques(content: str) -> dict[int, str]:
+    """Map starting offset to trailing technique symbol (`h`, `p`, `/`, `\\`, `b`, `~`)."""
+    out: dict[int, str] = {}
+    for run in _DIGITS.finditer(content):
+        end = run.end()
+        if end < len(content) and content[end] in _TECHNIQUE_CHARS:
+            parts = split_frets(run.group())
+            if parts:
+                out[run.start() + parts[-1][0]] = content[end]
+    return out
 
 
 def bar_offsets(content: str) -> tuple[int, ...]:

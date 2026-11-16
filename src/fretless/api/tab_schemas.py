@@ -29,6 +29,7 @@ class ImportTabOut(BaseModel):
     text: str
     strings: list[int] | None = None
     capo: int = 0
+    tempo: int | None = None
 
 
 class GuitarIn(BaseModel):
@@ -63,6 +64,7 @@ class PlacedSystemOut(BaseModel):
     bars: list[int]
     labels: list[str]
     columns: list[PlacedColumnOut]
+    techniques: dict[str, str] = {}  # "course:column" -> symbol (h, p, /, \, b, ~)
 
 
 class AlterationOut(BaseModel):

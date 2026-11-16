@@ -10,6 +10,13 @@ _ALTER_STEPS: dict[str, int] = {"": 0, "#": 2, "♯": 2, "b": -2, "♭": -2}
 _NOTE_TOKEN = re.compile(r"([A-Ga-g])([#b♯♭]?)(\d?)")
 _PAREN = re.compile(r"\(([^)]+)\)")
 _TUNING_LINE = re.compile(r"(?:^|\n)\s*(?:Tuning\s*:|\{tuning\s*:)\s*([^\r\n}]+)", re.IGNORECASE)
+_TEMPO_MARK = re.compile(
+    r"(?:(?:^|\s)[^\w\s=]\s*=\s*|(?:tempo|\{tempo|bpm)\s*[:=]\s*|^\s*=\s*)(\d{2,3})\b"
+    r"|\b(\d{2,3})\s*bpm\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+_MIN_TEMPO = 40
+_MAX_TEMPO = 240
 
 
 def parse_note_token(letter_raw: str, alter_raw: str) -> tuple[Letter, int, int]:
@@ -74,3 +81,13 @@ def extract_tuning_from_text(text: str) -> tuple[int, ...] | None:
     """Find a `Tuning: ...` or `{tuning: ...}` directive in `text` and parse its pitches."""
     match = _TUNING_LINE.search(text)
     return parse_tuning_spec(match.group(1)) if match else None
+
+
+def extract_tempo_from_text(text: str) -> int | None:
+    """Extract a tempo marking (40..240 BPM) such as `♩ = 120` or `Tempo: 90` from `text`."""
+    match = _TEMPO_MARK.search(text)
+    if match is None:
+        return None
+    raw = match.group(1) or match.group(2)
+    bpm = int(raw) if raw else 0
+    return bpm if _MIN_TEMPO <= bpm <= _MAX_TEMPO else None

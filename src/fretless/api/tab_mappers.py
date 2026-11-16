@@ -25,6 +25,10 @@ def _note_out(note: PlacedNote) -> PlacedNoteOut:
     )
 
 
+def _tech_map(items: tuple[tuple[int, int, str], ...]) -> dict[str, str]:
+    return {f"{course}:{col}": sym for course, col, sym in items}
+
+
 def _system_out(system: PlacedSystem, tuning: Tuning) -> PlacedSystemOut:
     return PlacedSystemOut(
         index=system.index,
@@ -35,6 +39,7 @@ def _system_out(system: PlacedSystem, tuning: Tuning) -> PlacedSystemOut:
             PlacedColumnOut(index=c.index, notes=[_note_out(n) for n in c.notes])
             for c in system.columns
         ],
+        techniques=_tech_map(system.techniques),
     )
 
 
@@ -109,6 +114,7 @@ def _guitar_system_out(
             )
             for c in system.columns
         ],
+        techniques=_tech_map(system.techniques),
     )
 
 

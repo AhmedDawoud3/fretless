@@ -1,14 +1,16 @@
 """Shared vector PDF staff geometry, bar placement, and quantized tab rendering."""
 
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import pairwise
-from statistics import median
 
 import pymupdf
 
 from fretless.tab.render import render_system
 from fretless.tab.render_model import RenderCell, RenderSystem
+
+_SUBDIVISIONS = (2, 3, 4, 6, 8, 12, 16)
 
 
 @dataclass(frozen=True)
@@ -143,23 +145,39 @@ def _place_bars(
     return tuple(placed)
 
 
+def _base_unit(xs: list[float], bars: tuple[float, ...]) -> float:
+    in_measure = [
+        b - a for a, b in pairwise(xs) if b - a > 4.0 and not any(a < bx < b for bx in bars)
+    ]
+    pool = sorted(in_measure or [b - a for a, b in pairwise(xs) if b - a > 4.0])
+    if not pool:
+        return 16.0
+    anchor = pool[len(pool) // 8]
+    return max(anchor, 8.0)
+
+
+def _snap_musical_step(ratio: float) -> int:
+    target = ratio * 2.0
+    return min(_SUBDIVISIONS, key=lambda step: (abs(step - target), step))
+
+
 def render_quantized_columns(
     staff: Staff,
-    columns: list[tuple[float, list[tuple[int, int]]]],
+    columns: Sequence[tuple[float, Sequence[tuple[int, int | str]]]],
     labels: tuple[str, ...],
 ) -> str:
-    """Render `(x, [(line_no, fret), ...])` columns and staff barlines as a 6-line ASCII tab."""
+    """Render `(x, [(line_no, cell), ...])` columns quantized by within-measure musical gaps."""
     xs = [xc for xc, _ in columns]
-    gaps = [b - a for a, b in pairwise(xs) if b - a > 4.0]
-    unit = max(median(gaps) if gaps else 16.0, 8.0)
+    unit = _base_unit(xs, staff.bars)
     col_positions: list[int] = [1]
     for a, b in pairwise(xs):
-        step = max(2, min(6, round((b - a) / unit * 2)))
-        col_positions.append(col_positions[-1] + step)
+        crosses_bar = any(a < bx < b for bx in staff.bars)
+        effective = max(unit, (b - a) - 0.5 * unit) if crosses_bar else (b - a)
+        col_positions.append(col_positions[-1] + _snap_musical_step(effective / unit))
     cells = tuple(
-        RenderCell(line_no, pos, str(fret))
+        RenderCell(line_no, pos, str(text))
         for pos, (_xc, items) in zip(col_positions, columns, strict=True)
-        for line_no, fret in items
+        for line_no, text in items
     )
     bar_positions = _place_bars(staff.bars, xs, col_positions)
     return render_system(RenderSystem(labels, col_positions[-1] + 2, bar_positions, cells))
