@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { GuitarTuning, ImportedTab } from "../api/client";
 import type { PageProps } from "../app/useSharedSettings";
 import { useGuitarTuning } from "../chords/useGuitarTuning";
@@ -17,11 +18,20 @@ type OutcomeProps = PageProps & {
   conversion: Conversion;
   inputKey: string;
   mode: "frets" | "names" | "both";
+  tempo?: number | null;
   guitar: { strings: readonly number[]; capo: number };
   onEditGuitar: (line: number, columnIndex: number | null, fret: number) => void;
 };
 
-function Outcome({ conversion, inputKey, mode, guitar, onEditGuitar, ...page }: OutcomeProps) {
+function Outcome({
+  conversion,
+  inputKey,
+  mode,
+  tempo,
+  guitar,
+  onEditGuitar,
+  ...page
+}: OutcomeProps) {
   if (conversion.status === "loading") return <p className="status">Converting...</p>;
   if (conversion.status === "done") {
     return (
@@ -29,6 +39,7 @@ function Outcome({ conversion, inputKey, mode, guitar, onEditGuitar, ...page }: 
         converted={conversion.converted}
         inputKey={inputKey}
         mode={mode}
+        tempo={tempo}
         guitar={guitar}
         onEditGuitar={onEditGuitar}
         {...page}
@@ -52,6 +63,7 @@ export function TabView({
 }: PageProps & { presets: readonly GuitarTuning[] }) {
   const tuning = useGuitarTuning(presets);
   const input = useTabInput();
+  const [importedTempo, setImportedTempo] = useState<number | null>(null);
   const tuningId = shared.tuningId ?? neck.tuning.id;
   const { conversion, convert } = useConversion({
     ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode, tuningId },
@@ -68,6 +80,7 @@ export function TabView({
       tuning.setStrings(imported.strings);
     }
     tuning.setCapo(imported.capo);
+    setImportedTempo(imported.tempo ?? null);
     convert(imported.text);
   };
   return (
@@ -83,6 +96,7 @@ export function TabView({
       <Outcome
         {...{ shared, neck, conversion, inputKey }}
         mode={input.mode}
+        tempo={importedTempo}
         guitar={{ strings: tuning.strings, capo: tuning.capo }}
         onEditGuitar={handleEditGuitar}
       />

@@ -20,6 +20,7 @@ export const CONVERTED: Converted = {
         { index: 2, notes: [note(1, 6, 102, "F")] },
         { index: 4, notes: [note(1, 10, 106, "A"), note(3, 0, 86, "A")] },
       ],
+      techniques: {},
     },
   ],
   alterations: [
@@ -56,6 +57,7 @@ export const CONVERTED: Converted = {
         { index: 2, notes: [note(1, 1, 106, "F")] },
         { index: 4, notes: [note(1, 5, 114, "A"), note(3, 2, 90, "A")] },
       ],
+      techniques: {},
     },
   ],
   guitar_playback: [

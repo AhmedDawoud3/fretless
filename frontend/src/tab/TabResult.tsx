@@ -26,6 +26,7 @@ type TabResultProps = PageProps & {
   /** Names the inputs behind this result: when it changes, playback stops. */
   inputKey: string;
   mode?: TabMode;
+  tempo?: number | null;
   guitar?: { strings: readonly number[]; capo: number };
   onEditGuitar?: (line: number, columnIndex: number | null, fret: number) => void;
 };
@@ -92,6 +93,33 @@ function AsciiTabDrawer({
   );
 }
 
+function activeTrack(
+  track: TrackKind,
+  converted: Converted,
+  guitar: TabResultProps["guitar"],
+): TrackKind {
+  const hasGuitar = converted.guitar_systems.length > 0 && guitar !== undefined;
+  return track === "guitar" && hasGuitar ? "guitar" : "oud";
+}
+
+function oudTarget(appendNext: boolean, current: PlaybackEvent | null) {
+  return !appendNext && current ? { system: current.system, column: current.column } : null;
+}
+
+function guitarTarget(appendNext: boolean, current: PlaybackEvent | null): number | null {
+  return appendNext ? null : (current?.column ?? null);
+}
+
+function renderedText(
+  converted: Converted,
+  editedSystems: readonly ConvertedSystem[] | null,
+  mode: TabMode,
+): string {
+  return editedSystems
+    ? editedSystems.map((s) => renderOudSystemText(s, mode)).join("\n\n")
+    : converted.text;
+}
+
 /** Visual dual-track player & neck editor, alterations, and collapsible ASCII tab drawer. */
 export function TabResult({
   converted,
@@ -99,14 +127,19 @@ export function TabResult({
   neck,
   inputKey,
   mode = "frets",
+  tempo,
   guitar,
   onEditGuitar,
 }: TabResultProps) {
-  const [speed, setSpeed] = useState(DEFAULT_TEMPO);
+  const [speed, setSpeed] = useState(tempo ?? DEFAULT_TEMPO);
   const [track, setTrack] = useState<TrackKind>("oud");
   const [editMode, setEditMode] = useState(false);
   const [appendNext, setAppendNext] = useState(false);
   const [editedSystems, setEditedSystems] = useState<ConvertedSystem[] | null>(null);
+
+  useEffect(() => {
+    if (tempo != null) setSpeed(tempo);
+  }, [tempo]);
 
   // Reset local Oud edits when source input or conversion changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: inputKey invalidates local edits
@@ -115,8 +148,7 @@ export function TabResult({
     setAppendNext(false);
   }, [inputKey]);
 
-  const hasGuitar = converted.guitar_systems.length > 0 && guitar !== undefined;
-  const effectiveTrack: TrackKind = track === "guitar" && hasGuitar ? "guitar" : "oud";
+  const effectiveTrack = activeTrack(track, converted, guitar);
   const isGuitar = effectiveTrack === "guitar";
   const oudSystems = editedSystems ?? converted.systems;
   const activePlayback = resolvePlayback(converted, editedSystems, isGuitar);
@@ -130,24 +162,18 @@ export function TabResult({
 
   if (converted.systems.length === 0) return <p className="status">{NO_TAB}</p>;
 
-  const displayText = editedSystems
-    ? editedSystems.map((s) => renderOudSystemText(s, mode)).join("\n\n")
-    : converted.text;
-
   const pickOudColumn = (key: string) => {
     setTrack("oud");
     player.pick(key);
   };
 
   const handleEditOud = (hit: { course: number; position: number; pitch: number }) => {
-    const useCurrent = !appendNext && player.current;
-    const target = useCurrent ? { system: useCurrent.system, column: useCurrent.column } : null;
-    setEditedSystems(applyOudEdit(oudSystems, neck, hit, target));
+    setEditedSystems(applyOudEdit(oudSystems, neck, hit, oudTarget(appendNext, player.current)));
     setAppendNext(false);
   };
 
   const handleEditGuitar = (string: number, fret: number) => {
-    onEditGuitar?.(string, appendNext ? null : (player.current?.column ?? null), fret);
+    onEditGuitar?.(string, guitarTarget(appendNext, player.current), fret);
     setAppendNext(false);
   };
 
@@ -195,7 +221,7 @@ export function TabResult({
           onPick={pickOudColumn}
         />
         <AsciiTabDrawer
-          text={displayText}
+          text={renderedText(converted, editedSystems, mode)}
           systems={oudSystems}
           activeKey={isGuitar ? null : player.currentKey}
           onPick={pickOudColumn}

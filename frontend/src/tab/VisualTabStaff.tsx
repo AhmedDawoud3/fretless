@@ -45,13 +45,14 @@ function StaffColumn({
     >
       {system.labels.map((_, idx) => {
         const note = notes.find((n) => n.course === idx + 1);
+        const tech = note ? (system.techniques?.[`${note.course}:${columnIndex}`] ?? "") : "";
         return (
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: fixed 6 string/course lanes per column
             key={idx}
             className={note ? "vtab-note" : "vtab-rest"}
           >
-            {note ? formatCell(note.position, note.name, mode, fretDivisor) : "·"}
+            {note ? `${formatCell(note.position, note.name, mode, fretDivisor)}${tech}` : "·"}
           </span>
         );
       })}

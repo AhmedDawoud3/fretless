@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../App";
 import { stubApi } from "../testApi";
 import { CONVERTED } from "./convertedFixture";
@@ -11,7 +11,12 @@ vi.mock("../audio", () => ({
   playTimed: vi.fn(),
 }));
 
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
 afterEach(() => {
+  window.localStorage.clear();
   cleanup();
   vi.unstubAllGlobals();
 });
@@ -54,7 +59,7 @@ test("importing an Ultimate Guitar chords URL updates text, tuning, capo, and co
   fireEvent.click(screen.getByRole("button", { name: "Import URL" }));
 
   await screen.findByText(/Imported/i);
-  expect(screen.getByText(/Eagles — Hotel California/)).toBeDefined();
+  expect(screen.getAllByText(/Eagles — Hotel California/).length).toBeGreaterThanOrEqual(1);
   const converted = await screen.findByRole("region", { name: "Converted tab" });
   expect(converted.textContent).toBe(CONVERTED.text);
 
@@ -94,7 +99,7 @@ test("uploading a PDF imports its tab, applies tuning, and converts automaticall
   await waitFor(() =>
     expect(fetchMock.mock.calls.some(([u]) => u === "/api/tab/import-pdf")).toBe(true),
   );
-  expect(await screen.findByText(/Smile/)).toBeDefined();
+  expect((await screen.findAllByText(/Smile/)).length).toBeGreaterThanOrEqual(1);
   await screen.findByRole("region", { name: "Converted tab" });
 
   const pdfCall = fetchMock.mock.calls.find(([u]) => u === "/api/tab/import-pdf");
@@ -125,4 +130,50 @@ test("422 import rejections surface an accessible alert with server detail", asy
 
   const alert = await screen.findByRole("alert");
   expect(alert.textContent).toContain("Ultimate Guitar or Songsterr");
+});
+
+test("re-importing the same URL loads from library without a second fetch, and shelf loads/removes", async () => {
+  const fetchMock = await openTab();
+  const base = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/import-url") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          title: "Samai Bayati",
+          source: "songsterr",
+          kind: "tab",
+          text: "e|--0--|\nB|--1--|\nG|--2--|\nD|--2--|\nA|--0--|\nE|-----|",
+          strings: null,
+          capo: 0,
+          tempo: 112,
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  const songUrl = "https://www.songsterr.com/a/wsa/samai-bayati-tab-s12345";
+  fireEvent.change(screen.getByLabelText("Tab / Chords URL"), { target: { value: songUrl } });
+  fireEvent.click(screen.getByRole("button", { name: "Import URL" }));
+
+  await screen.findByText(/Imported Samai Bayati/i);
+  await screen.findByRole("region", { name: "Converted tab" });
+  expect((screen.getByLabelText(/Speed/i) as HTMLInputElement).value).toBe("112");
+
+  // Re-importing the exact same URL serves from the saved library without another backend call.
+  fireEvent.click(screen.getByRole("button", { name: "Import URL" }));
+  await screen.findByText(/Loaded from library: Samai Bayati/i);
+  const importCalls = fetchMock.mock.calls.filter(([u]) => u === "/api/tab/import-url");
+  expect(importCalls).toHaveLength(1);
+
+  // Saved library shelf allows reloading and removing entries.
+  const loadBtn = screen.getByRole("button", { name: "Load Samai Bayati" });
+  fireEvent.click(loadBtn);
+  await screen.findByText(/Loaded from library: Samai Bayati/i);
+
+  const removeBtn = screen.getByRole("button", { name: "Remove Samai Bayati" });
+  fireEvent.click(removeBtn);
+  expect(screen.queryByRole("button", { name: "Load Samai Bayati" })).toBeNull();
 });

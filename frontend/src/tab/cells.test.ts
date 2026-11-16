@@ -11,6 +11,7 @@ const system = (index: number, ...columns: ConvertedSystem["columns"]): Converte
   bars: [],
   labels: LABELS,
   columns,
+  techniques: {},
 });
 /** Six rendered lines, one per course; unnamed courses are empty. */
 const rendered = (...contents: string[]) =>

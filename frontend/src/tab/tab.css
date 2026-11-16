@@ -36,6 +36,81 @@
   font-size: 0.88rem;
 }
 
+.tab-import-library {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tab-import-library-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tab-import-library-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab-import-library-item {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tab-import-library-load,
+.tab-import-library-remove {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tab-import-library-load {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 0.84rem;
+}
+
+.tab-import-library-load:hover {
+  background: var(--panel-hover);
+  color: var(--cyan);
+}
+
+.tab-import-library-meta {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.tab-import-library-remove {
+  padding: 4px 7px;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.tab-import-library-remove:hover {
+  background: var(--panel-hover);
+  color: var(--coral);
+}
+
 .ascii-source {
   margin-top: 10px;
 }

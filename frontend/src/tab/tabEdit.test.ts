@@ -36,6 +36,7 @@ test("placeOudNote adds or toggles a note in an oud system and renders aligned A
     bars: [],
     labels: ["C", "G", "D", "A", "F", "C"],
     columns: [{ index: 2, notes: [{ course: 1, position: 0, pitch: 96, name: "C" }] }],
+    techniques: {},
   };
   const added = placeOudNote(sys, 2, { course: 2, position: 3, pitch: 89, name: "Ad" });
   expect(added.columns[0]?.notes).toHaveLength(2);

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../App";
 import { playStrum, playTimed } from "../audio";
 import { stubApi } from "../testApi";
+import { CONVERTED } from "./convertedFixture";
 
 vi.mock("../audio", () => ({
   playSteps: vi.fn(),
@@ -163,4 +164,38 @@ test("Edit on neck writes guitar frets directly back into the source tab", async
   fireEvent.click(screen.getByRole("button", { name: "String 1, fret 3" }));
   const box = screen.getByLabelText("Guitar tab") as HTMLTextAreaElement;
   expect(box.value).toContain("3");
+});
+
+test("VisualTabStaff displays technique suffixes on both Oud and Guitar tracks", async () => {
+  const fetchMock = stubApi();
+  const base = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/convert") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...CONVERTED,
+          systems: [{ ...CONVERTED.systems[0], techniques: { "1:2": "h", "1:4": "/" } }],
+          guitar_systems: [
+            { ...CONVERTED.guitar_systems[0], techniques: { "1:2": "h", "1:4": "/" } },
+          ],
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  render(<App />);
+  fireEvent.click(await screen.findByRole("tab", { name: "Tab converter" }));
+  fireEvent.change(await screen.findByLabelText("Guitar tab"), { target: { value: "e|--1h--|" } });
+  fireEvent.click(screen.getByRole("button", { name: "Convert" }));
+
+  const staff = await screen.findByRole("region", { name: "Interactive visual tab" });
+  expect(within(staff).getByText("3h")).toBeDefined();
+  expect(within(staff).getByText("5/")).toBeDefined();
+
+  fireEvent.click(screen.getByRole("button", { name: "Guitar track" }));
+  expect(within(staff).getByText("1h")).toBeDefined();
+  expect(within(staff).getByText("5/")).toBeDefined();
 });

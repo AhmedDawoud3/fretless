@@ -19,6 +19,7 @@ const system = (index: number, columns: number[]): ConvertedSystem => ({
   bars: [],
   labels: [],
   columns: columns.map((c) => ({ index: c, notes: [] })),
+  techniques: {},
 });
 
 test("alterations are grouped by kind in a fixed order, each group in the given order", () => {
