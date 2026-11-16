@@ -343,3 +343,42 @@ Unit L, frontend `listen/`:
   passed on rerun.
 - Environment: an older backend process was holding port 8000 without the
   intervals endpoint; the agent left it alone and used other ports.
+
+## 2026-11-16: phase 4, unit N (practice page, part 2) and unit O (flaky suite). Phase 4 feature-complete.
+
+Unit N, two drills on the existing framework:
+- Maqam by ear: level-to-maqam sets in one constant, three levels, random
+  twelve-tone roots at the top level, number keys, scale shown after answering.
+- Play it on your oud: target note, tuner meter (-50 to +50 cents), wording
+  from one pure function, hold of 500 ms to pass, octave-tolerant, "Hear it"
+  reference with the microphone gated while it plays, skip not counted, free
+  Tuner mode with open-course chips. Peg wording added for open courses, since
+  "slide towards the bridge" is wrong with no finger down.
+- Contract changes: `DrillContext.maqamat`, `DrillViewProps.onSkip`; the
+  microphone drill wraps the shell in `MicScope` so the microphone stays open
+  across questions. Existing drills unchanged.
+- Snap checkbox hidden on Practice (every drill forces it).
+- First real run of the capture loop: headless Edge with a fake capture device
+  fed generated WAV files. In-tune D3 read -0.02 cents and passed after the
+  hold; a file 30 cents flat read -30.02 and never passed; a non-matching
+  target named the heard note.
+- Bug found only in the browser: "Maximum update depth exceeded" at 390 px,
+  because the hold state machine lived in React state. Moved out of state.
+- Component tests were written first but run only against missing modules, so
+  they failed for that reason, not on behaviour.
+- Not verified: real microphone, real oud, real room noise; sound output; the
+  "Hear it" gate and hold in a browser (mocked time only). Tracker thresholds
+  remain guesses.
+
+Unit O, test suite stability:
+- Lead measured the suite flaking: 6, 1, then 0 failures in three runs. Causes:
+  a wall-clock speed assertion, and Testing Library's 1000 ms async default
+  timing out while every test file paid for a jsdom environment (70 to 78% of
+  run time). Reproduction found no real bug behind the timeouts.
+- Vitest split into `node` (`*.test.ts`) and `dom` (`*.test.tsx`) projects;
+  `asyncUtilTimeout` 5000 ms in `src/testSetup.ts`; `testTimeout` 15000 ms.
+  Three DOM-using `.test.ts` files renamed `.test.tsx`.
+- Wall-clock `detectPitch` speed test deleted; no honest proxy exists.
+- Suite went from about 60 s to about 36 s. 8 of 8 clean runs and 3 of 3 runs
+  under CPU load passed; lead's own two further runs passed.
+- Convention recorded in AGENTS.md.

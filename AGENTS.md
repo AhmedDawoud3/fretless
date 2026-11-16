@@ -10,7 +10,7 @@ code names; add a term there when you introduce one.
 ## Stack
 
 - Backend: Python 3.13, uv, FastAPI. Package in `src/fretless/`, tests in `tests/`.
-- Frontend: React, Vite, TypeScript strict, in `frontend/`. Tests beside source as `*.test.tsx`.
+- Frontend: React, Vite, TypeScript strict, in `frontend/`. Tests beside source: `*.test.ts` for pure logic (runs in node, no DOM), `*.test.tsx` for anything touching the DOM (runs in jsdom). No wall-clock timing assertions in the suite.
 - All music logic (tunings, maqam, chord voicing, tab conversion) lives in Python
   and is served as JSON. The frontend draws, plays sound, and listens to the
   microphone. It does not reimplement music logic.
