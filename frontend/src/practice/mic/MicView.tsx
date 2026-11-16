@@ -1,6 +1,4 @@
-import { OudNeck } from "../../neck/OudNeck";
 import type { DrillViewProps } from "../drill";
-import { noteMarker } from "../markers";
 import { nameOfPitchClass } from "../neckLookup";
 import { spokenName } from "../spokenName";
 import type { MicAnswer, MicResult } from "./check";
@@ -8,6 +6,7 @@ import { liveWords } from "./liveWords";
 import { Meter } from "./Meter";
 import { useMicScope } from "./MicScope";
 import type { MicQuestion } from "./question";
+import { TargetNeck } from "./TargetNeck";
 import { useAttempt } from "./useAttempt";
 
 /** Names the note to play and where it is; listens; shows the meter and what to change; passes on a held note. */
@@ -31,14 +30,12 @@ export function MicView({
     return name ? spokenName(name, system) : "?";
   };
   const open = question.position === 0;
-  const spot = { course: question.course, position: question.position };
-  const words = result
-    ? "Held it."
-    : liveWords(heard, {
-        listening: mic.status === "listening",
-        open,
-        heardName: heard.kind === "wrong" ? spell(heard.step) : "",
-      });
+  const words = liveWords(heard, {
+    listening: mic.status === "listening",
+    open,
+    passed: result !== null,
+    spell,
+  });
   return (
     <>
       <p className="drill-prompt">
@@ -59,14 +56,13 @@ export function MicView({
       <p className="mic-words" aria-live="polite">
         {words}
       </p>
-      <div className="neck-scroll">
-        <OudNeck
-          neck={neck}
-          markers={[noteMarker(neck, system, spot, "root")]}
-          showGuides={context.guides}
-          snap
-        />
-      </div>
+      <TargetNeck
+        neck={neck}
+        system={system}
+        guides={context.guides}
+        course={question.course}
+        position={question.position}
+      />
     </>
   );
 }
