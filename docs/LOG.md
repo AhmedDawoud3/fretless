@@ -468,3 +468,47 @@ Quality & checks:
   `pytest` (304 passed), and `vitest run` (79 files, 492 passed) all passed.
 - `dryer --threshold 0.8`: no duplicate candidates found.
 - Not verified: visual layout or audio playback by ear in a live browser.
+
+## 2026-11-16: Ultimate Guitar, Songsterr, PDF, and chord-sheet tab import
+
+Backend:
+- Added `pymupdf>=1.25.0` to `pyproject.toml`.
+- Added `src/fretless/tab/tuning_parse.py` (`parse_tuning_spec`,
+  `extract_tuning_from_text`, shared `parse_note_token`) so written tunings
+  like `DGBDGA`, `CFCGCD`, `E A D G B E`, and `{tuning: Standard (EADGBE)}`
+  resolve to 6 string-1-first quarter-tone pitches.
+- Added `src/fretless/tab/chords.py` (`parse_chord_symbol`,
+  `guitar_chord_frets`, `clean_ug_markup`, `expand_chord_sheet`) to strip
+  Ultimate Guitar `[tab]`/`[ch]` tags and convert pasted chord sheets or
+  ChordPro lines into playable 6-line guitar tab systems.
+- Added `src/fretless/tab/import_model.py` (`ImportedTab`) and
+  `src/fretless/tab/pdf_import.py` (`import_pdf_bytes`) supporting vector
+  6-line guitar TAB PDFs, plain ASCII tab PDFs, and chord-annotated score PDFs
+  (verified against synthetic PDFs and sample PDFs in `D:\Misc\Tabs`).
+- Added `src/fretless/tab/url_import.py` (`import_tab_url`, `parse_ug_html`,
+  `render_songsterr_track`) to import tabs and chord sheets from Ultimate
+  Guitar (`js-store` metadata) and Songsterr (`/api/meta/{songId}`, CloudFront
+  track JSON, `/api/chords/{songId}`, and `.chordpro`).
+- Added `POST /api/tab/import-url` and `POST /api/tab/import-pdf` endpoints in
+  `src/fretless/api/tab_schemas.py` and `src/fretless/api/tab_routes.py`, plus
+  chord-sheet fallback expansion in `POST /api/tab/convert`. Regenerated
+  `frontend/src/api/schema.d.ts`.
+
+Frontend:
+- Updated `frontend/src/api/client.ts` (unifying 422 error handling in
+  `postJson` and adding `importTabUrl` / `importTabPdf`),
+  `frontend/src/chords/useGuitarTuning.ts` (`setStrings`), and added
+  `frontend/src/tab/TabImportBar.tsx` inside `TabInput.tsx` / `TabView.tsx` to
+  import URLs (`Auto`, `Tab`, or `Chords`) or `.pdf` files, apply detected
+  guitar tuning/capo, and convert immediately.
+
+Quality & checks:
+- `just check`: ruff format/check (109 files), Biome lint (296 files), `ty check`,
+  `tsc -b`, `pytest` (322 passed), and `vitest run` (80 files, 496 passed) all
+  passed.
+- `dryer --threshold 0.8`: no duplicate candidates found.
+- `crapper`: verified cyclomatic complexity `< 10` on all newly added functions
+  after decomposing `url_import.py`, `pdf_import.py`, `chords.py`, and
+  `TabImportBar.tsx`.
+- Not verified: importing in a live browser UI (backend live URLs and PDFs were
+  smoke-checked from Python; frontend tested against `stubApi` mocks).
