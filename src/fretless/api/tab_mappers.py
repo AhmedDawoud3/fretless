@@ -203,6 +203,7 @@ def arrangement_out(item: AudioArrangement, tuning: Tuning, mode: Mode) -> Audio
         fit_reason=item.fit_reason,
         notes_count=item.notes_in,
         audio_base64=item.audio_base64,
+        detected_maqam=_detected_maqam_out(item.converted),
         **core,
     )
 

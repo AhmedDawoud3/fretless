@@ -293,6 +293,11 @@ export interface components {
             notes_count: number;
             /** Audio Base64 */
             audio_base64?: string | null;
+            /**
+             * Detected Maqam
+             * @default []
+             */
+            detected_maqam: components["schemas"]["DetectedMaqamOut"][];
             /** Text */
             text: string;
             /** Systems */

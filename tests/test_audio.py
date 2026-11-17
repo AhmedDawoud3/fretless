@@ -156,6 +156,7 @@ def test_audio_transcribe_endpoint_end_to_end_and_errors() -> None:
     assert body["active_arrangement_id"] == body["arrangements"][0]["id"]
     assert body["arrangements"][0]["fit_score"] >= 1
     assert body["arrangements"][0]["audio_base64"]
+    assert len(body["arrangements"][0]["detected_maqam"]) >= 1
     assert len(body["detected_maqam"]) >= 1
 
     assert (

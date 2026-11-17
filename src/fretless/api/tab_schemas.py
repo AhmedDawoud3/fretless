@@ -124,6 +124,7 @@ class AudioArrangementOut(BaseModel):
     fit_reason: str
     notes_count: int
     audio_base64: str | None = None
+    detected_maqam: list[DetectedMaqamOut] = []
     text: str
     systems: list[PlacedSystemOut]
     alterations: list[AlterationOut]
