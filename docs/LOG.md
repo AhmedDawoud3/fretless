@@ -676,3 +676,18 @@ Quality & checks:
 - Quality & checks:
   - `just format` cleanly formatted; `crapper --no-coverage` reported max cyclomatic complexity `9` across all Python and TypeScript functions; `dryer --threshold 0.8` reported no duplicate candidates found.
   - `just check` passed (`ruff format --check` 119 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 335 passed, `vitest run` 80 test files / 502 passed, including `test_maqam_detect.py`, `test_audio.py`, and `audioPage.test.tsx`).
+
+## 2026-11-17: Hybrid Demucs neural stem separation, anti-aliased MP3 stem previews, and play from picked note
+
+- Why: the temporary NumPy STFT HPSS + frequency bandpass separator left heavy vocals/instruments bleed (`0.786` correlation on `02 - Babylon.mp3`) and aliased 11.025 kHz WAV previews via unfiltered `samples[::2]` decimation, Basic Pitch PCEN amplified `-60 dB` residual bleed during rests, and clicking a tab note before pressing `Play` restarted playback from index `0` instead of the picked column.
+- Backend neural separation & audio quality (`src/fretless/audio/` & `src/fretless/api/`):
+  - `decode.py`: added Blackman-sinc lowpass anti-aliased `resample_audio`, `_decode_at_rate`, and `decode_audio_mix` returning `(mono_22k, stereo_44k)`, and raised `MAX_DURATION_SECONDS` to `360.0` so full songs under 12 MB decode cleanly.
+  - `demucs_worker.py` & `demucs_bridge.py`: added Torchaudio `HDEMUCS_HIGH_MUSDB_PLUS` separation (`CUDA` when available, batched 10s chunks with 1s crossfade overlap) runnable in-process or via a persistent thread-locked worker subprocess when PyTorch/Torchaudio lives in a separate Python install (`_discover_worker_python`).
+  - `separate.py`, `arrange.py`, `audio_routes.py`: added `gate_bleed` (relative `-27 dB` RMS noise gate before Basic Pitch), `separate_mix` (neural Hybrid Demucs with DSP fallback), anti-aliased `encode_wav_base64`, and stereo 44.1 kHz MP3 preview encoding via `encode_stem_audio`.
+  - Proved on a 30s real MP3 excerpt (`01 - Habibi.mp3`) through `POST /api/audio/transcribe`: HTTP `200`, `corr(vocals, instruments)` dropped from `0.7862` to `0.0777`, crisp `(1323000, 2)` 44.1 kHz MP3 stem previews, 5 ranked arrangements, and offline fallback verified with `FRETLESS_DISABLE_DEMUCS=1`.
+- Frontend playback & stem preview (`frontend/src/tab/`, `frontend/src/transcribe/`):
+  - `useTabPlayer.ts`: added `playSlice`, `clampStart`, and `loopableRun` so `Play` starts from `picked` (`startFrom(picked ?? 0)`), preserves full-track event indices during playback, and prevents manual `Stop` from restarting `Loop`.
+  - `AudioArrangements.tsx` & `AudioPage.tsx`: added `audioSrcFor` (`audio/wav`, `audio/ogg`, `audio/mpeg`), keyed `<audio>` per arrangement ID so stem switching reloads cleanly, and updated explanation copy.
+- Quality & checks:
+  - `just format`, `crapper --no-coverage --threshold 9` (max CC `9` across Python & TypeScript), and `dryer --threshold 0.8` (no duplicate candidates found).
+  - `just check` passed (`ruff format --check` 121 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 336 passed, `vitest run` 80 test files / 504 passed, including new playback-from-picked-note and neural/bleed/anti-aliasing tests).
