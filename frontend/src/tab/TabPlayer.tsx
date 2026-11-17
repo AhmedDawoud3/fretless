@@ -28,6 +28,8 @@ type TabPlayerProps = {
   onAddColumn?: () => void;
   onEditOud?: (hit: { course: number; position: number; pitch: number }) => void;
   onEditGuitar?: (string: number, fret: number) => void;
+  transpose?: number;
+  onTranspose?: (semitones: number) => void;
   mode: TabMode;
   activeKey: string | null;
   onPick: (key: string) => void;
@@ -50,6 +52,69 @@ type TabPlayerProps = {
   system: NamingSystem;
 };
 
+const clampTranspose = (val: number) => Math.max(-24, Math.min(24, val));
+
+function formatTranspose(semitones: number): string {
+  if (semitones === 0) return "0 st";
+  const sign = semitones > 0 ? "+" : "";
+  if (semitones % 12 === 0) return `${sign}${semitones} st (${sign}${semitones / 12} oct)`;
+  return `${sign}${semitones} st`;
+}
+
+function TransposeControls({
+  transpose,
+  onTranspose,
+}: {
+  transpose: number;
+  onTranspose: (semitones: number) => void;
+}) {
+  return (
+    <fieldset className="transpose-controls" aria-label="Transpose Oud pitch">
+      <span className="transpose-label">Transpose</span>
+      <button
+        type="button"
+        aria-label="Transpose down one octave"
+        disabled={transpose <= -24}
+        onClick={() => onTranspose(clampTranspose(transpose - 12))}
+      >
+        -1 oct
+      </button>
+      <button
+        type="button"
+        aria-label="Transpose down one semitone"
+        disabled={transpose <= -24}
+        onClick={() => onTranspose(clampTranspose(transpose - 1))}
+      >
+        −
+      </button>
+      <span className="transpose-value" aria-live="polite">
+        {formatTranspose(transpose)}
+      </span>
+      <button
+        type="button"
+        aria-label="Transpose up one semitone"
+        disabled={transpose >= 24}
+        onClick={() => onTranspose(clampTranspose(transpose + 1))}
+      >
+        +
+      </button>
+      <button
+        type="button"
+        aria-label="Transpose up one octave"
+        disabled={transpose >= 24}
+        onClick={() => onTranspose(clampTranspose(transpose + 12))}
+      >
+        +1 oct
+      </button>
+      {transpose !== 0 && (
+        <button type="button" aria-label="Reset transpose" onClick={() => onTranspose(0)}>
+          Reset
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
 function TrackToolbar({
   hasGuitar,
   track,
@@ -57,6 +122,8 @@ function TrackToolbar({
   editMode,
   onToggleEdit,
   onAddColumn,
+  transpose,
+  onTranspose,
 }: {
   hasGuitar: boolean;
   track: TrackKind;
@@ -64,6 +131,8 @@ function TrackToolbar({
   editMode: boolean;
   onToggleEdit: () => void;
   onAddColumn?: () => void;
+  transpose?: number;
+  onTranspose?: (semitones: number) => void;
 }) {
   return (
     <div className="track-toolbar">
@@ -77,6 +146,9 @@ function TrackToolbar({
           </button>
         )}
       </fieldset>
+      {track === "oud" && onTranspose && (
+        <TransposeControls transpose={transpose ?? 0} onTranspose={onTranspose} />
+      )}
       <div className="track-edit-actions">
         <button type="button" aria-pressed={editMode} onClick={onToggleEdit}>
           {editMode ? "Editing on neck" : "Edit on neck"}
@@ -264,6 +336,8 @@ export function TabPlayer(props: TabPlayerProps) {
         editMode={props.editMode}
         onToggleEdit={props.onToggleEdit}
         onAddColumn={props.onAddColumn}
+        transpose={props.transpose}
+        onTranspose={props.onTranspose}
       />
       <TransportControls
         playing={props.playing}

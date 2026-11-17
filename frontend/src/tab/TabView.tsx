@@ -21,6 +21,8 @@ type OutcomeProps = PageProps & {
   tempo?: number | null;
   guitar: { strings: readonly number[]; capo: number };
   onEditGuitar: (line: number, columnIndex: number | null, fret: number) => void;
+  transpose: number;
+  onTranspose: (semitones: number) => void;
 };
 
 function Outcome({
@@ -30,6 +32,8 @@ function Outcome({
   tempo,
   guitar,
   onEditGuitar,
+  transpose,
+  onTranspose,
   ...page
 }: OutcomeProps) {
   if (conversion.status === "loading") return <p className="status">Converting...</p>;
@@ -42,6 +46,8 @@ function Outcome({
         tempo={tempo}
         guitar={guitar}
         onEditGuitar={onEditGuitar}
+        transpose={transpose}
+        onTranspose={onTranspose}
         {...page}
       />
     );
@@ -64,11 +70,19 @@ export function TabView({
   const tuning = useGuitarTuning(presets);
   const input = useTabInput();
   const [importedTempo, setImportedTempo] = useState<number | null>(null);
+  const [transpose, setTranspose] = useState(0);
   const tuningId = shared.tuningId ?? neck.tuning.id;
   const { conversion, convert } = useConversion({
-    ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode, tuningId },
+    ...{ strings: tuning.strings, capo: tuning.capo, mode: input.mode, tuningId, transpose },
   });
-  const inputKey = JSON.stringify([input.text, tuning.strings, tuning.capo, input.mode, tuningId]);
+  const inputKey = JSON.stringify([
+    input.text,
+    tuning.strings,
+    tuning.capo,
+    input.mode,
+    tuningId,
+    transpose,
+  ]);
   const handleEditGuitar = (line: number, columnIndex: number | null, fret: number) => {
     const next = toggleGuitarNote(input.text, line, columnIndex, fret);
     input.setText(next);
@@ -81,6 +95,7 @@ export function TabView({
     }
     tuning.setCapo(imported.capo);
     setImportedTempo(imported.tempo ?? null);
+    setTranspose(0);
     convert(imported.text);
   };
   return (
@@ -94,11 +109,12 @@ export function TabView({
         onImported={handleImported}
       />
       <Outcome
-        {...{ shared, neck, conversion, inputKey }}
+        {...{ shared, neck, conversion, inputKey, transpose }}
         mode={input.mode}
         tempo={importedTempo}
         guitar={{ strings: tuning.strings, capo: tuning.capo }}
         onEditGuitar={handleEditGuitar}
+        onTranspose={setTranspose}
       />
       <TabExplanation />
     </>

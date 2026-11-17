@@ -34,6 +34,7 @@ export type ImportKind = ImportUrlBody["kind"];
 export type ImportPdfBody = components["schemas"]["ImportPdfIn"];
 export type ImportedTab = components["schemas"]["ImportTabOut"];
 export type ImportedTrack = components["schemas"]["ImportedTrackOut"];
+export type TransposeBody = components["schemas"]["TransposeIn"];
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(path, init) : await fetch(path);
@@ -119,6 +120,10 @@ function postConvert<T>(path: string, body: T): Promise<ConvertReply> {
 
 export function convertTab(body: ConvertBody): Promise<ConvertReply> {
   return postConvert("/api/tab/convert", body);
+}
+
+export function transposeTab(body: TransposeBody): Promise<ConvertReply> {
+  return postConvert("/api/tab/transpose", body);
 }
 
 export function transcribeAudio(body: TranscribeBody): Promise<ConvertReply> {

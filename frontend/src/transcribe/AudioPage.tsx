@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { type Converted, type TabMode, transposeTab } from "../api/client";
 import type { PageProps } from "../app/useSharedSettings";
 import { loadSettings, saveSettings } from "../explorer/settings";
 import { TabResult } from "../tab/TabResult";
@@ -21,40 +22,115 @@ const REJECTED =
   "Could not read that audio file. Use a WAV, MP3, OGG, or FLAC recording under 3 minutes.";
 const FAILED = "Could not reach the backend. Start it with `just api`, then try again.";
 
+type TransposedViewState = {
+  baseView: Converted;
+  tag: string;
+  result: Converted;
+} | null;
+
+async function fetchTransposed(
+  view: Converted,
+  transpose: number,
+  tuningId: string,
+  mode: TabMode,
+): Promise<Converted | null> {
+  try {
+    const reply = await transposeTab({
+      systems: view.systems,
+      oud_tuning: tuningId,
+      mode,
+      transpose_semitones: transpose,
+      tempo: view.tempo ?? null,
+    });
+    return reply.rejected ? null : reply.converted;
+  } catch {
+    return null;
+  }
+}
+
+function matchesTransposed(state: TransposedViewState, view: Converted, tag: string): boolean {
+  return state !== null && state.baseView === view && state.tag === tag;
+}
+
+function useTransposedView(
+  view: Converted,
+  transpose: number,
+  tuningId: string,
+  mode: TabMode,
+): Converted {
+  const [state, setState] = useState<TransposedViewState>(null);
+  const tag = `${transpose}|${tuningId}|${mode}`;
+  useEffect(() => {
+    if (transpose === 0) return;
+    let active = true;
+    void fetchTransposed(view, transpose, tuningId, mode).then((result) => {
+      if (active && result) setState({ baseView: view, tag, result });
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, tag, transpose, tuningId, view]);
+
+  if (transpose === 0 || !matchesTransposed(state, view, tag) || !state) return view;
+  return state.result;
+}
+
+function AudioDoneOutcome({
+  converted,
+  inputKey,
+  mode,
+  ...page
+}: PageProps & { converted: Converted; inputKey: string; mode: TabMode }) {
+  const [selection, setSelection] = useState<{ forResult: object; id: string | null } | null>(null);
+  const [transpose, setTranspose] = useState(0);
+  const [prevResult, setPrevResult] = useState(converted);
+  if (prevResult !== converted) {
+    setPrevResult(converted);
+    setTranspose(0);
+  }
+  const tuningId = page.shared.tuningId ?? page.neck.tuning.id;
+  const selectedId = selection?.forResult === converted ? selection.id : null;
+  const applied = useMemo(() => applyArrangement(converted, selectedId), [converted, selectedId]);
+  const shownView = useTransposedView(applied.view, transpose, tuningId, mode);
+
+  return (
+    <>
+      <AudioArrangements
+        arrangements={converted.arrangements}
+        activeId={applied.activeId}
+        activeArrangement={applied.activeArrangement}
+        onSelect={(id) => setSelection({ forResult: converted, id })}
+      />
+      <TabResult
+        converted={shownView}
+        inputKey={`${inputKey}|${applied.activeId ?? "base"}|${transpose}`}
+        mode={mode}
+        tempo={shownView.tempo}
+        transpose={transpose}
+        onTranspose={setTranspose}
+        {...page}
+      />
+    </>
+  );
+}
+
 function Outcome({
   conversion,
   inputKey,
   mode,
   ...page
-}: PageProps & { conversion: Conversion; inputKey: string; mode: "frets" | "names" | "both" }) {
-  const [selection, setSelection] = useState<{ forResult: object; id: string | null } | null>(null);
+}: PageProps & { conversion: Conversion; inputKey: string; mode: TabMode }) {
   if (conversion.status === "loading")
     return <p className="status">Separating stems & transcribing with Basic Pitch...</p>;
-  if (conversion.status === "done") {
-    const selectedId =
-      selection && selection.forResult === conversion.converted ? selection.id : null;
-    const { activeId, activeArrangement, view } = applyArrangement(
-      conversion.converted,
-      selectedId,
-    );
+  if (conversion.status === "done")
     return (
-      <>
-        <AudioArrangements
-          arrangements={conversion.converted.arrangements}
-          activeId={activeId}
-          activeArrangement={activeArrangement}
-          onSelect={(id) => setSelection({ forResult: conversion.converted, id })}
-        />
-        <TabResult
-          converted={view}
-          inputKey={`${inputKey}|${activeId ?? "base"}`}
-          mode={mode}
-          tempo={view.tempo}
-          {...page}
-        />
-      </>
+      <AudioDoneOutcome
+        converted={conversion.converted}
+        inputKey={inputKey}
+        mode={mode}
+        {...page}
+      />
     );
-  }
   if (conversion.status === "idle") return null;
   return (
     <p className="status status-error" role="alert">

@@ -203,3 +203,24 @@ test("a short explanation says how the tab is fitted to the oud and what is lost
   expect(panel.textContent).toMatch(/slides, bends and hammer-ons are dropped/i);
   expect(panel.textContent).toMatch(/rhythm is approximate/);
 });
+
+test("transpose controls re-convert by octaves and semitones and reset cleanly", async () => {
+  const fetchMock = await openTab();
+  paste(TAB);
+  convert();
+  await converted();
+  expect(convertBodies(fetchMock)).toHaveLength(1);
+  expect("transpose_semitones" in convertBodies(fetchMock)[0]).toBe(false);
+
+  fireEvent.click(screen.getByRole("button", { name: "Transpose down one octave" }));
+  await waitFor(() => expect(convertBodies(fetchMock)).toHaveLength(2));
+  expect(convertBodies(fetchMock).at(-1)).toMatchObject({ transpose_semitones: -12 });
+
+  fireEvent.click(screen.getByRole("button", { name: "Transpose up one semitone" }));
+  await waitFor(() => expect(convertBodies(fetchMock)).toHaveLength(3));
+  expect(convertBodies(fetchMock).at(-1)).toMatchObject({ transpose_semitones: -11 });
+
+  fireEvent.click(screen.getByRole("button", { name: "Reset transpose" }));
+  await waitFor(() => expect(convertBodies(fetchMock)).toHaveLength(4));
+  expect("transpose_semitones" in (convertBodies(fetchMock).at(-1) as object)).toBe(false);
+});

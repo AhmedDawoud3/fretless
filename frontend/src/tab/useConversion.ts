@@ -10,6 +10,7 @@ export type ConvertOptions = {
   capo: number;
   tuningId: string;
   mode: TabMode;
+  transpose?: number;
 };
 
 type Asked = { text: string; id: number };
@@ -19,12 +20,16 @@ const nextAsked = (previous: Asked | null, text: string): Asked => ({
   id: (previous?.id ?? 0) + 1,
 });
 
-function requestFor(asked: Asked, { strings, capo, tuningId, mode }: ConvertOptions) {
+function requestFor(
+  asked: Asked,
+  { strings, capo, tuningId, mode, transpose = 0 }: ConvertOptions,
+) {
   const body: ConvertBody = {
     text: asked.text,
     guitar: { strings: [...strings], capo },
     oud_tuning: tuningId,
     mode,
+    ...(transpose !== 0 ? { transpose_semitones: transpose } : {}),
   };
   return { body, key: `${asked.id}|${JSON.stringify(body)}` };
 }

@@ -216,3 +216,41 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
     root: 8,
   });
 });
+
+test("transposing a transcribed track calls /api/tab/transpose without re-transcribing and resets cleanly", async () => {
+  const fetchMock = await openAudio();
+  const transposedText = "C|--0-|\nF|----|\nA|----|\nD|----|\nG|----|\nC|----|";
+  const original = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/transpose") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ...CONVERTED, text: transposedText }),
+      };
+    }
+    return original?.(url, init);
+  }) as NonNullable<typeof original>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Load example recording" }));
+  fireEvent.click(screen.getByRole("button", { name: "Transcribe to oud" }));
+  const region = await screen.findByRole("region", { name: "Converted tab" });
+  expect(region.textContent).toBe(CONVERTED.text);
+
+  fireEvent.click(screen.getByRole("button", { name: "Transpose down one octave" }));
+  await waitFor(() =>
+    expect(screen.getByRole("region", { name: "Converted tab" }).textContent).toBe(transposedText),
+  );
+  const transposeCalls = fetchMock.mock.calls.filter(([url]) => url === "/api/tab/transpose");
+  expect(transposeCalls).toHaveLength(1);
+  expect(JSON.parse(String(transposeCalls[0]?.[1]?.body))).toMatchObject({
+    transpose_semitones: -12,
+    oud_tuning: "cc",
+  });
+  expect(transcribeBodies(fetchMock)).toHaveLength(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "Reset transpose" }));
+  await waitFor(() =>
+    expect(screen.getByRole("region", { name: "Converted tab" }).textContent).toBe(CONVERTED.text),
+  );
+});

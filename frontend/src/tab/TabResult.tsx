@@ -38,6 +38,8 @@ type TabResultProps = PageProps & {
   tempo?: number | null;
   guitar?: { strings: readonly number[]; capo: number };
   onEditGuitar?: (line: number, columnIndex: number | null, fret: number) => void;
+  transpose?: number;
+  onTranspose?: (semitones: number) => void;
 };
 
 function asciiNameAt(neck: NeckOut, course: number, position: number): string {
@@ -144,6 +146,8 @@ export function TabResult({
   tempo,
   guitar,
   onEditGuitar,
+  transpose,
+  onTranspose,
 }: TabResultProps) {
   const [speed, setSpeed] = useState(tempo ?? DEFAULT_TEMPO);
   const [track, setTrack] = useState<TrackKind>("oud");
@@ -227,6 +231,8 @@ export function TabResult({
         onAddColumn={() => setAppendNext(true)}
         onEditOud={handleEditOud}
         onEditGuitar={handleEditGuitar}
+        transpose={transpose}
+        onTranspose={onTranspose}
         mode={mode}
         activeKey={player.currentKey}
         onPick={player.pick}
