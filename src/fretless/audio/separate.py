@@ -1,4 +1,4 @@
-"""Separate mixed audio into harmonic vocal, instrument, and bass stems and encode previews."""
+"""Separate mixed audio into neural Hybrid Demucs (or DSP fallback) stems and encode previews."""
 
 import base64
 import io
@@ -9,11 +9,15 @@ import soundfile as sf
 from numpy.lib.stride_tricks import sliding_window_view
 from numpy.typing import NDArray
 
-from fretless.audio.decode import SAMPLE_RATE
+from fretless.audio.decode import SAMPLE_RATE, SEP_SAMPLE_RATE, resample_audio
+from fretless.audio.demucs_bridge import has_neural_separator, separate_with_demucs
 
 _N_FFT = 1024
 _HOP = 256
 _MEDIAN_RADIUS = 7
+_BLEED_RATIO = 0.045
+_GATE_FRAME = 1102
+_SMOOTH_TAPS = 256
 
 
 @dataclass(frozen=True)
@@ -21,6 +25,17 @@ class SeparatedStems:
     vocals: NDArray[np.float32]
     instruments: NDArray[np.float32]
     bass: NDArray[np.float32]
+
+
+@dataclass(frozen=True)
+class SeparatedMix:
+    vocals: NDArray[np.float32]
+    instruments: NDArray[np.float32]
+    bass: NDArray[np.float32]
+    preview_vocals: NDArray[np.float32]
+    preview_instruments: NDArray[np.float32]
+    preview_bass: NDArray[np.float32]
+    neural: bool
 
 
 def _stft(signal: NDArray[np.float32]) -> NDArray[np.complex64]:
@@ -78,7 +93,7 @@ def _band_mask(freqs: NDArray[np.float32], low_hz: float, high_hz: float) -> NDA
 def separate_stems(
     mono: NDArray[np.float32], stereo: NDArray[np.float32] | None = None
 ) -> SeparatedStems:
-    """Split `mono`/`stereo` mix into drum-suppressed `vocals`, `instruments`, and `bass` stems."""
+    """Split `mono`/`stereo` mix into drum-suppressed DSP stems (offline fallback)."""
     if len(mono) < _HOP:
         empty = mono.astype(np.float32)
         return SeparatedStems(empty, empty, empty)
@@ -105,13 +120,113 @@ def separate_stems(
     )
 
 
-def encode_wav_base64(samples: NDArray[np.float32], target_rate: int = 11025) -> str:
-    """Downsample `samples` into a compact mono 16-bit WAV encoded as base64."""
-    step = max(1, SAMPLE_RATE // target_rate)
-    reduced = samples[::step].astype(np.float32)
-    peak = float(np.max(np.abs(reduced))) if reduced.size else 0.0
-    if peak > 0.98:
-        reduced = reduced * (0.95 / peak)
+def gate_bleed(
+    stem: NDArray[np.float32], mix_rms: float, ratio: float = _BLEED_RATIO
+) -> NDArray[np.float32]:
+    """Mute near-silent stem bleed frames so Basic Pitch PCEN does not hallucinate rests."""
+    if stem.size == 0 or mix_rms <= 1e-6:
+        return stem
+    n = len(stem)
+    pad = (-n) % _GATE_FRAME
+    blocks = np.pad(stem, (0, pad)).reshape(-1, _GATE_FRAME)
+    rms = np.sqrt(np.mean(blocks * blocks, axis=1))
+    active = (rms >= ratio * mix_rms).astype(np.float32)
+    dilated = (np.convolve(active, np.ones(5, dtype=np.float32), mode="same") > 0).astype(
+        np.float32
+    )
+    sample_mask = np.repeat(dilated, _GATE_FRAME)[:n]
+    smooth = np.convolve(
+        sample_mask, np.ones(_SMOOTH_TAPS, dtype=np.float32) / _SMOOTH_TAPS, "same"
+    )
+    return (stem * np.clip(smooth, 0.0, 1.0)).astype(np.float32)
+
+
+def _to_mono_22k_gated(
+    stem: NDArray[np.float32], src_rate: int, mix_rms: float
+) -> NDArray[np.float32]:
+    mono = (0.5 * (stem[0] + stem[1])).astype(np.float32) if stem.ndim == 2 else stem
+    down = resample_audio(mono, src_rate, SAMPLE_RATE)
+    return gate_bleed(down, mix_rms)
+
+
+def _ensure_stereo_at_rate(
+    mono_22k: NDArray[np.float32],
+    stereo: NDArray[np.float32] | None,
+    stereo_rate: int,
+    target_rate: int,
+) -> NDArray[np.float32]:
+    if stereo is not None and stereo.ndim == 2 and stereo.shape[0] >= 2:
+        if stereo_rate == target_rate:
+            return stereo[:2].astype(np.float32, copy=False)
+        left = resample_audio(stereo[0], stereo_rate, target_rate)
+        right = resample_audio(stereo[1], stereo_rate, target_rate)
+        return np.stack([left, right], axis=0).astype(np.float32)
+    mono = resample_audio(mono_22k, SAMPLE_RATE, target_rate)
+    return np.stack([mono, mono], axis=0).astype(np.float32)
+
+
+def separate_mix(
+    mono_22k: NDArray[np.float32],
+    stereo: NDArray[np.float32] | None = None,
+    *,
+    stereo_rate: int = SAMPLE_RATE,
+) -> SeparatedMix:
+    """Separate via neural Hybrid Demucs when available, else DSP fallback."""
+    mix_rms = float(np.sqrt(np.mean(mono_22k * mono_22k))) if mono_22k.size else 0.0
+    if has_neural_separator():
+        stereo_44k = _ensure_stereo_at_rate(mono_22k, stereo, stereo_rate, SEP_SAMPLE_RATE)
+        if (stems := separate_with_demucs(stereo_44k)) is not None:
+            v44, i44, b44 = stems
+            return SeparatedMix(
+                vocals=_to_mono_22k_gated(v44, SEP_SAMPLE_RATE, mix_rms),
+                instruments=_to_mono_22k_gated(i44, SEP_SAMPLE_RATE, mix_rms),
+                bass=_to_mono_22k_gated(b44, SEP_SAMPLE_RATE, mix_rms),
+                preview_vocals=v44,
+                preview_instruments=i44,
+                preview_bass=b44,
+                neural=True,
+            )
+    stereo_22k = (
+        _ensure_stereo_at_rate(mono_22k, stereo, stereo_rate, SAMPLE_RATE)
+        if stereo is not None
+        else None
+    )
+    fallback = separate_stems(mono_22k, stereo_22k)
+    return SeparatedMix(
+        vocals=gate_bleed(fallback.vocals, mix_rms),
+        instruments=gate_bleed(fallback.instruments, mix_rms),
+        bass=gate_bleed(fallback.bass, mix_rms),
+        preview_vocals=fallback.vocals,
+        preview_instruments=fallback.instruments,
+        preview_bass=fallback.bass,
+        neural=False,
+    )
+
+
+def _normalize_for_encode(samples: NDArray[np.float32]) -> NDArray[np.float32]:
+    arr = samples.T if samples.ndim == 2 else samples
+    peak = float(np.max(np.abs(arr))) if arr.size else 0.0
+    if peak > 0.95:
+        arr = arr * (0.92 / peak)
+    return np.asarray(arr, dtype=np.float32)
+
+
+def encode_stem_audio(samples: NDArray[np.float32], sample_rate: int = SEP_SAMPLE_RATE) -> str:
+    """Encode `(N,)` mono or `(2, N)` stereo audio cleanly as MP3 (fallback WAV)."""
+    normalized = _normalize_for_encode(samples)
     buf = io.BytesIO()
-    sf.write(buf, reduced, SAMPLE_RATE // step, format="WAV", subtype="PCM_16")
+    try:
+        sf.write(buf, normalized, sample_rate, format="MP3", subtype="MPEG_LAYER_III")
+    except (sf.LibsndfileError, RuntimeError, ValueError):
+        buf = io.BytesIO()
+        sf.write(buf, normalized, sample_rate, format="WAV", subtype="PCM_16")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def encode_wav_base64(samples: NDArray[np.float32], target_rate: int = SAMPLE_RATE) -> str:
+    """Anti-aliased resample and encode `samples` into 16-bit PCM WAV as base64."""
+    mono = (0.5 * (samples[0] + samples[1])).astype(np.float32) if samples.ndim == 2 else samples
+    resampled = resample_audio(mono, SAMPLE_RATE, target_rate)
+    buf = io.BytesIO()
+    sf.write(buf, _normalize_for_encode(resampled), target_rate, format="WAV", subtype="PCM_16")
     return base64.b64encode(buf.getvalue()).decode("ascii")

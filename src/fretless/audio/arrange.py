@@ -8,10 +8,10 @@ from typing import Literal
 import numpy as np
 from numpy.typing import NDArray
 
-from fretless.audio.decode import SAMPLE_RATE
+from fretless.audio.decode import SAMPLE_RATE, SEP_SAMPLE_RATE
 from fretless.audio.inference import run_basic_pitch
 from fretless.audio.notes import DetectedNote, extract_notes
-from fretless.audio.separate import encode_wav_base64, separate_stems
+from fretless.audio.separate import encode_stem_audio, separate_mix
 from fretless.audio.tempo import detect_audio_bpm, ticks_per_second_for_bpm
 from fretless.pitch import STEPS_PER_OCTAVE
 from fretless.tab import alterations as note
@@ -332,9 +332,11 @@ def build_audio_arrangements(
     tuning: Tuning,
     onset_threshold: float,
     frame_threshold: float,
+    *,
+    stereo_rate: int = SAMPLE_RATE,
 ) -> tuple[list[AudioArrangement], int]:
     """Separate stems, transcribe each with Basic Pitch, score, and rank Oud arrangements."""
-    stems = separate_stems(mono, stereo)
+    stems = separate_mix(mono, stereo, stereo_rate=stereo_rate)
     vocals = _detect_wave(stems.vocals, onset_threshold, frame_threshold)
     inst = _detect_wave(stems.instruments, onset_threshold, frame_threshold)
     bass = _detect_wave(stems.bass, onset_threshold, frame_threshold)
@@ -349,8 +351,13 @@ def build_audio_arrangements(
 
     specs = _candidate_specs(vocals, inst, bass, mix)
     used_stems = {stem for _, _, stem, notes, _ in specs if notes}
-    stem_audio = {"vocals": stems.vocals, "instruments": stems.instruments, "bass": stems.bass}
-    wav_map = {s: encode_wav_base64(stem_audio[s]) for s in used_stems}
+    preview_rate = SEP_SAMPLE_RATE if stems.neural else SAMPLE_RATE
+    stem_audio = {
+        "vocals": stems.preview_vocals,
+        "instruments": stems.preview_instruments,
+        "bass": stems.preview_bass,
+    }
+    preview_map = {s: encode_stem_audio(stem_audio[s], preview_rate) for s in used_stems}
 
     built = [
         arr
@@ -364,7 +371,7 @@ def build_audio_arrangements(
                 tuning,
                 ticks_per_sec,
                 duration_s,
-                wav_map,
+                preview_map,
                 single_line=single,
             )
         )

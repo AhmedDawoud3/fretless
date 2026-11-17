@@ -7,9 +7,24 @@ from fastapi.testclient import TestClient
 
 from fretless.api import app
 from fretless.audio.arrange import arrange_notes, extract_monophonic_line, group_chords
-from fretless.audio.decode import SAMPLE_RATE, decode_audio, decode_audio_stereo
+from fretless.audio.decode import (
+    MAX_DURATION_SECONDS,
+    SAMPLE_RATE,
+    SEP_SAMPLE_RATE,
+    decode_audio,
+    decode_audio_mix,
+    decode_audio_stereo,
+    resample_audio,
+)
+from fretless.audio.demucs_bridge import has_neural_separator
 from fretless.audio.notes import DetectedNote, extract_notes
-from fretless.audio.separate import encode_wav_base64, separate_stems
+from fretless.audio.separate import (
+    encode_stem_audio,
+    encode_wav_base64,
+    gate_bleed,
+    separate_mix,
+    separate_stems,
+)
 from fretless.audio.tempo import detect_audio_bpm
 from fretless.tab.model import TextBlock
 from fretless.tab.oud_render import render_converted
@@ -53,13 +68,22 @@ def test_decode_audio_handles_mono_stereo_resampling_and_errors() -> None:
         else:
             raise AssertionError(f"expected ValueError for {bad!r}")
 
-    too_long = np.zeros(int(SAMPLE_RATE * 181), dtype=np.float32)
+    too_long = np.zeros(int(SAMPLE_RATE * (MAX_DURATION_SECONDS + 1)), dtype=np.float32)
     try:
         decode_audio(_wav_bytes(too_long, SAMPLE_RATE))
     except ValueError:
         pass
     else:
         raise AssertionError("expected ValueError for audio over max duration")
+
+    t_44 = np.arange(SEP_SAMPLE_RATE, dtype=np.float32) / SEP_SAMPLE_RATE
+    ultrasonic = (0.5 * np.sin(2 * np.pi * 16_000.0 * t_44)).astype(np.float32)
+    down = resample_audio(ultrasonic, SEP_SAMPLE_RATE, SAMPLE_RATE)
+    assert float(np.sqrt(np.mean(down**2))) < 0.02
+
+    mono_22k, stereo_44k = decode_audio_mix(_wav_bytes(stereo_44k, 44100))
+    assert mono_22k.ndim == 1
+    assert stereo_44k.shape[0] == 2
 
 
 def test_extract_notes_detects_quarter_tone_from_contour_bend() -> None:
@@ -176,3 +200,24 @@ def test_stem_separation_tempo_and_monophonic_filtering() -> None:
     )
     solo = extract_monophonic_line(crowded, "loudest")
     assert [n.pitch for n in solo] == [108, 100]
+
+    bleed = np.full(SAMPLE_RATE, 0.002, dtype=np.float32)
+    bleed[5000:12000] = 0.5 * np.sin(2 * np.pi * 440.0 * np.arange(7000) / SAMPLE_RATE)
+    gated = gate_bleed(bleed, mix_rms=0.25)
+    assert float(np.max(np.abs(gated[16000:]))) == 0.0
+    assert float(np.sqrt(np.mean(gated[6000:11000] ** 2))) > 0.2
+
+    stereo_pair = np.stack([vocal_sig, -vocal_sig], axis=0).astype(np.float32)
+    stem_b64 = encode_stem_audio(stereo_pair, SAMPLE_RATE)
+    assert len(base64.b64decode(stem_b64)) > 200
+
+
+def test_neural_stem_separation_or_clean_fallback() -> None:
+    t = np.arange(SEP_SAMPLE_RATE, dtype=np.float32) / SEP_SAMPLE_RATE
+    vocal = (0.4 * np.sin(2 * np.pi * 440.0 * t)).astype(np.float32)
+    bass = (0.4 * np.sin(2 * np.pi * 110.0 * t)).astype(np.float32)
+    mix_stereo = np.stack([vocal + bass, vocal + bass], axis=0).astype(np.float32)
+    mono_22k = resample_audio(vocal + bass, SEP_SAMPLE_RATE, SAMPLE_RATE)
+    separated = separate_mix(mono_22k, mix_stereo, stereo_rate=SEP_SAMPLE_RATE)
+    assert len(separated.vocals) == len(mono_22k)
+    assert separated.neural == has_neural_separator()
