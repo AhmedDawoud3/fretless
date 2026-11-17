@@ -137,7 +137,7 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
         fit_score: 82,
         fit_reason: "Single-line melody · 85% direct Oud range fit",
         notes_count: 2,
-        audio_base64: "UklGRg==",
+        audio_base64: "//NExAAAAA==",
         text: "C|--5-|\nF|----|\nA|----|\nD|----|\nG|----|\nC|----|",
         systems: CONVERTED.systems,
         alterations: [],
@@ -168,6 +168,9 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
   fireEvent.click(screen.getByRole("button", { name: /Instruments → Lead Melody/ }));
   const convertedRegion = await screen.findByRole("region", { name: "Converted tab" });
   expect(convertedRegion.textContent).toContain("C|--5-|");
+  expect((screen.getByLabelText("Isolated stem audio") as HTMLAudioElement).src).toContain(
+    "data:audio/mpeg;base64,//NExAAAAA==",
+  );
   expect(transcribeBodies(fetchMock)).toHaveLength(1);
 
   // Detected Maqam Solo / Improvise guide lights up scale markers on the oud neck.

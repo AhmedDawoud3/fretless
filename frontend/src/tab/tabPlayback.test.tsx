@@ -199,3 +199,28 @@ test("VisualTabStaff displays technique suffixes on both Oud and Guitar tracks",
   expect(within(staff).getByText("1h")).toBeDefined();
   expect(within(staff).getByText("5/")).toBeDefined();
 });
+
+test("clicking a note then Play starts playback from that note instead of the beginning", async () => {
+  const output = await converted();
+  fireEvent.click(cellOf(output, "0:4"));
+  fireEvent.click(screen.getByRole("button", { name: "Play" }));
+
+  const [events] = timed.mock.calls[0] ?? [];
+  expect(events).toEqual([{ at: 0, steps: [86, 106] }]);
+
+  reach(0);
+  expect(highlighted(output)).toEqual(["5", "0"]);
+  expect(activeMarkers()).toHaveLength(2);
+  expect(screen.getByText(/Event 2\/2/)).toBeDefined();
+});
+
+test("clicking Stop while Loop is on does not immediately restart playback", async () => {
+  await converted();
+  fireEvent.click(screen.getByRole("button", { name: "Loop" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play" }));
+  expect(timed).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+  await act(async () => finish());
+  expect(timed).toHaveBeenCalledTimes(1);
+});

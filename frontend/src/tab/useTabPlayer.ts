@@ -27,6 +27,40 @@ function playTrack(
     : playTimed(piece.events, piece.end, onEvent);
 }
 
+function playSlice(
+  events: readonly PlaybackEvent[],
+  from: number,
+  speed: number,
+  onEvent: (index: number) => void,
+  instrument: Instrument,
+) {
+  const slice = events.slice(from);
+  return playTrack(slice, speed, (offset) => onEvent(from + offset), instrument);
+}
+
+function loopableRun(
+  run: ReturnType<typeof playTrack>,
+  loopRef: { current: boolean },
+  onRepeat: () => void,
+) {
+  let cancelled = false;
+  if (loopRef.current) {
+    void run.done.then(() => {
+      if (!cancelled && loopRef.current) onRepeat();
+    });
+  }
+  return {
+    done: run.done,
+    stop: () => {
+      cancelled = true;
+      run.stop();
+    },
+  };
+}
+
+const clampStart = (from: number, length: number) =>
+  length === 0 ? 0 : Math.max(0, Math.min(from, length - 1));
+
 const prevIndex = (activeIndex: number) => Math.max(0, activeIndex <= 0 ? 0 : activeIndex - 1);
 const nextIndex = (activeIndex: number, length: number) => Math.min(length - 1, activeIndex + 1);
 const resolveActiveIndex = (playing: boolean, index: number | null, picked: number | null) =>
@@ -52,14 +86,17 @@ export function useTabPlayer(
   const loopRef = useRef(loop);
   loopRef.current = loop;
 
-  const start = useCallback(() => {
-    setPicked(null);
-    begin((onEvent) => {
-      const run = playTrack(events, speed, onEvent, instrument);
-      if (loopRef.current) void run.done.then(() => loopRef.current && start());
-      return run;
-    });
-  }, [begin, events, instrument, speed]);
+  const startFrom = useCallback(
+    (from: number) => {
+      const startIndex = clampStart(from, events.length);
+      setPicked(null);
+      begin((onEvent) => {
+        const run = playSlice(events, startIndex, speed, onEvent, instrument);
+        return loopableRun(run, loopRef, () => startFrom(0));
+      });
+    },
+    [begin, events, instrument, speed],
+  );
 
   const selectIndex = useCallback(
     (at: number) => {
@@ -94,7 +131,7 @@ export function useTabPlayer(
     stepPrev: () => selectIndex(prevIndex(activeIndex)),
     stepNext: () => selectIndex(nextIndex(activeIndex, events.length)),
     current,
-    toggle: playing ? stop : start,
+    toggle: playing ? stop : () => startFrom(picked ?? 0),
     currentKey: keyOfEvent(current),
   };
 }

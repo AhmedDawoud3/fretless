@@ -68,8 +68,8 @@ function AudioExplanation() {
     <section className="why" aria-label="How audio transcription works">
       <h2>How audio transcription works</h2>
       <p>
-        Harmonic/percussive stem separation splits Vocals, Instruments, and Bass away from drums,
-        Basic Pitch detects quarter-tone bends, and Oud fit scoring builds solo, chord, and bass
+        Hybrid Demucs stem separation splits Vocals, Instruments, and Bass away from drums, Basic
+        Pitch detects quarter-tone bends, and Oud fit scoring builds solo, chord, and bass
         arrangements aligned to the detected BPM and maqam.
       </p>
     </section>

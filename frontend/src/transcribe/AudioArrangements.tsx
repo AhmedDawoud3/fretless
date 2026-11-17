@@ -38,6 +38,12 @@ type AudioArrangementsProps = {
   onSelect: (id: string) => void;
 };
 
+function audioSrcFor(base64: string): string {
+  if (base64.startsWith("UklGR")) return `data:audio/wav;base64,${base64}`;
+  if (base64.startsWith("T2dn")) return `data:audio/ogg;base64,${base64}`;
+  return `data:audio/mpeg;base64,${base64}`;
+}
+
 /** Switch between stem-separated Oud arrangements (Vocals, Lead Melody, Chords, Bass) and preview stem audio. */
 export function AudioArrangements({
   arrangements,
@@ -71,8 +77,9 @@ export function AudioArrangements({
             Isolated stem audio: <strong>{activeArrangement.stem}</strong>
           </span>
           <audio
+            key={activeArrangement.id}
             controls
-            src={`data:audio/wav;base64,${stemAudio}`}
+            src={audioSrcFor(stemAudio)}
             aria-label="Isolated stem audio"
           >
             <track kind="captions" label="Isolated stem audio" />
