@@ -703,3 +703,16 @@ Quality & checks:
 - Quality & checks:
   - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
   - `just check` passed (`ruff format --check` 121 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 336 passed, `vitest run` 80 test files / 504 passed).
+
+## 2026-11-17: support legacy Sibelius/Finale music fonts and multi-track PDF sheet scores
+
+- Why: Sibelius `OpusStd` piano scores such as `EssaJai-Full Score.pdf` failed sheet-music extraction (falling back to stray chord letters and picking the 84pt `{` grand-staff brace as the title) because `sheet_import.py` only recognized SMuFL/GuitarPro codepoints and had no multi-staff system grouping or PDF track selector.
+- Backend & API (`src/fretless/tab/`, `src/fretless/api/`, `frontend/src/api/schema.d.ts`):
+  - `sheet_import.py`: added legacy notation-font canonicalization (`_LEGACY_REMAP`: `&` treble clef, `?` bass clef, `œ`/`˙`/`w` noteheads, `#`/`b`/`n` accidentals) gated by `_is_notation_font` (ignoring `OpusChordsStd`, `OpusTextStd`, `OpusSpecialStd`, and regular text fonts), fixed key-signature vs inline-accidental separation (`_is_key_sig_acc`), and extracted `extract_nonmusic_line` & `render_pitch_groups`.
+  - `pdf_geometry.py` & `sheet_tracks.py`: added `group_systems` joining staves linked by spanning vertical barlines/left brace bars, plus `extract_multitrack_sheet` inferring left-margin instrument/hand names (`Piano · Right hand`, `Piano · Left hand`, `Combined (Full score)`) and extracting per-track or combined aligned systems.
+  - `pdf_import.py`, `tab_schemas.py`, `tab_routes.py`, `schema.d.ts`: ignored music-font brace/time-signature lines in `_line_candidate` (extracting real Arabic title `'اسّا جاي'`), added `track` to `ImportPdfIn` and `import_pdf_bytes`, and regenerated OpenAPI types.
+- Frontend (`frontend/src/tab/`):
+  - `importLibrary.ts`, `TabImportBar.tsx`, `TabImportBar.test.tsx`: added track-aware `pdfLibraryKey`, `findPdfInLibrary`, `savePdfToLibrary`, session PDF caching (`cacheSessionPdf`/`getSessionPdf`), and unified multi-track switching for uploaded PDFs alongside Songsterr URLs.
+- Quality & checks:
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 122 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 337 passed including `EssaJai-Full Score.pdf` and multi-track grand-staff tests, `vitest run` 80 test files / 505 passed).
