@@ -161,15 +161,45 @@
 
 .maqam-detect-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
   margin-bottom: 10px;
   padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+.maqam-detect-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.maqam-solo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.maqam-solo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.maqam-solo-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .maqam-detect-info {
@@ -231,12 +261,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 12px;
+  max-height: 360px;
+  margin-top: 12px;
   padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  overflow-x: auto;
+  overflow: auto;
 }
 
 .vtab-system {

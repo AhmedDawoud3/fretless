@@ -17,6 +17,10 @@ export function applyArrangement(
     list[0] ??
     null;
   if (!active) return { activeId: null, activeArrangement: null, view: converted };
+  const detectedMaqam =
+    active.detected_maqam && active.detected_maqam.length > 0
+      ? active.detected_maqam
+      : converted.detected_maqam;
   return {
     activeId: active.id,
     activeArrangement: active,
@@ -27,6 +31,7 @@ export function applyArrangement(
       alterations: active.alterations,
       playback: active.playback,
       summary: active.summary,
+      detected_maqam: detectedMaqam,
     },
   };
 }

@@ -138,6 +138,17 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
         fit_reason: "Single-line melody · 85% direct Oud range fit",
         notes_count: 2,
         audio_base64: "//NExAAAAA==",
+        detected_maqam: [
+          {
+            maqam_id: "kurd",
+            maqam_name: "Kurd",
+            arabic_name: "كرد",
+            root: 8,
+            root_name: "E",
+            confidence: 97,
+            scale_pitches: [80, 82, 86, 90, 94, 96, 100, 104],
+          },
+        ],
         text: "C|--5-|\nF|----|\nA|----|\nD|----|\nG|----|\nC|----|",
         systems: CONVERTED.systems,
         alterations: [],
@@ -171,14 +182,19 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
   expect((screen.getByLabelText("Isolated stem audio") as HTMLAudioElement).src).toContain(
     "data:audio/mpeg;base64,//NExAAAAA==",
   );
+  expect(screen.getByRole("region", { name: "Detected maqam" }).textContent).toContain("Kurd");
   expect(transcribeBodies(fetchMock)).toHaveLength(1);
 
-  // Detected Maqam Solo / Improvise guide lights up scale markers on the oud neck.
+  // Detected Maqam Solo / Improvise guide lights up scale markers, shows note pills, and plays scale.
   const maqamBar = screen.getByRole("region", { name: "Detected maqam" });
-  expect(maqamBar.textContent).toContain("Rast");
+  expect(maqamBar.textContent).toContain("Kurd");
   const soloBtn = screen.getByRole("button", { name: "Solo / Improvise guide" });
   fireEvent.click(soloBtn);
   expect(soloBtn.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("region", { name: "Solo scale guide" })).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Hear scale" }));
+  const audioMod = await import("../audio");
+  expect(audioMod.playSequence).toHaveBeenCalled();
   expect(
     screen.getByRole("img", { name: /oud/i }).querySelectorAll(".marker").length,
   ).toBeGreaterThan(0);
@@ -191,4 +207,12 @@ test("multi-stem arrangements switch instantly, preview stem audio, toggle Maqam
   fireEvent.click(screen.getByRole("button", { name: "Load tamino.mp3" }));
   await screen.findByText(/Loaded from library: tamino.mp3/i);
   expect(transcribeBodies(fetchMock)).toHaveLength(1);
+
+  // Switching arrangement after library load updates Detected Maqam & carries into Maqam Explorer.
+  fireEvent.click(screen.getByRole("button", { name: /Instruments → Lead Melody/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Open in Maqam Explorer" }));
+  expect(JSON.parse(window.localStorage.getItem("fretless.settings") ?? "{}")).toMatchObject({
+    maqamId: "kurd",
+    root: 8,
+  });
 });

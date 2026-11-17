@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
-import type { Converted, ConvertedSystem, NeckOut, PlaybackEvent, TabMode } from "../api/client";
+import type {
+  Converted,
+  ConvertedSystem,
+  DetectedMaqam,
+  NeckOut,
+  PlaybackEvent,
+  TabMode,
+} from "../api/client";
 import type { PageProps } from "../app/useSharedSettings";
 import { type Frets, STRING_COUNT } from "../chords/shape";
+import { saveSettings } from "../explorer/settings";
 import { DEFAULT_TEMPO } from "../explorer/tempo";
 import { AlterationList } from "./AlterationList";
 import { CopyButton } from "./CopyButton";
@@ -111,6 +119,11 @@ function guitarTarget(appendNext: boolean, current: PlaybackEvent | null): numbe
   return appendNext ? null : (current?.column ?? null);
 }
 
+function openMaqamExplorer(active: DetectedMaqam | null, setPage: PageProps["shared"]["setPage"]) {
+  if (active) saveSettings({ maqamId: active.maqam_id, root: active.root });
+  setPage("maqam");
+}
+
 function renderedText(
   converted: Converted,
   editedSystems: readonly ConvertedSystem[] | null,
@@ -192,12 +205,14 @@ export function TabResult({
       <p className="tab-summary">{summaryLine(converted.summary)}</p>
       <MaqamDetectBar
         hidden={isGuitar}
+        neck={neck}
+        system={shared.system}
         candidates={converted.detected_maqam}
         selectedIdx={solo.selectedIdx}
         soloMode={solo.soloMode}
         onSelect={solo.setSelectedIdx}
         onToggleSolo={() => solo.setSoloMode((v) => !v)}
-        onExplore={() => shared.setPage("maqam")}
+        onExplore={() => openMaqamExplorer(solo.active, shared.setPage)}
       />
       <TabPlayer
         neck={neck}

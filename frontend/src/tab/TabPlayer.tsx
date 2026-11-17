@@ -282,13 +282,6 @@ export function TabPlayer(props: TabPlayerProps) {
         Text tabs carry no real rhythm: notes are spaced by how far apart they are written, so the
         speed is only approximate.
       </p>
-      <VisualTabStaff
-        systems={view.staffSystems}
-        mode={props.mode}
-        fretDivisor={view.fretDivisor}
-        activeKey={props.activeKey}
-        onPick={props.onPick}
-      />
       <div className="neck-scroll">
         <NeckStage
           guitar={view.activeGuitar}
@@ -306,6 +299,13 @@ export function TabPlayer(props: TabPlayerProps) {
           }
         />
       </div>
+      <VisualTabStaff
+        systems={view.staffSystems}
+        mode={props.mode}
+        fretDivisor={view.fretDivisor}
+        activeKey={props.activeKey}
+        onPick={props.onPick}
+      />
     </section>
   );
 }
