@@ -235,3 +235,62 @@ test("multi-track Songsterr import reveals a Track selector and switches tracks 
     { url: taminoUrl, kind: "auto", track: 0 },
   ]);
 });
+
+test("multi-track PDF import reveals Track selector, switches tracks, and caches each track", async () => {
+  const fetchMock = await openTab();
+  const base = fetchMock.getMockImplementation();
+  const tracks = [
+    { index: 0, name: "Piano · Right hand", instrument: "Treble", is_vocal: false },
+    { index: 1, name: "Piano · Left hand", instrument: "Bass", is_vocal: false },
+    { index: 2, name: "Combined (Full score)", instrument: "All tracks", is_vocal: false },
+  ];
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/import-pdf") {
+      const req = JSON.parse(String(init?.body ?? "{}")) as { track?: number };
+      const chosen = req.track ?? 0;
+      const label = tracks[chosen]?.name ?? "Piano · Right hand";
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          title: `Essa Jai — ${label}`,
+          source: "pdf",
+          kind: "sheet",
+          text:
+            chosen === 1
+              ? "e|---|\nB|---|\nG|---|\nD|---|\nA|-3-|\nE|---|"
+              : "e|-0-|\nB|---|\nG|---|\nD|---|\nA|---|\nE|---|",
+          strings: null,
+          capo: 0,
+          tempo: null,
+          track_index: chosen,
+          tracks,
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  const file = new File([Uint8Array.from([37, 80, 68, 70])], "EssaJai-Full Score.pdf", {
+    type: "application/pdf",
+  });
+  fireEvent.change(screen.getByLabelText("Import PDF"), { target: { files: [file] } });
+
+  await screen.findByText(/Imported Essa Jai — Piano · Right hand/i);
+  const trackSelect = screen.getByLabelText("Track") as HTMLSelectElement;
+  expect(trackSelect.value).toBe("0");
+
+  fireEvent.change(trackSelect, { target: { value: "1" } });
+  await screen.findByText(/Imported Essa Jai — Piano · Left hand/i);
+
+  // Switching back to track 0 hits cached library entry with no extra backend request.
+  fireEvent.change(screen.getByLabelText("Track"), { target: { value: "0" } });
+  await screen.findByText(/Loaded from library: Essa Jai — Piano · Right hand/i);
+
+  const pdfCalls = fetchMock.mock.calls
+    .filter(([u]) => u === "/api/tab/import-pdf")
+    .map(([, init]) => JSON.parse(String(init?.body)));
+  expect(pdfCalls).toHaveLength(2);
+  expect(pdfCalls[0]).toMatchObject({ filename: "EssaJai-Full Score.pdf", kind: "auto" });
+  expect(pdfCalls[1]).toMatchObject({ filename: "EssaJai-Full Score.pdf", kind: "auto", track: 1 });
+});
