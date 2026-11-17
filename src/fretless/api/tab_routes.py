@@ -71,7 +71,9 @@ def import_url_tab(body: ImportUrlIn) -> ImportTabOut:
 def import_pdf_tab(body: ImportPdfIn) -> ImportTabOut:
     try:
         raw = base64.b64decode(body.pdf_base64, validate=True)
-        imported = import_pdf_bytes(raw, filename=body.filename, preferred_kind=body.kind)
+        imported = import_pdf_bytes(
+            raw, filename=body.filename, preferred_kind=body.kind, track=body.track
+        )
     except (binascii.Error, ValueError) as err:
         raise HTTPException(status_code=422, detail=str(err)) from err
     return _import_out(imported)

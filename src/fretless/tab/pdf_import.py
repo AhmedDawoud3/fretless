@@ -18,7 +18,8 @@ from fretless.tab.pdf_geometry import (
     merge_y_buckets,
     render_quantized_columns,
 )
-from fretless.tab.sheet_import import extract_sheet_systems
+from fretless.tab.sheet_import import extract_nonmusic_line
+from fretless.tab.sheet_tracks import extract_multitrack_sheet
 from fretless.tab.tuning_parse import extract_tempo_from_text, extract_tuning_from_text
 
 _PUA_MAP = {"\uf062": "b", "\uf023": "#", "♭": "b", "♯": "#"}
@@ -204,17 +205,14 @@ def _page_words(page: pymupdf.Page) -> list[_Word]:
     return [_Word(w[0], w[1], w[2], w[3], w[4]) for w in page.get_text("words")]
 
 
-def _line_candidate(line: dict[str, object]) -> tuple[float, float, str] | None:
-    spans = line.get("spans")
-    if not isinstance(spans, list):
+def _line_candidate(line: dict[object, object]) -> tuple[float, float, str] | None:
+    parsed = extract_nonmusic_line(line)
+    if parsed is None:
         return None
-    line_text = "".join(str(s.get("text", "")) for s in spans if isinstance(s, dict)).strip()
-    if not line_text or line_text.lower().startswith(("tuning:", "(based")):
+    line_text, max_span, bbox = parsed
+    if line_text.lower().startswith(("tuning:", "(based")) or bbox[1] >= 220.0:
         return None
-    max_span = max((float(s.get("size", 0.0)) for s in spans if isinstance(s, dict)), default=0.0)
-    bbox = line.get("bbox")
-    y0 = float(bbox[1]) if isinstance(bbox, (list, tuple)) and len(bbox) > 1 else 1e9
-    return (-max_span, y0, line_text) if y0 < 220.0 else None
+    return (-max_span, bbox[1], line_text)
 
 
 def _detect_title(doc: pymupdf.Document, filename: str) -> str:
@@ -327,8 +325,11 @@ def _try_sheet_pdf(
     strings: tuple[int, ...] | None,
     labels: tuple[str, ...],
     tempo: int | None,
+    track: int | None = None,
 ) -> ImportedTab | None:
-    sheet = extract_sheet_systems(doc, strings or STANDARD_STRINGS, labels)
+    sheet, tracks, chosen = extract_multitrack_sheet(
+        doc, strings or STANDARD_STRINGS, labels, requested_track=track
+    )
     if sheet:
         return ImportedTab(
             title=title,
@@ -337,6 +338,8 @@ def _try_sheet_pdf(
             text="\n\n".join(sheet),
             strings=strings,
             tempo=tempo,
+            track_index=chosen if tracks else None,
+            tracks=tracks,
         )
     return None
 
@@ -352,7 +355,12 @@ def _try_chords_pdf(
     return None
 
 
-def import_pdf_bytes(data: bytes, filename: str = "", preferred_kind: str = "auto") -> ImportedTab:
+def import_pdf_bytes(
+    data: bytes,
+    filename: str = "",
+    preferred_kind: str = "auto",
+    track: int | None = None,
+) -> ImportedTab:
     """Import a PDF byte buffer as a 6-line ASCII tab (`tab`, `sheet`, or expanded `chords`)."""
     try:
         doc = pymupdf.Document(stream=data, filetype="pdf")
@@ -361,10 +369,15 @@ def import_pdf_bytes(data: bytes, filename: str = "", preferred_kind: str = "aut
     with doc:
         if len(doc) == 0:
             raise ValueError("PDF has no pages.")
-        return _parse_open_pdf(doc, filename, preferred_kind)
+        return _parse_open_pdf(doc, filename, preferred_kind, track)
 
 
-def _parse_open_pdf(doc: pymupdf.Document, filename: str, preferred_kind: str) -> ImportedTab:
+def _parse_open_pdf(
+    doc: pymupdf.Document,
+    filename: str,
+    preferred_kind: str,
+    track: int | None = None,
+) -> ImportedTab:
     page_texts = [page.get_text("text") for page in doc[:_MAX_PDF_PAGES]]
     strings = extract_tuning_from_text(page_texts[0])
     tempo = extract_tempo_from_text(page_texts[0])
@@ -372,14 +385,14 @@ def _parse_open_pdf(doc: pymupdf.Document, filename: str, preferred_kind: str) -
     title = _detect_title(doc, filename)
 
     attempts = {
-        "sheet": [lambda: _try_sheet_pdf(doc, title, strings, labels, tempo)],
+        "sheet": [lambda: _try_sheet_pdf(doc, title, strings, labels, tempo, track)],
         "chords": [lambda: _try_chords_pdf(doc, title, strings, tempo)],
         "tab": [lambda: _try_tab_pdf(doc, page_texts, title, strings, labels, tempo)],
     }.get(
         preferred_kind,
         [
             lambda: _try_tab_pdf(doc, page_texts, title, strings, labels, tempo),
-            lambda: _try_sheet_pdf(doc, title, strings, labels, tempo),
+            lambda: _try_sheet_pdf(doc, title, strings, labels, tempo, track),
             lambda: _try_chords_pdf(doc, title, strings, tempo),
         ],
     )

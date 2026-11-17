@@ -21,6 +21,7 @@ class ImportPdfIn(BaseModel):
     pdf_base64: Annotated[str, Field(min_length=1, max_length=20_000_000)]
     filename: Annotated[str, Field(max_length=260)] = ""
     kind: ImportKind = "auto"
+    track: Annotated[int | None, Field(ge=0)] = None
 
 
 class ImportedTrackOut(BaseModel):

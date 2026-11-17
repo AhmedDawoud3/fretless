@@ -521,6 +521,8 @@ export interface components {
              * @enum {string}
              */
             kind: "auto" | "tab" | "chords" | "sheet";
+            /** Track */
+            track?: number | null;
         };
         /** ImportTabOut */
         ImportTabOut: {

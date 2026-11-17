@@ -9,7 +9,7 @@ from fretless.tab.model import TabSystem
 from fretless.tab.parse import parse_tab
 from fretless.tab.pdf_geometry import Staff
 from fretless.tab.pdf_import import import_pdf_bytes
-from fretless.tab.sheet_import import _Glyph, _staff_pitches
+from fretless.tab.sheet_import import _canonical_code, _Glyph, _staff_pitches, is_any_music_font
 
 STANDARD = GUITAR_TUNINGS["standard"].strings
 
@@ -123,3 +123,72 @@ def test_import_sheet_music_on_real_pdfs_when_present() -> None:
     aghdan_sheet = import_pdf_bytes(aghdan_bytes, filename="aghdan.pdf", preferred_kind="sheet")
     assert aghdan_sheet.kind == "sheet"
     assert len(_column_pitches(aghdan_sheet.text)) >= 60
+
+    essa_path = Path(r"C:\Users\Ahmed Dawoud\Downloads\Documents\EssaJai-Full Score.pdf")
+    if essa_path.exists():
+        essa_raw = essa_path.read_bytes()
+        rh = import_pdf_bytes(essa_raw, filename="EssaJai-Full Score.pdf", preferred_kind="auto")
+        assert rh.kind == "sheet"
+        assert rh.title == "اسّا جاي"
+        assert rh.track_index == 0
+        assert len(rh.tracks) == 3
+        assert rh.tracks[0].name == "Piano · Right hand"
+        assert rh.tracks[1].name == "Piano · Left hand"
+        assert rh.tracks[2].name == "Combined (Full score)"
+        assert len(_column_pitches(rh.text)) >= 120
+
+        lh = import_pdf_bytes(essa_raw, filename="EssaJai-Full Score.pdf", track=1)
+        assert lh.track_index == 1
+        assert len(_column_pitches(lh.text)) >= 40
+
+        both = import_pdf_bytes(essa_raw, filename="EssaJai-Full Score.pdf", track=2)
+        assert both.track_index == 2
+        assert len(_column_pitches(both.text)) >= 120
+
+
+def test_multitrack_sheet_pdf_groups_connected_staves_into_tracks_and_combined() -> None:
+    doc = pymupdf.Document()
+    page = doc.new_page()
+    page.insert_text((200, 40), "Two-Track Piano", fontsize=18)
+    page.insert_text((24, 180), "Piano", fontsize=11)
+    y_top, y_bot, dy = 120.0, 200.0, 8.0
+    _draw_five_line_staff(page, y0=y_top, dy=dy)
+    _draw_five_line_staff(page, y0=y_bot, dy=dy)
+    # Left system barline spanning both staves into one grand-staff system.
+    shape = page.new_shape()
+    shape.draw_line(pymupdf.Point(50.0, y_top), pymupdf.Point(50.0, y_bot + 4 * dy))
+    shape.finish(width=0.8)
+    shape.commit()
+    # Treble notes at x=120, x=200; bass chord note at x=120 (stacked vertically) + x=260.
+    _draw_vector_notehead(page, 120.0, y_top + 4 * dy)
+    _draw_vector_notehead(page, 200.0, y_top + 3 * dy)
+    _draw_vector_notehead(page, 120.0, y_bot + 3 * dy)
+    _draw_vector_notehead(page, 260.0, y_bot + 2 * dy)
+
+    raw = doc.tobytes()
+    first = import_pdf_bytes(raw, filename="two-track.pdf")
+    assert first.kind == "sheet"
+    assert first.title == "Two-Track Piano"
+    assert first.track_index == 0
+    assert [t.name for t in first.tracks] == [
+        "Piano · Right hand (1)",
+        "Piano · Right hand (2)",
+        "Combined (Full score)",
+    ]
+    assert _column_pitches(first.text) == [[104], [110]]
+
+    second = import_pdf_bytes(raw, filename="two-track.pdf", track=1)
+    assert second.track_index == 1
+    assert len(_column_pitches(second.text)) == 2
+
+    combined = import_pdf_bytes(raw, filename="two-track.pdf", track=2)
+    assert combined.track_index == 2
+    assert len(_column_pitches(combined.text)) == 3
+
+    # Legacy OpusStd glyph normalization skips regular text/chord fonts cleanly.
+    assert is_any_music_font("OpusStd")
+    assert _canonical_code(ord("&"), allow_legacy=True) == 0xE050
+    assert _canonical_code(ord("?"), allow_legacy=True) == 0xE062
+    assert _canonical_code(ord("œ"), allow_legacy=True) == 0xE0A4
+    assert _canonical_code(ord("#"), allow_legacy=True) == 0xE262
+    assert _canonical_code(ord("#"), allow_legacy=False) is None

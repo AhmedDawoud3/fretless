@@ -13,6 +13,22 @@ from fretless.tab.pdf_geometry import (
     render_quantized_columns,
 )
 
+_MUSIC_FONT_KEYS = (
+    "opus",
+    "bravura",
+    "leland",
+    "maestro",
+    "petrucci",
+    "helsinki",
+    "inkpen",
+    "feta",
+    "sonata",
+    "engraver",
+    "jazz",
+    "edwin",
+)
+_NON_NOTATION_SUFFIXES = ("chord", "text", "special")
+
 _SMUFL_CLEFS: dict[int, int] = {
     0xE050: 30,  # Treble G clef: bottom line E4
     0xF026: 30,
@@ -34,6 +50,66 @@ _ACCIDENTAL_STEPS: dict[int, int] = {
     0xE282: 1,
     0xE482: 1,
 }
+_LEGACY_REMAP: dict[int, int] = {
+    0x26: 0xE050,  # '&' Treble clef
+    0x3F: 0xE062,  # '?' Bass clef
+    0x153: 0xE0A4,  # 'œ' filled notehead
+    0x2D9: 0xE0A3,  # '˙' half notehead
+    0x77: 0xE0A2,  # 'w' whole notehead
+    0x57: 0xE0A2,  # 'W' whole notehead
+    0x23: 0xE262,  # '#' sharp
+    0x62: 0xE260,  # 'b' flat
+    0x6E: 0xE261,  # 'n' natural
+}
+
+
+def is_any_music_font(font: str) -> bool:
+    """Return True if `font` is a music symbol, notation, brace, or chord-symbol font."""
+    low = font.lower()
+    return any(key in low for key in _MUSIC_FONT_KEYS)
+
+
+def _line_spans(raw: object) -> list[dict[object, object]]:
+    if not isinstance(raw, list):
+        return []
+    return [s for s in raw if isinstance(s, dict)]
+
+
+def _span_size(raw: object) -> float:
+    return float(raw) if isinstance(raw, int | float) else 0.0
+
+
+def extract_nonmusic_line(
+    line: dict[object, object],
+) -> tuple[str, float, tuple[float, float, float, float]] | None:
+    """Return `(text, max_font_size, bbox)` for a PDF dict line outside music fonts."""
+    spans = _line_spans(line.get("spans"))
+    raw_bbox = line.get("bbox")
+    if not spans or not isinstance(raw_bbox, (list, tuple)) or len(raw_bbox) < 4:
+        return None
+    if all(is_any_music_font(str(s.get("font", ""))) for s in spans):
+        return None
+    text = "".join(str(s.get("text", "")) for s in spans).strip()
+    if not any(ch.isalnum() for ch in text):
+        return None
+    size = max(_span_size(s.get("size", 0.0)) for s in spans)
+    return (
+        text,
+        size,
+        (float(raw_bbox[0]), float(raw_bbox[1]), float(raw_bbox[2]), float(raw_bbox[3])),
+    )
+
+
+def _is_notation_font(font: str) -> bool:
+    low = font.lower()
+    return is_any_music_font(low) and not any(part in low for part in _NON_NOTATION_SUFFIXES)
+
+
+def _canonical_code(raw_code: int, allow_legacy: bool) -> int | None:
+    code = _LEGACY_REMAP.get(raw_code, raw_code) if allow_legacy else raw_code
+    if code in _HEAD_CODES or code in _ACCIDENTAL_STEPS or code in _SMUFL_CLEFS:
+        return code
+    return None
 
 
 @dataclass(frozen=True)
@@ -51,9 +127,9 @@ def _page_glyphs(page: pymupdf.Page) -> list[_Glyph]:
             continue
         for line in block.get("lines", []):
             for span in line.get("spans", []):
+                allow_legacy = _is_notation_font(str(span.get("font", "")))
                 for char in span.get("chars", []):
-                    code = ord(char["c"])
-                    if code in _HEAD_CODES or code in _ACCIDENTAL_STEPS or code in _SMUFL_CLEFS:
+                    if (code := _canonical_code(ord(char["c"]), allow_legacy)) is not None:
                         ox, oy = char["origin"]
                         glyphs.append(_Glyph(float(ox), float(oy), code))
     return glyphs
@@ -158,15 +234,31 @@ def _accidental_for_note(
     return best[2]
 
 
+def _is_key_sig_acc(
+    acc: _Glyph,
+    heads: list[_Glyph],
+    first_note_x: float,
+    y_bottom: float,
+    step_y: float,
+) -> bool:
+    if acc.x >= first_note_x - 14.0:
+        return False
+    step = round((y_bottom - acc.y) / step_y)
+    return not any(
+        0.0 < h.x - acc.x <= 15.0 and round((y_bottom - h.y) / step_y) == step for h in heads
+    )
+
+
 def _extract_key_signature(
     accs: list[_Glyph],
-    first_note_x: float,
+    heads: list[_Glyph],
     base_diatonic: int,
     y_bottom: float,
     step_y: float,
     prev_key: dict[Letter, int],
 ) -> tuple[dict[Letter, int], list[tuple[_Glyph, int]]]:
-    key_accs = [a for a in accs if a.x <= first_note_x - 16.0]
+    first_note_x = min(h.x for h in heads)
+    key_accs = [a for a in accs if _is_key_sig_acc(a, heads, first_note_x, y_bottom, step_y)]
     key_alter: dict[Letter, int] = (
         {
             LETTERS[(base_diatonic + round((y_bottom - a.y) / step_y)) % 7]: _ACCIDENTAL_STEPS[
@@ -177,8 +269,9 @@ def _extract_key_signature(
         if key_accs
         else dict(prev_key)
     )
+    key_objs = {id(a) for a in key_accs}
     inline_accs = [
-        (acc, round((y_bottom - acc.y) / step_y)) for acc in accs if acc.x > first_note_x - 16.0
+        (acc, round((y_bottom - acc.y) / step_y)) for acc in accs if id(acc) not in key_objs
     ]
     return key_alter, inline_accs
 
@@ -233,7 +326,7 @@ def _staff_pitches(
     base_diatonic, y_bottom = _clef_diatonic(local), staff.ys[-1]
     key_alter, inline_accs = _extract_key_signature(
         [g for g in local if g.code in _ACCIDENTAL_STEPS],
-        min(h.x for h in heads),
+        heads,
         base_diatonic,
         y_bottom,
         step_y,
@@ -243,6 +336,21 @@ def _staff_pitches(
         heads, staff.bars, base_diatonic, y_bottom, step_y, key_alter, inline_accs
     )
     return pitches, key_alter
+
+
+def render_pitch_groups(
+    staff: Staff,
+    pitches: list[tuple[float, int]],
+    strings: tuple[int, ...],
+    labels: tuple[str, ...],
+) -> str | None:
+    """Cluster `(x, pitch)` items into fretboard columns and render one tab system."""
+    cols = [
+        (xc, placed)
+        for xc, group in _cluster_x_columns(pitches)
+        if (placed := _place_pitch_column(group, strings))
+    ]
+    return render_quantized_columns(staff, cols, labels) if cols else None
 
 
 def extract_sheet_systems(
@@ -259,13 +367,6 @@ def extract_sheet_systems(
         glyphs = _page_glyphs(page)
         for staff in staves:
             pitches, active_key = _staff_pitches(page, staff, glyphs, active_key)
-            if not pitches:
-                continue
-            cols = [
-                (xc, placed)
-                for xc, group in _cluster_x_columns(pitches)
-                if (placed := _place_pitch_column(group, strings))
-            ]
-            if cols:
-                rendered.append(render_quantized_columns(staff, cols, labels))
+            if pitches and (text := render_pitch_groups(staff, pitches, strings, labels)):
+                rendered.append(text)
     return rendered

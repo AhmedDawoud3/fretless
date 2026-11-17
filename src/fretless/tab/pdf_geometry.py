@@ -129,6 +129,27 @@ def group_staves(
     return [staff for run in runs if (staff := _staff_from_run(run, vert, line_count)) is not None]
 
 
+def _staves_connected(top: Staff, bot: Staff, vert: list[tuple[float, float, float]]) -> bool:
+    left = min(top.x0, bot.x0) - 10.0
+    right = max(top.x1, bot.x1) + 10.0
+    y_top, y_bot = top.ys[0] + 2.5, bot.ys[-1] - 2.5
+    return any(left <= bx <= right and by0 <= y_top and by1 >= y_bot for bx, by0, by1 in vert)
+
+
+def group_systems(staves: list[Staff], vert: list[tuple[float, float, float]]) -> list[list[Staff]]:
+    """Group stacked `staves` that share vertical system barlines into parallel systems."""
+    if not staves:
+        return []
+    ordered = sorted(staves, key=lambda s: s.ys[0])
+    systems: list[list[Staff]] = [[ordered[0]]]
+    for staff in ordered[1:]:
+        if _staves_connected(systems[-1][-1], staff, vert):
+            systems[-1].append(staff)
+        else:
+            systems.append([staff])
+    return systems
+
+
 def _place_bars(
     bars: tuple[float, ...], xs: list[float], col_positions: list[int]
 ) -> tuple[int, ...]:
