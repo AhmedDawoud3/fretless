@@ -716,3 +716,19 @@ Quality & checks:
 - Quality & checks:
   - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
   - `just check` passed (`ruff format --check` 122 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 337 passed including `EssaJai-Full Score.pdf` and multi-track grand-staff tests, `vitest run` 80 test files / 505 passed).
+
+## 2026-11-17: Oud octave & semitone transpose for tab conversion and transcribed audio
+
+- Motivation: High-register pieces and vocal/instrumental transcriptions often sit uncomfortably high on the Oud even after range-fitting; added direct `-1 oct` / `±1` semitone / `+1 oct` / `Reset` transpose controls (`-24..+24` st) in the Oud toolbar for both converted tabs and audio-transcribed tracks.
+- Backend (`src/fretless/tab/` & `src/fretless/api/`):
+  - `alterations.py`: generalized `_shift_amount` with `_unit_label` to report semitones and quarter-tones cleanly alongside octaves.
+  - `convert.py`: added `transpose_steps` on `_fit`, `place_events`, `_system`, and `convert` (bypassing `best_shift` when a manual transpose is active while keeping per-note `fold` and shifted course matching in `_map_column_techniques`), plus `PlacedInputColumn`, `PlacedInputSystem`, and `transpose_placed_systems`.
+  - `tab_schemas.py`, `tab_routes.py`: added optional `transpose_semitones` (`-24..24`) on `ConvertIn`, added `TransposeIn`, `_to_input_systems`, and `POST /api/tab/transpose`, and regenerated `frontend/openapi.json` and `frontend/src/api/schema.d.ts` via `just gen-api`.
+- Frontend (`frontend/src/`):
+  - `api/client.ts`: exported `TransposeBody` and `transposeTab`.
+  - `tab/TabPlayer.tsx`, `tab/tab.css`, `tab/TabResult.tsx`, `tab/TabView.tsx`, `tab/useConversion.ts`: added `TransposeControls` inside `TrackToolbar` when viewing the Oud track, passing `transpose_semitones` to `/api/tab/convert` on change and resetting to `0` on new imports.
+  - `transcribe/AudioPage.tsx`: split `AudioDoneOutcome` with memoized `applyArrangement` and `useTransposedView` (`fetchTransposed` / `matchesTransposed`) so transcribed arrangements transpose via `/api/tab/transpose` without re-running audio stem separation.
+- Tests & quality:
+  - Added backend and frontend transpose tests in `tests/tab/test_tab_alterations.py`, `tests/tab/test_tab_convert.py`, `tests/test_api_tab.py`, `frontend/src/tab/tabPage.test.tsx`, and `frontend/src/transcribe/audioPage.test.tsx`.
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 122 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 343 passed, `vitest run` 80 test files / 507 passed).
