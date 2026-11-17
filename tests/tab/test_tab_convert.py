@@ -1,7 +1,12 @@
 from fretless.fingering import is_fingerable
 from fretless.guitar import GUITAR_TUNINGS
 from fretless.neck import Location
-from fretless.tab.convert import convert
+from fretless.tab.convert import (
+    PlacedInputColumn,
+    PlacedInputSystem,
+    convert,
+    transpose_placed_systems,
+)
 from fretless.tab.convert_model import Converted, PlacedNote, PlacedSystem
 from fretless.tab.model import TextBlock
 from fretless.tab.parse import parse_tab
@@ -207,3 +212,47 @@ def test_a_chord_keeps_the_same_notes_whatever_its_neighbours_are() -> None:
     assert max(n.pitch for n in last) == 104  # E4
     assert min(n.pitch for n in last) == 56  # E2
     assert {8, 16} <= {n.pitch % 24 for n in last}  # E and G-sharp
+
+
+def test_explicit_transpose_drops_octave_without_best_shift_undoing_it() -> None:
+    src = parse_tab(tab(e="-0--3-", E="-0----"))  # E4(104)+E2(56), then G4(110)
+    baseline = convert(src, STANDARD, 0, CC)
+    assert baseline.transposed_steps == 0
+
+    dropped = convert(src, STANDARD, 0, CC, transpose_steps=-24)
+    assert dropped.transposed_steps == -24
+    # E4 drops to E3 (80); E2 (56) folds in CC (low=48) instead of dipping below range; G4 -> G3.
+    assert [n.pitch for n in placed(dropped)] == [80, 56, 86]
+
+
+def test_explicit_semitone_transpose_preserves_techniques() -> None:
+    src = parse_tab(tab(e="-0h2--5/7-"))
+    dropped = convert(src, STANDARD, 0, CC, transpose_steps=-10)
+    assert dropped.transposed_steps == -10
+    assert [n.pitch for n in placed(dropped)] == [94, 98, 104, 108]
+    (system,) = dropped.blocks
+    assert isinstance(system, PlacedSystem)
+    assert [sym for _, _, sym in system.techniques] == ["h", "/"]
+
+
+def test_transpose_placed_systems_shifts_pitches_preserves_bars_and_techniques() -> None:
+    assert transpose_placed_systems((), CC, transpose_steps=-24) == Converted((), (), 0)
+    systems = (
+        PlacedInputSystem(
+            index=0,
+            width=12,
+            bars=(6,),
+            columns=(
+                PlacedInputColumn(1, (PlacedNote(1, 0, 96),)),  # C4 on course 1
+                PlacedInputColumn(3, (PlacedNote(1, 2, 98),)),
+            ),
+            techniques=((1, 1, "h"),),
+        ),
+    )
+    shifted = transpose_placed_systems(systems, CC, transpose_steps=-24)
+    assert shifted.transposed_steps == -24
+    (placed_sys,) = shifted.blocks
+    assert isinstance(placed_sys, PlacedSystem)
+    assert placed_sys.bars == (6,)
+    assert [n.pitch for c in placed_sys.columns for n in c.notes] == [72, 74]  # C3, D3
+    assert [sym for _, col, sym in placed_sys.techniques if col == 1] == ["h"]

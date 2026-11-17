@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tab/transpose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transpose Tab */
+        post: operations["transpose_tab_api_tab_transpose_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tab/import-url": {
         parameters: {
             query?: never;
@@ -357,6 +374,8 @@ export interface components {
              * @enum {string}
              */
             mode: "frets" | "names" | "both";
+            /** Transpose Semitones */
+            transpose_semitones?: number | null;
         };
         /** ConvertOut */
         ConvertOut: {
@@ -856,6 +875,26 @@ export interface components {
              */
             frame_threshold: number;
         };
+        /** TransposeIn */
+        TransposeIn: {
+            /** Systems */
+            systems: components["schemas"]["PlacedSystemOut"][];
+            /** Oud Tuning */
+            oud_tuning: string;
+            /**
+             * Mode
+             * @default frets
+             * @enum {string}
+             */
+            mode: "frets" | "names" | "both";
+            /**
+             * Transpose Semitones
+             * @default 0
+             */
+            transpose_semitones: number;
+            /** Tempo */
+            tempo?: number | null;
+        };
         /** TuningOut */
         TuningOut: {
             /** Id */
@@ -1138,6 +1177,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ConvertIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transpose_tab_api_tab_transpose_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransposeIn"];
             };
         };
         responses: {

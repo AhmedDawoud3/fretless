@@ -43,3 +43,10 @@ def test_chord_reports_moved_and_dropped_notes() -> None:
 def test_nothing_to_report_for_a_chord_placed_as_wanted() -> None:
     notes = tuple(PlacedNote(c, 0, p) for c, p in ((1, 100), (2, 90), (3, 80)))
     assert placed_chord(EVENT, (100, 90, 80), notes) == []
+
+
+def test_transposed_names_semitones_and_quarter_tones() -> None:
+    assert transposed(-4).message == "Whole piece moved down 2 semitones to fit the oud."
+    assert transposed(2).message == "Whole piece moved up 1 semitone to fit the oud."
+    assert transposed(-1).message == "Whole piece moved down 1 quarter-tone to fit the oud."
+    assert transposed(3).message == "Whole piece moved up 3 quarter-tones to fit the oud."

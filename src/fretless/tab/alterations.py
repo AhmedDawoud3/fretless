@@ -5,9 +5,17 @@ from fretless.tab.convert_model import Alteration, PlacedNote
 from fretless.tab.events import Event
 
 
-def _octaves(steps: int) -> str:
-    count = abs(steps) // STEPS_PER_OCTAVE
-    return "an octave" if count == 1 else f"{count} octaves"
+def _unit_label(count: int, singular: str, plural: str) -> str:
+    return singular if count == 1 else f"{count} {plural}"
+
+
+def _shift_amount(steps: int) -> str:
+    abs_steps = abs(steps)
+    if abs_steps % STEPS_PER_OCTAVE == 0:
+        return _unit_label(abs_steps // STEPS_PER_OCTAVE, "an octave", "octaves")
+    if abs_steps % 2 == 0:
+        return _unit_label(abs_steps // 2, "1 semitone", "semitones")
+    return _unit_label(abs_steps, "1 quarter-tone", "quarter-tones")
 
 
 def _direction(steps: int) -> str:
@@ -19,7 +27,7 @@ def transposed(steps: int) -> Alteration:
         "transposed",
         None,
         None,
-        f"Whole piece moved {_direction(steps)} {_octaves(steps)} to fit the oud.",
+        f"Whole piece moved {_direction(steps)} {_shift_amount(steps)} to fit the oud.",
     )
 
 
@@ -39,7 +47,7 @@ def fitted(event: Event, before: tuple[int, ...], after: tuple[int, ...]) -> lis
             "octave_shifted",
             event.system,
             event.column,
-            f"Note moved {_direction(b - a)} {_octaves(b - a)} to fit the oud.",
+            f"Note moved {_direction(b - a)} {_shift_amount(b - a)} to fit the oud.",
         )
         for a, b in zip(before, after, strict=True)
         if a != b

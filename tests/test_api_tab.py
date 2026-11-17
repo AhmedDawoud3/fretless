@@ -252,3 +252,82 @@ def test_import_url_endpoint_returns_imported_tab_and_422_on_error(
 
     bad = client.post("/api/tab/import-url", json={"url": "https://bad.example.com"})
     assert bad.status_code == 422
+
+
+def test_convert_endpoint_supports_transpose_semitones() -> None:
+    text = "e|-0h2--5-|\nB|--------|\nG|--------|\nD|--------|\nA|--------|\nE|--------|"
+    base = client.post(
+        "/api/tab/convert",
+        json={
+            "text": text,
+            "guitar": {"strings": STANDARD, "capo": 0},
+            "oud_tuning": "cc",
+        },
+    ).json()
+    transposed = client.post(
+        "/api/tab/convert",
+        json={
+            "text": text,
+            "guitar": {"strings": STANDARD, "capo": 0},
+            "oud_tuning": "cc",
+            "transpose_semitones": -12,
+        },
+    )
+    assert transposed.status_code == 200
+    body = transposed.json()
+    assert body["summary"]["transposed_steps"] == -24
+    base_pitches = [n["pitch"] for col in base["systems"][0]["columns"] for n in col["notes"]]
+    down_pitches = [n["pitch"] for col in body["systems"][0]["columns"] for n in col["notes"]]
+    assert down_pitches == [p - 24 for p in base_pitches]
+    assert list(body["systems"][0]["techniques"].values()) == ["h"]
+
+    bad = client.post(
+        "/api/tab/convert",
+        json={
+            "text": text,
+            "guitar": {"strings": STANDARD, "capo": 0},
+            "oud_tuning": "cc",
+            "transpose_semitones": 25,
+        },
+    )
+    assert bad.status_code == 422
+
+
+def test_transpose_endpoint_replaces_already_placed_systems() -> None:
+    text = "e|-0h2--5-|\nB|--------|\nG|--------|\nD|--------|\nA|--------|\nE|--------|"
+    converted = client.post(
+        "/api/tab/convert",
+        json={
+            "text": text,
+            "guitar": {"strings": STANDARD, "capo": 0},
+            "oud_tuning": "cc",
+        },
+    ).json()
+    res = client.post(
+        "/api/tab/transpose",
+        json={
+            "systems": converted["systems"],
+            "oud_tuning": "cc",
+            "mode": "both",
+            "transpose_semitones": -12,
+            "tempo": 108,
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["summary"]["transposed_steps"] == -24
+    assert body["tempo"] == 108
+    orig_pitches = [n["pitch"] for col in converted["systems"][0]["columns"] for n in col["notes"]]
+    new_pitches = [n["pitch"] for col in body["systems"][0]["columns"] for n in col["notes"]]
+    assert new_pitches == [p - 24 for p in orig_pitches]
+    assert list(body["systems"][0]["techniques"].values()) == ["h"]
+
+    bad = client.post(
+        "/api/tab/transpose",
+        json={
+            "systems": converted["systems"],
+            "oud_tuning": "cc",
+            "transpose_semitones": -30,
+        },
+    )
+    assert bad.status_code == 422

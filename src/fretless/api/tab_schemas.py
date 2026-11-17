@@ -55,6 +55,7 @@ class ConvertIn(BaseModel):
     guitar: GuitarIn
     oud_tuning: str
     mode: Mode = "frets"
+    transpose_semitones: Annotated[int | None, Field(ge=-24, le=24)] = None
 
 
 class PlacedNoteOut(BaseModel):
@@ -76,6 +77,14 @@ class PlacedSystemOut(BaseModel):
     labels: list[str]
     columns: list[PlacedColumnOut]
     techniques: dict[str, str] = {}  # "course:column" -> symbol (h, p, /, \, b, ~)
+
+
+class TransposeIn(BaseModel):
+    systems: list[PlacedSystemOut]
+    oud_tuning: str
+    mode: Mode = "frets"
+    transpose_semitones: Annotated[int, Field(ge=-24, le=24)] = 0
+    tempo: int | None = None
 
 
 class AlterationOut(BaseModel):
