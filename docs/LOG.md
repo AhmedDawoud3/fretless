@@ -691,3 +691,15 @@ Quality & checks:
 - Quality & checks:
   - `just format`, `crapper --no-coverage --threshold 9` (max CC `9` across Python & TypeScript), and `dryer --threshold 0.8` (no duplicate candidates found).
   - `just check` passed (`ruff format --check` 121 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 336 passed, `vitest run` 80 test files / 504 passed, including new playback-from-picked-note and neural/bleed/anti-aliasing tests).
+
+## 2026-11-17: make Solo / Improvise guide immediately visible, playable, and stem-aware
+
+- Why: clicking `Solo / Improvise guide` updated an off-screen Oud neck buried below long `<VisualTabStaff>` blocks, showed no scale notes or audio preview near the button, `Open in Maqam Explorer` ignored the detected `(maqam_id, root)`, and switching stem arrangements kept the winning stem's `detected_maqam`.
+- What changed:
+  - `tab_schemas.py`, `tab_mappers.py`, `schema.d.ts`, `tests/test_audio.py`: added `detected_maqam` per `AudioArrangementOut` so each separated arrangement carries its own detected maqamat.
+  - `AudioArrangements.tsx`: `applyArrangement` projects `active.detected_maqam` onto the active view when present.
+  - `TabPlayer.tsx`, `tab.css`: placed the Oud neck stage directly below `TransportControls` above `.vtab-staff` (`max-height: 360px`), so neck overlays and playback markers stay visible without scrolling past long tabs.
+  - `MaqamDetectBar.tsx`, `TabResult.tsx`, `audioPage.test.tsx`: added `SoloScalePanel` (`soloScaleNotes`, playable degree pills via `playSteps`, and `Hear scale` via `playSequence`), reset `selectedIdx` across candidate changes without turning off `soloMode`, wired `openMaqamExplorer` to persist `{ maqamId, root }` before opening Maqam Explorer, and added tests covering all three flows.
+- Quality & checks:
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 121 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 336 passed, `vitest run` 80 test files / 504 passed).
