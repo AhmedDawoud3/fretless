@@ -34,7 +34,7 @@ export const pdfLibraryKey = (
   size: number,
   kind: ImportKind,
   track?: number | null,
-): string => withTrackKey(`pdf:${kind}:${filename.trim().toLowerCase()}:${size}`, track);
+): string => withTrackKey(`pdf:v2:${kind}:${filename.trim().toLowerCase()}:${size}`, track);
 
 function isLibraryItem(value: unknown): value is LibraryItem {
   if (typeof value !== "object" || value === null) return false;

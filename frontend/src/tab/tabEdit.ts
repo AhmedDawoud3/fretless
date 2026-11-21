@@ -34,7 +34,7 @@ function spliceToken(text: string, at: number, remove: number, insert: string): 
 function writeAtColumn(parts: SplitLine[], row: number, col: number, token: string): string[] {
   const target = parts[row];
   if (!target) return parts.map((p) => `${p.prefix}${p.content}|`);
-  const existing = /^\d+[hp/\\b~]?/.exec(target.content.slice(col))?.[0] ?? "";
+  const existing = /^\d+(?:\.5)?[hp/\\b~]?/.exec(target.content.slice(col))?.[0] ?? "";
   if (existing.replace(/[hp/\\b~]$/, "") === token) {
     const cleared = spliceToken(target.content, col, existing.length, "-".repeat(existing.length));
     return parts.map((p, i) => `${p.prefix}${i === row ? cleared : p.content}|`);

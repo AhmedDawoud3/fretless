@@ -75,3 +75,17 @@ test("toggleGuitarNote clears/replaces technique tokens cleanly and renderOudSys
   };
   expect(renderOudSystemText(sys, "frets")).toContain("C|--0h");
 });
+
+test("toggleGuitarNote replaces quarter-tone .5 tokens cleanly without leaving .5 behind", () => {
+  const quarterTab = [
+    "e|--1.5--|",
+    "B|-------|",
+    "G|-------|",
+    "D|-------|",
+    "A|-------|",
+    "E|-------|",
+  ].join("\n");
+  const replaced = toggleGuitarNote(quarterTab, 1, 2, 3);
+  expect(replaced.split("\n")[0]).toBe("e|--3----|");
+  expect(new Set(replaced.split("\n").map((l) => l.length)).size).toBe(1);
+});
