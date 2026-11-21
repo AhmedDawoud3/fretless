@@ -762,3 +762,17 @@ Quality & checks:
   - Added pure unit tests (`scrollContainer.test.ts`, `visualStaffLayout.test.ts`, `asciiTokens.test.ts`) and DOM tests in `tabPlayback.test.tsx` (asserting zero `scrollIntoView` calls, measure/quarter-tone/ASCII token rendering, and zoom/density/follow/expand controls).
   - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
   - `just check` passed (`ruff format --check` 123 files, `ruff check`, `biome` 308 files, `ty check`, `tsc -b`, `pytest` 348 passed, `vitest run` 83 test files / 521 passed) and `vite build` succeeded (`345.44 kB` JS / `23.37 kB` CSS).
+
+## 2026-11-21: Songsterr-style engraved tablature, rhythm stems/beams, A-B measure loop, Paper mode, and transport presets
+
+- Why: Even after adding measure barlines and zoom controls, boxed badge cards per note still felt cluttered compared to Songsterr's clean engraved score sheet, measures did not justify across row width, fast runs lacked bottom rhythm stems/beams, and players lacked A–B measure looping, speed preset chips, Spacebar play/pause, and a Paper sheet theme.
+- What changed (`frontend/src/tab/`):
+  - `measureLoop.ts`: added `toggleMeasureLoop` and `isMeasureLooped` for Songsterr-style single-bar and A–B range measure looping.
+  - `visualStaffLayout.ts`: added per-beat `rhythm` (`"beam" | "stem" | "long"`), `beamLeft`/`beamRight` connectors, and proportional `flexWeight` (clipping connectors cleanly across chunked rows).
+  - `useTabPlayer.ts`: added `loopRange`, `selectMeasureLoop`, `clearLoopRange`, and bounded `playSlice(..., end)` playback.
+  - `TabViewControls.tsx`: added `paper` state (`togglePaper`, `Paper` button) and shared `joinClasses` helper.
+  - `VisualTabStaff.tsx`, `TabPlayer.tsx`, `TabResult.tsx`, `tab.css`: engraved boxless fret numerals directly over continuous 6-string lines with matching measure-background cutouts, full-width justified rows, bottom rhythm stems & connected beams, clickable measure numbers with `Loop m.X` pill, active-measure wash and playhead cursor, `Paper` light sheet theme (`--sheet-*` + `.tab-output-paper`), `50%`/`75%`/`100%`/`125%` tempo multiplier chips (`aria-label="Tempo multipliers"`), and Spacebar play/pause.
+- Quality & verification:
+  - Added tests in `measureLoop.test.ts`, `visualStaffLayout.test.ts`, and `tabPlayback.test.tsx`.
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 123 files, `ruff check`, `biome` 310 files, `ty check`, `tsc -b`, `pytest` 348 passed, `vitest run` 84 test files / 524 passed) and `vite build` succeeded (`350.10 kB` JS / `26.44 kB` CSS).
