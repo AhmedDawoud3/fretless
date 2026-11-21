@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import type {
   Converted,
   ConvertedSystem,
@@ -18,6 +18,7 @@ import { MaqamDetectBar, resolveNeckMarkers, useMaqamSolo } from "./MaqamDetectB
 import { summaryLine } from "./summary";
 import { emptyGuitarFrets, TabPlayer, type TrackKind } from "./TabPlayer";
 import { TabText } from "./TabText";
+import { TabPanelActions, useTabPanelView } from "./TabViewControls";
 import { placeOudNote, renderOudSystemText, systemsToPlayback } from "./tabEdit";
 import { useTabPlayer } from "./useTabPlayer";
 
@@ -91,14 +92,41 @@ function AsciiTabDrawer({
   activeKey: string | null;
   onPick: (key: string) => void;
 }) {
+  const view = useTabPanelView();
   return (
     <details className="ascii-drawer" open>
       <summary>ASCII Oud Tab</summary>
-      <div className="drawer-toolbar">
-        <CopyButton text={text} />
+      <div className="drawer-toolbar" role="toolbar" aria-label="ASCII tab controls">
+        <span className="drawer-hint">
+          {`${systems.length} ${systems.length === 1 ? "system" : "systems"}`}
+        </span>
+        <div className="drawer-actions">
+          <TabPanelActions
+            scope="ASCII tab"
+            zoom={view.zoom}
+            follow={view.follow}
+            expanded={view.expanded}
+            onOut={view.zoomOut}
+            onReset={view.resetZoom}
+            onIn={view.zoomIn}
+            onToggleFollow={view.toggleFollow}
+            onToggleExpand={view.toggleExpanded}
+          />
+          <CopyButton text={text} />
+        </div>
       </div>
-      <section className="tab-output" aria-label="Converted tab">
-        <TabText text={text} systems={systems} activeKey={activeKey} onPick={onPick} />
+      <section
+        className={view.expanded ? "tab-output tab-output-expanded" : "tab-output"}
+        aria-label="Converted tab"
+        style={{ "--ascii-zoom": String(view.zoom / 100) } as CSSProperties}
+      >
+        <TabText
+          text={text}
+          systems={systems}
+          activeKey={activeKey}
+          follow={view.follow}
+          onPick={onPick}
+        />
       </section>
     </details>
   );

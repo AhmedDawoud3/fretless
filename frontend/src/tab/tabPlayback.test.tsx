@@ -224,3 +224,115 @@ test("clicking Stop while Loop is on does not immediately restart playback", asy
   await act(async () => finish());
   expect(timed).toHaveBeenCalledTimes(1);
 });
+
+test("playback and note selection never call scrollIntoView on the page viewport", async () => {
+  const scrollSpy = vi.fn();
+  const original = HTMLElement.prototype.scrollIntoView;
+  HTMLElement.prototype.scrollIntoView = scrollSpy;
+  try {
+    const output = await converted();
+    fireEvent.click(cellOf(output, "0:4"));
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    reach(0);
+    expect(scrollSpy).not.toHaveBeenCalled();
+  } finally {
+    HTMLElement.prototype.scrollIntoView = original;
+  }
+});
+
+test("VisualTabStaff renders measure structure, quarter-tone styling, and no floating rest dots", async () => {
+  const fetchMock = stubApi();
+  const base = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/convert") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...CONVERTED,
+          text: [
+            "C|--1.5-|---5-|",
+            "F|------|-----|",
+            "A|------|---0-|",
+            "D|------|-----|",
+            "G|------|-----|",
+            "C|------|-----|",
+          ].join("\n"),
+          systems: [
+            {
+              ...CONVERTED.systems[0],
+              bars: [6],
+              columns: [
+                { index: 2, notes: [{ course: 1, position: 3, pitch: 99, name: "C+" }] },
+                {
+                  index: 10,
+                  notes: [
+                    { course: 1, position: 10, pitch: 106, name: "A" },
+                    { course: 3, position: 0, pitch: 86, name: "A" },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  render(<App />);
+  fireEvent.click(await screen.findByRole("tab", { name: "Tab converter" }));
+  fireEvent.change(await screen.findByLabelText("Guitar tab"), { target: { value: "e|--1.5--|" } });
+  fireEvent.click(screen.getByRole("button", { name: "Convert" }));
+
+  const staff = await screen.findByRole("region", { name: "Interactive visual tab" });
+  expect(staff.querySelectorAll(".vtab-rest")).toHaveLength(0);
+  expect(staff.querySelectorAll(".vtab-measure")).toHaveLength(2);
+  expect(staff.querySelectorAll(".vtab-note-quarter")).toHaveLength(1);
+  expect(staff.querySelectorAll(".vtab-note-open")).toHaveLength(1);
+
+  const ascii = screen.getByRole("region", { name: "Converted tab" });
+  expect(ascii.querySelectorAll(".ascii-label").length).toBeGreaterThanOrEqual(6);
+  expect(ascii.querySelectorAll(".ascii-rail").length).toBeGreaterThanOrEqual(6);
+  expect(ascii.querySelectorAll(".ascii-bar").length).toBeGreaterThanOrEqual(12);
+  expect(ascii.querySelectorAll(".ascii-note-quarter")).toHaveLength(1);
+});
+
+test("visual and ASCII tabs provide zoom, spacing, follow, and expand controls", async () => {
+  await converted();
+
+  const staff = screen.getByRole("region", { name: "Interactive visual tab" });
+  const vTools = within(screen.getByRole("toolbar", { name: "Visual tab controls" }));
+  fireEvent.click(vTools.getByRole("button", { name: "Zoom in visual tab" }));
+  expect(staff.style.getPropertyValue("--vtab-zoom")).toBe("1.1");
+  fireEvent.click(vTools.getByRole("button", { name: "Reset visual tab zoom" }));
+  expect(staff.style.getPropertyValue("--vtab-zoom")).toBe("1");
+  fireEvent.click(vTools.getByRole("button", { name: "Zoom out visual tab" }));
+  expect(staff.style.getPropertyValue("--vtab-zoom")).toBe("0.9");
+
+  const vExpand = vTools.getByRole("button", { name: "Expand" });
+  expect(vExpand.getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(vExpand);
+  expect(vExpand.getAttribute("aria-pressed")).toBe("true");
+  expect(staff.className).toContain("vtab-staff-expanded");
+
+  const vFollow = vTools.getByRole("button", { name: "Follow" });
+  expect(vFollow.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(vFollow);
+  expect(vFollow.getAttribute("aria-pressed")).toBe("false");
+
+  fireEvent.click(vTools.getByRole("button", { name: "Wide" }));
+  expect(vTools.getByRole("button", { name: "Wide" }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(vTools.getByRole("button", { name: "Compact" }));
+  expect(vTools.getByRole("button", { name: "Compact" }).getAttribute("aria-pressed")).toBe("true");
+
+  const ascii = screen.getByRole("region", { name: "Converted tab" });
+  const aTools = within(screen.getByRole("toolbar", { name: "ASCII tab controls" }));
+  fireEvent.click(aTools.getByRole("button", { name: "Zoom in ASCII tab" }));
+  expect(ascii.style.getPropertyValue("--ascii-zoom")).toBe("1.1");
+  fireEvent.click(aTools.getByRole("button", { name: "Expand" }));
+  expect(ascii.className).toContain("tab-output-expanded");
+  const aFollow = aTools.getByRole("button", { name: "Follow" });
+  fireEvent.click(aFollow);
+  expect(aFollow.getAttribute("aria-pressed")).toBe("false");
+});
