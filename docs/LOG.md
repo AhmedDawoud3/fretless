@@ -748,3 +748,17 @@ Quality & checks:
   - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
   - `just check` passed (`ruff format --check` 123 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 348 passed including synthetic compound-vector and real `اول همسة` tests, `vitest run` 80 test files / 508 passed).
   - FastAPI smoke check (`POST /api/tab/import-pdf` -> `POST /api/tab/convert`) on `اول همسة` returned HTTP `200`, `74` systems, `1,207` notes in / `1,206` notes out, `46` quarter-tone notes, and detected `Nahawand` / `Bayati` on `G`.
+
+## 2026-11-21: studio tab redesign, scroll containment, and zoom/view controls
+
+- Why: `TabText.tsx` called `el.scrollIntoView(...)` on every playback event (snapping the entire browser viewport down to the ASCII drawer), `.tab-output` / `.alterations` grew unbounded without `min-width: 0` grid containment, `VisualTabStaff.tsx` rendered floating `·` dots with no measure barlines or rhythmic spacing and orphaned wrapped rows without labels, and neither tab viewer offered zoom, spacing, follow-playback, or height controls.
+- What changed (`frontend/src/tab/`):
+  - `scrollContainer.ts`: added `scrollWithinContainer` to scroll only inside the enclosing overflow container (`scrollTop` / `scrollLeft`), eliminating `scrollIntoView` page jumps.
+  - `visualStaffLayout.ts`: added `buildStaffRows` and `STAFF_DENSITIES` (`Compact`, `Normal`, `Wide`) to split systems at `system.bars` into numbered measures with proportional `gapPx` rhythmic spacing and pack them into fixed-gutter rows.
+  - `asciiTokens.ts`: added `isAsciiTabLine`, `tokenizePlainStretch`, and `isQuarterToneCell` for syntax-highlighted ASCII labels, bars, rails, and quarter-tone notes while keeping `<pre>` `textContent` verbatim.
+  - `TabViewControls.tsx`: added shared `useTabPanelView`, `TabZoomControls` (`70%`–`150%` in `10%` steps + reset), and `TabPanelActions` (`Follow`, `Expand`).
+  - `VisualTabStaff.tsx`, `TabText.tsx`, `TabResult.tsx`, `tab.css`: rendered continuous graduated 6-string lines, measure barlines/numbers, open-course and quarter-tone note badges, bounded scrollboxes with dark studio scrollbars, zoom CSS variables (`--vtab-zoom`, `--ascii-zoom`), and view toolbars.
+- Quality & verification:
+  - Added pure unit tests (`scrollContainer.test.ts`, `visualStaffLayout.test.ts`, `asciiTokens.test.ts`) and DOM tests in `tabPlayback.test.tsx` (asserting zero `scrollIntoView` calls, measure/quarter-tone/ASCII token rendering, and zoom/density/follow/expand controls).
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 123 files, `ruff check`, `biome` 308 files, `ty check`, `tsc -b`, `pytest` 348 passed, `vitest run` 83 test files / 521 passed) and `vite build` succeeded (`345.44 kB` JS / `23.37 kB` CSS).
