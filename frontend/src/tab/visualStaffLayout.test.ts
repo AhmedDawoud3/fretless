@@ -79,3 +79,22 @@ test("buildStaffRows scales rhythmic gapPx by gapScale while preserving 0 at mea
   );
   expect(compact?.measures[0]?.beats.map((b) => b.gapPx)).toEqual([0, 5, 10, 14, 0]);
 });
+
+test("buildStaffRows classifies bottom rhythm stems/beams and proportional flexWeight", () => {
+  const sys = makeSys(0, [1, 3, 5, 9, 17, 29], [32]);
+  const [row] = buildStaffRows([sys], 18);
+  const beats = row?.measures[0]?.beats ?? [];
+  expect(beats.map((b) => b.rhythm)).toEqual(["beam", "beam", "stem", "long", "long", "long"]);
+  expect(beats.map((b) => [b.beamLeft, b.beamRight])).toEqual([
+    [false, true],
+    [true, false],
+    [false, false],
+    [false, false],
+    [false, false],
+    [false, false],
+  ]);
+  expect(beats.map((b) => b.flexWeight)).toEqual([1, 1, 1.35, 1.8, 2.3, 1]);
+
+  const [single] = buildStaffRows([makeSys(0, [2], [])], 18);
+  expect(single?.measures[0]?.beats[0]?.rhythm).toBe("stem");
+});

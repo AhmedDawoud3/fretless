@@ -295,6 +295,7 @@
 }
 
 .vtab-toolbar,
+.vtab-toolbar-left,
 .drawer-actions,
 .tab-panel-actions {
   display: flex;
@@ -308,7 +309,8 @@
 }
 
 .tab-zoom-controls,
-.tab-density {
+.tab-density,
+.speed-presets {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -320,7 +322,8 @@
 }
 
 .tab-zoom-controls button,
-.tab-density button {
+.tab-density button,
+.speed-presets button {
   padding: 2px 7px;
   border: 0;
   border-radius: 5px;
@@ -329,9 +332,38 @@
   line-height: 1.3;
 }
 
-.tab-density button[aria-pressed="true"] {
+.tab-density button[aria-pressed="true"],
+.speed-presets button[aria-pressed="true"] {
   background: var(--accent);
   color: #0b0d12;
+}
+
+.vtab-loop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  background: rgb(245 185 66 / 0.14);
+  border: 1px solid rgb(245 185 66 / 0.5);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.vtab-loop-clear {
+  border: 0;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.vtab-loop-clear:hover {
+  background: rgb(245 185 66 / 0.25);
 }
 
 .tab-zoom-value {
@@ -361,22 +393,59 @@
 .vtab-staff {
   --vtab-zoom: 1;
   --vtab-head: calc(18px * var(--vtab-zoom));
-  --vtab-lane: calc(26px * var(--vtab-zoom));
-  --vtab-gutter: calc(44px * var(--vtab-zoom));
-  --vtab-col-w: calc(34px * var(--vtab-zoom));
+  --vtab-lane: calc(25px * var(--vtab-zoom));
+  --vtab-rhythm: calc(14px * var(--vtab-zoom));
+  --vtab-gutter: calc(42px * var(--vtab-zoom));
+  --vtab-col-w: calc(32px * var(--vtab-zoom));
+  --sheet-bg: #0f141e;
+  --sheet-border: #232d42;
+  --sheet-ink: #f1f5fb;
+  --sheet-ink-open: #a5b8db;
+  --sheet-quarter: #f5b942;
+  --sheet-string: #2c3852;
+  --sheet-string-bass: #3d4d70;
+  --sheet-bar: #4c5e85;
+  --sheet-bar-end: #7187b8;
+  --sheet-muted: #7081a6;
+  --sheet-stem: #5b709c;
+  --sheet-measure-active: #141d2b;
+  --sheet-measure-loop: #1b1915;
+  --sheet-cursor: #38d9c0;
+  --sheet-cursor-bg: rgb(56 217 192 / 0.14);
+  --sheet-cursor-ink: #071015;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   max-height: min(460px, 55vh);
   margin-top: 6px;
-  padding: 12px;
-  background: #090c12;
-  border: 1px solid #20293d;
+  padding: 16px 18px;
+  background: var(--sheet-bg);
+  border: 1px solid var(--sheet-border);
   border-radius: 12px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #2d3852 transparent;
+}
+
+.vtab-staff.vtab-sheet-paper {
+  --sheet-bg: #fafbfd;
+  --sheet-border: #d5dce8;
+  --sheet-ink: #0f172a;
+  --sheet-ink-open: #334155;
+  --sheet-quarter: #b45309;
+  --sheet-string: #cbd5e1;
+  --sheet-string-bass: #94a3b8;
+  --sheet-bar: #64748b;
+  --sheet-bar-end: #1e293b;
+  --sheet-muted: #64748b;
+  --sheet-stem: #64748b;
+  --sheet-measure-active: #eef6fc;
+  --sheet-measure-loop: #fef8e8;
+  --sheet-cursor: #e11d48;
+  --sheet-cursor-bg: rgb(225 29 72 / 0.12);
+  --sheet-cursor-ink: #ffffff;
+  scrollbar-color: #94a3b8 transparent;
 }
 
 .vtab-staff-expanded {
@@ -386,34 +455,40 @@
 .vtab-row {
   display: flex;
   align-items: stretch;
-  background: #0f141f;
-  border: 1px solid #222c42;
-  border-radius: 10px;
-  overflow: hidden;
+  background: transparent;
+  border: 0;
   flex-shrink: 0;
 }
 
 .vtab-gutter {
+  position: relative;
   flex: 0 0 var(--vtab-gutter);
   display: grid;
-  grid-template-rows: var(--vtab-head) repeat(6, var(--vtab-lane));
+  grid-template-rows: var(--vtab-head) repeat(6, var(--vtab-lane)) var(--vtab-rhythm);
   align-items: center;
   justify-items: center;
-  padding-bottom: 4px;
-  background: #141b29;
-  border-right: 2px solid #3c4b6b;
   font:
-    700 calc(12px * var(--vtab-zoom)) ui-monospace,
+    700 calc(11.5px * var(--vtab-zoom)) ui-monospace,
     "Cascadia Mono",
     Consolas,
     monospace;
-  color: var(--accent);
+  color: var(--sheet-muted);
+}
+
+.vtab-gutter::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--vtab-head) + 0.5 * var(--vtab-lane));
+  right: 0;
+  height: calc(5 * var(--vtab-lane));
+  width: 2px;
+  background: var(--sheet-bar);
 }
 
 .vtab-gutter-bar {
   font-size: calc(10px * var(--vtab-zoom));
   font-weight: 600;
-  color: #6c7c9e;
+  color: var(--sheet-muted);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -429,14 +504,15 @@
 
 .vtab-measures {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: stretch;
-  min-width: 100%;
-  padding-right: 12px;
+  width: 100%;
+  min-width: max-content;
 }
 
 .vtab-strings {
   position: absolute;
+  z-index: 1;
   top: var(--vtab-head);
   left: 0;
   right: 0;
@@ -451,121 +527,185 @@
   display: block;
   width: 100%;
   height: 1px;
-  background: #2c3750;
+  background: var(--sheet-string);
 }
 
 .vtab-string-line:nth-child(4),
 .vtab-string-line:nth-child(5) {
   height: 1.25px;
-  background: #34415e;
+  background: var(--sheet-string-bass);
 }
 
 .vtab-string-line:nth-child(6) {
   height: 1.5px;
-  background: #3e4d6e;
+  background: var(--sheet-string-bass);
 }
 
 .vtab-measure {
   position: relative;
+  z-index: 0;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  padding: 0 8px 4px 6px;
+  padding: 0 8px 2px 6px;
+  background: var(--measure-bg, transparent);
+}
+
+.vtab-measure-active {
+  --measure-bg: var(--sheet-measure-active);
+}
+
+.vtab-measure-loop {
+  --measure-bg: var(--sheet-measure-loop);
+  box-shadow: inset 0 2px 0 var(--sheet-quarter);
 }
 
 .vtab-measure::after {
   content: "";
   position: absolute;
+  z-index: 1;
   top: calc(var(--vtab-head) + 0.5 * var(--vtab-lane));
   right: 0;
   height: calc(5 * var(--vtab-lane));
   width: 1.5px;
-  background: #435377;
+  background: var(--sheet-bar);
   pointer-events: none;
 }
 
 .vtab-measure-end::after {
   width: 6px;
   background: transparent;
-  border-left: 1px solid #435377;
-  border-right: 3px solid #60749f;
+  border-left: 1px solid var(--sheet-bar);
+  border-right: 3px solid var(--sheet-bar-end);
 }
 
 .vtab-measure-no {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
   height: var(--vtab-head);
-  padding-left: 4px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   font:
     600 calc(10.5px * var(--vtab-zoom)) / var(--vtab-head) ui-monospace,
     monospace;
-  color: #6c7c9e;
+  color: var(--sheet-muted);
   font-variant-numeric: tabular-nums;
+}
+
+button.vtab-measure-no:hover {
+  background: var(--sheet-cursor-bg);
+  color: var(--sheet-ink);
+}
+
+.vtab-measure-no-loop {
+  background: var(--sheet-quarter);
+  color: #0b0d12;
+  font-weight: 700;
 }
 
 .vtab-measure-beats {
   display: flex;
   align-items: stretch;
+  flex: 1 1 auto;
 }
 
 .vtab-col {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  flex: 1 0 auto;
   display: grid;
-  grid-template-rows: repeat(6, var(--vtab-lane));
+  grid-template-rows: repeat(6, var(--vtab-lane)) var(--vtab-rhythm);
   align-items: center;
   justify-items: center;
   min-width: var(--vtab-col-w);
   padding: 0 3px;
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .vtab-col:hover {
-  background: rgb(148 163 184 / 0.08);
+  background: var(--sheet-cursor-bg);
 }
 
 .vtab-col-active {
-  background: linear-gradient(180deg, rgb(56 217 192 / 0.18), rgb(56 217 192 / 0.06));
-  box-shadow: inset 2px 0 0 var(--cyan);
+  background: linear-gradient(180deg, var(--sheet-cursor-bg) 0%, transparent 92%);
+  box-shadow: inset 2px 0 0 var(--sheet-cursor);
 }
 
 .vtab-note {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: calc(22px * var(--vtab-zoom));
-  height: calc(20px * var(--vtab-zoom));
-  padding: 0 calc(5px * var(--vtab-zoom));
-  border-radius: 5px;
-  background: #1a2234;
-  border: 1px solid #344360;
-  color: #f1f5fb;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--measure-bg, var(--sheet-bg));
+  color: var(--sheet-ink);
   font:
-    600 calc(12px * var(--vtab-zoom)) / 1 ui-monospace,
-    "Cascadia Mono",
-    Consolas,
-    monospace;
+    700 calc(13px * var(--vtab-zoom)) / 1 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
 }
 
 .vtab-note-open {
-  background: #131a28;
-  border-color: #3e5178;
-  color: #b9cae8;
+  color: var(--sheet-ink-open);
+  font-weight: 600;
 }
 
 .vtab-note-quarter {
-  background: rgb(245 185 66 / 0.16);
-  border-color: rgb(245 185 66 / 0.55);
-  color: var(--accent);
+  color: var(--sheet-quarter);
+  box-shadow: inset 0 -2px 0 var(--sheet-quarter);
 }
 
 .vtab-col-active .vtab-note {
-  background: var(--cyan);
-  border-color: var(--cyan);
-  color: #081016;
+  background: var(--sheet-cursor);
+  color: var(--sheet-cursor-ink);
   font-weight: 700;
-  box-shadow: 0 0 10px rgb(56 217 192 / 0.45);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.28);
+}
+
+.vtab-rhythm {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.vtab-stem {
+  width: 1.5px;
+  height: calc(10px * var(--vtab-zoom));
+  background: var(--sheet-stem);
+}
+
+.vtab-stem-long {
+  height: calc(6px * var(--vtab-zoom));
+  opacity: 0.6;
+}
+
+.vtab-beam-l,
+.vtab-beam-r {
+  position: absolute;
+  top: calc(10px * var(--vtab-zoom));
+  width: 50%;
+  height: 2.5px;
+  background: var(--sheet-stem);
+}
+
+.vtab-beam-l {
+  left: 0;
+}
+
+.vtab-beam-r {
+  right: 0;
 }
 
 .vtab-empty {
@@ -699,6 +839,44 @@
   font-weight: 700;
   border-radius: 3px;
   box-shadow: 0 0 8px rgb(56 217 192 / 0.35);
+}
+
+.tab-output-paper {
+  background: #fafbfd;
+  border-color: #d5dce8;
+  scrollbar-color: #94a3b8 transparent;
+}
+
+.tab-output-paper .ascii-label,
+.tab-output-paper .ascii-note-quarter {
+  color: #b45309;
+}
+
+.tab-output-paper .ascii-bar {
+  color: #64748b;
+}
+
+.tab-output-paper .ascii-rail {
+  color: #cbd5e1;
+}
+
+.tab-output-paper .ascii-text {
+  color: #475569;
+}
+
+.tab-output-paper .ascii-note {
+  color: #0f172a;
+}
+
+.tab-output-paper .ascii-note:hover {
+  background: rgb(225 29 72 / 0.12);
+  color: #e11d48;
+}
+
+.tab-output-paper mark {
+  background: #e11d48;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgb(225 29 72 / 0.35);
 }
 
 .tab-output [data-event] {

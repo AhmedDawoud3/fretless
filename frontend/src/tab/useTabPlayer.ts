@@ -3,6 +3,7 @@ import type { PlaybackEvent } from "../api/client";
 import { type Instrument, playStrum, playTimed } from "../audio";
 import { useRunner } from "../explorer/useRunner";
 import { cellKey } from "./cells";
+import { type MeasureLoop, type MeasureRange, toggleMeasureLoop } from "./measureLoop";
 import { secondsPerTick } from "./schedule";
 import { lowToHigh, timedEvents } from "./timedEvents";
 
@@ -33,9 +34,20 @@ function playSlice(
   speed: number,
   onEvent: (index: number) => void,
   instrument: Instrument,
+  end?: number,
 ) {
-  const slice = events.slice(from);
+  const slice = end != null ? events.slice(from, end + 1) : events.slice(from);
   return playTrack(slice, speed, (offset) => onEvent(from + offset), instrument);
+}
+
+function resolveLoopBounds(range: MeasureLoop | null, from: number, length: number) {
+  if (!range) return { start: clampStart(from, length), end: undefined, repeatFrom: 0 };
+  const inRange = from >= range.startEvent && from <= range.endEvent;
+  return {
+    start: clampStart(inRange ? from : range.startEvent, length),
+    end: clampStart(range.endEvent, length),
+    repeatFrom: range.startEvent,
+  };
 }
 
 function loopableRun(
@@ -77,22 +89,26 @@ export function useTabPlayer(
 ) {
   const { playing, index, begin, stop } = useRunner(resetKey);
   const [picked, setPicked] = useState<number | null>(null);
+  const [loopRange, setLoopRange] = useState<MeasureLoop | null>(null);
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
   if (prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
     setPicked(null);
+    setLoopRange(null);
   }
   const [loop, setLoop] = useState(false);
-  const loopRef = useRef(loop);
-  loopRef.current = loop;
+  const repeatRef = useRef(false);
+  repeatRef.current = loop || loopRange !== null;
+  const loopRangeRef = useRef(loopRange);
+  loopRangeRef.current = loopRange;
 
   const startFrom = useCallback(
     (from: number) => {
-      const startIndex = clampStart(from, events.length);
+      const bounds = resolveLoopBounds(loopRangeRef.current, from, events.length);
       setPicked(null);
       begin((onEvent) => {
-        const run = playSlice(events, startIndex, speed, onEvent, instrument);
-        return loopableRun(run, loopRef, () => startFrom(0));
+        const run = playSlice(events, bounds.start, speed, onEvent, instrument, bounds.end);
+        return loopableRun(run, repeatRef, () => startFrom(bounds.repeatFrom));
       });
     },
     [begin, events, instrument, speed],
@@ -107,6 +123,16 @@ export function useTabPlayer(
       strumNotes(target, instrument);
     },
     [events, instrument, stop],
+  );
+
+  const selectMeasureLoop = useCallback(
+    (range: MeasureRange) => {
+      const next = toggleMeasureLoop(loopRangeRef.current, range);
+      stop();
+      setLoopRange(next);
+      if (next) setPicked(next.startEvent);
+    },
+    [stop],
   );
 
   const pick = useCallback(
@@ -126,6 +152,9 @@ export function useTabPlayer(
     totalEvents: events.length,
     loop,
     toggleLoop: () => setLoop((v) => !v),
+    loopRange,
+    selectMeasureLoop,
+    clearLoopRange: () => setLoopRange(null),
     pick,
     selectIndex,
     stepPrev: () => selectIndex(prevIndex(activeIndex)),

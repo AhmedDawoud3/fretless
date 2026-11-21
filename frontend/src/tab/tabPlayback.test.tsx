@@ -335,4 +335,78 @@ test("visual and ASCII tabs provide zoom, spacing, follow, and expand controls",
   const aFollow = aTools.getByRole("button", { name: "Follow" });
   fireEvent.click(aFollow);
   expect(aFollow.getAttribute("aria-pressed")).toBe("false");
+
+  fireEvent.click(vTools.getByRole("button", { name: "Paper" }));
+  expect(staff.className).toContain("vtab-sheet-paper");
+  fireEvent.click(aTools.getByRole("button", { name: "Paper" }));
+  expect(ascii.className).toContain("tab-output-paper");
+});
+
+test("Songsterr-style measure looping, rhythm stems, speed presets, and Spacebar play/pause work", async () => {
+  const fetchMock = stubApi();
+  const base = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((async (url: string, init?: RequestInit) => {
+    if (url === "/api/tab/convert") {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...CONVERTED,
+          systems: [
+            {
+              ...CONVERTED.systems[0],
+              bars: [3],
+              columns: [
+                { index: 2, notes: [{ course: 1, position: 6, pitch: 102, name: "F" }] },
+                {
+                  index: 4,
+                  notes: [
+                    { course: 1, position: 10, pitch: 106, name: "A" },
+                    { course: 3, position: 0, pitch: 86, name: "A" },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+      };
+    }
+    return base?.(url, init);
+  }) as NonNullable<typeof base>);
+
+  render(<App />);
+  fireEvent.click(await screen.findByRole("tab", { name: "Tab converter" }));
+  fireEvent.change(await screen.findByLabelText("Guitar tab"), { target: { value: "e|--0--|" } });
+  fireEvent.click(screen.getByRole("button", { name: "Convert" }));
+
+  const staff = await screen.findByRole("region", { name: "Interactive visual tab" });
+  expect(staff.querySelectorAll(".vtab-rhythm")).toHaveLength(2);
+  expect(staff.querySelectorAll(".vtab-stem")).toHaveLength(2);
+
+  // Measure loop restricts Play to measure 2, then Clear loop restores all events.
+  fireEvent.click(within(staff).getByRole("button", { name: "Loop measure 2" }));
+  expect(screen.getByText("Loop m.2")).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Play" }));
+  expect(timed.mock.calls.at(-1)?.[0].map((e) => e.steps)).toEqual([[86, 106]]);
+  fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Clear loop" }));
+  expect(screen.queryByText("Loop m.2")).toBeNull();
+
+  // Speed preset chips scale from base speed.
+  const presets = within(screen.getByRole("group", { name: "Tempo multipliers" }));
+  fireEvent.click(presets.getByRole("button", { name: "50%" }));
+  expect((screen.getByLabelText(/Speed/) as HTMLInputElement).value).toBe("60");
+  fireEvent.click(presets.getByRole("button", { name: "125%" }));
+  expect((screen.getByLabelText(/Speed/) as HTMLInputElement).value).toBe("150");
+  fireEvent.click(presets.getByRole("button", { name: "100%" }));
+  expect((screen.getByLabelText(/Speed/) as HTMLInputElement).value).toBe("120");
+
+  // Spacebar toggles Play/Stop from the Oud view container.
+  const stage = screen.getByRole("region", { name: "Oud view" });
+  fireEvent.keyDown(stage, { key: " " });
+  expect(screen.getByRole("button", { name: "Stop" })).toBeDefined();
+  fireEvent.keyDown(stage, { key: " " });
+  expect(stop).toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Play" })).toBeDefined();
 });

@@ -1,19 +1,22 @@
 import type { KeyboardEvent } from "react";
-import type { ConvertedSystem, NeckOut, TabMode } from "../api/client";
+import type { ConvertedSystem, NeckOut, PlaybackEvent, TabMode } from "../api/client";
 import { playSteps } from "../audio";
 import { GuitarNeck } from "../chords/GuitarNeck";
 import { type Frets, STRING_COUNT, soundingPitch } from "../chords/shape";
 import { PlayScale } from "../explorer/PlayScale";
 import { type LabelMode, rulerLabelFor } from "../explorer/readout";
+import { DEFAULT_TEMPO, TEMPO_MAX, TEMPO_MIN } from "../explorer/tempo";
 import type { NeckZoom } from "../neck/OudNeck";
 import { type Marker, OudNeck } from "../neck/OudNeck";
 import type { NamingSystem } from "../notation/noteName";
+import type { MeasureLoop, MeasureRange } from "./measureLoop";
 import { VisualTabStaff } from "./VisualTabStaff";
 
 export type TrackKind = "oud" | "guitar";
 
 const WORDS = { play: "Play", rate: "Speed" };
 const IGNORED_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+const SPEED_MULTIPLIERS = [0.5, 0.75, 1, 1.25] as const;
 
 type TabPlayerProps = {
   neck: NeckOut;
@@ -43,7 +46,12 @@ type TabPlayerProps = {
   loop: boolean;
   onToggleLoop: () => void;
   speed: number;
+  baseSpeed?: number | null;
   onSpeed: (notesPerMinute: number) => void;
+  events?: readonly PlaybackEvent[];
+  loopRange?: MeasureLoop | null;
+  onSelectMeasure?: (range: MeasureRange) => void;
+  onClearLoop?: () => void;
   activeGuitarFrets: Frets;
   guides: boolean;
   snap: boolean;
@@ -163,6 +171,34 @@ function TrackToolbar({
   );
 }
 
+function clampSpeed(bpm: number): number {
+  return Math.max(TEMPO_MIN, Math.min(TEMPO_MAX, Math.round(bpm)));
+}
+
+function SpeedPresets({
+  baseSpeed,
+  speed,
+  onSpeed,
+}: {
+  baseSpeed: number;
+  speed: number;
+  onSpeed: (notesPerMinute: number) => void;
+}) {
+  return (
+    <fieldset className="speed-presets" aria-label="Tempo multipliers">
+      {SPEED_MULTIPLIERS.map((mult) => {
+        const target = clampSpeed(baseSpeed * mult);
+        const active = Math.abs(speed - target) <= 1;
+        return (
+          <button key={mult} type="button" aria-pressed={active} onClick={() => onSpeed(target)}>
+            {`${Math.round(mult * 100)}%`}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 function TransportControls(props: {
   playing: boolean;
   onToggle: () => void;
@@ -174,6 +210,7 @@ function TransportControls(props: {
   loop: boolean;
   onToggleLoop: () => void;
   speed: number;
+  baseSpeed: number;
   onSpeed: (notesPerMinute: number) => void;
 }) {
   const {
@@ -187,6 +224,7 @@ function TransportControls(props: {
     loop,
     onToggleLoop,
     speed,
+    baseSpeed,
     onSpeed,
   } = props;
   const shownPos = activeIndex >= 0 ? activeIndex + 1 : 0;
@@ -199,6 +237,7 @@ function TransportControls(props: {
         onTempo={onSpeed}
         words={WORDS}
       />
+      <SpeedPresets baseSpeed={baseSpeed} speed={speed} onSpeed={onSpeed} />
       <button
         type="button"
         aria-label="Previous event"
@@ -267,9 +306,19 @@ function NeckStage(props: {
   );
 }
 
-function onArrowStep(event: KeyboardEvent<HTMLElement>, onPrev: () => void, onNext: () => void) {
+function onPlayerKeyDown(
+  event: KeyboardEvent<HTMLElement>,
+  onPrev: () => void,
+  onNext: () => void,
+  onToggle: () => void,
+) {
   const tag = (event.target as HTMLElement | null)?.tagName ?? "";
   if (IGNORED_TAGS.has(tag)) return;
+  if (event.key === " " && tag !== "BUTTON" && tag !== "A") {
+    event.preventDefault();
+    onToggle();
+    return;
+  }
   const action = { ArrowLeft: onPrev, ArrowRight: onNext }[event.key];
   if (!action) return;
   event.preventDefault();
@@ -327,7 +376,7 @@ export function TabPlayer(props: TabPlayerProps) {
     <section
       className="tab-player studio-stage"
       aria-label="Oud view"
-      onKeyDown={(e) => onArrowStep(e, props.onPrev, props.onNext)}
+      onKeyDown={(e) => onPlayerKeyDown(e, props.onPrev, props.onNext, props.onToggle)}
     >
       <TrackToolbar
         hasGuitar={view.hasGuitar}
@@ -350,6 +399,7 @@ export function TabPlayer(props: TabPlayerProps) {
         loop={props.loop}
         onToggleLoop={props.onToggleLoop}
         speed={props.speed}
+        baseSpeed={props.baseSpeed ?? DEFAULT_TEMPO}
         onSpeed={props.onSpeed}
       />
       <p className="tab-note">
@@ -379,6 +429,10 @@ export function TabPlayer(props: TabPlayerProps) {
         fretDivisor={view.fretDivisor}
         activeKey={props.activeKey}
         onPick={props.onPick}
+        events={props.events}
+        loopRange={props.loopRange}
+        onSelectMeasure={props.onSelectMeasure}
+        onClearLoop={props.onClearLoop}
       />
     </section>
   );

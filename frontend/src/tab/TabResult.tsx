@@ -18,7 +18,7 @@ import { MaqamDetectBar, resolveNeckMarkers, useMaqamSolo } from "./MaqamDetectB
 import { summaryLine } from "./summary";
 import { emptyGuitarFrets, TabPlayer, type TrackKind } from "./TabPlayer";
 import { TabText } from "./TabText";
-import { TabPanelActions, useTabPanelView } from "./TabViewControls";
+import { joinClasses, TabPanelActions, useTabPanelView } from "./TabViewControls";
 import { placeOudNote, renderOudSystemText, systemsToPlayback } from "./tabEdit";
 import { useTabPlayer } from "./useTabPlayer";
 
@@ -106,17 +106,23 @@ function AsciiTabDrawer({
             zoom={view.zoom}
             follow={view.follow}
             expanded={view.expanded}
+            paper={view.paper}
             onOut={view.zoomOut}
             onReset={view.resetZoom}
             onIn={view.zoomIn}
             onToggleFollow={view.toggleFollow}
             onToggleExpand={view.toggleExpanded}
+            onTogglePaper={view.togglePaper}
           />
           <CopyButton text={text} />
         </div>
       </div>
       <section
-        className={view.expanded ? "tab-output tab-output-expanded" : "tab-output"}
+        className={joinClasses(
+          "tab-output",
+          view.expanded && "tab-output-expanded",
+          view.paper && "tab-output-paper",
+        )}
         aria-label="Converted tab"
         style={{ "--ascii-zoom": String(view.zoom / 100) } as CSSProperties}
       >
@@ -274,7 +280,12 @@ export function TabResult({
         loop={player.loop}
         onToggleLoop={player.toggleLoop}
         speed={speed}
+        baseSpeed={tempo}
         onSpeed={setSpeed}
+        events={activePlayback}
+        loopRange={player.loopRange}
+        onSelectMeasure={player.selectMeasureLoop}
+        onClearLoop={player.clearLoopRange}
         activeGuitarFrets={isGuitar ? fretsForEvent(player.current) : emptyGuitarFrets()}
         guides={shared.guides}
         snap={shared.snap}

@@ -10,11 +10,17 @@ export const STAFF_DENSITIES: Readonly<
   wide: { label: "Wide", maxBeats: 12, gapScale: 1.4 },
 };
 
+export type BeatRhythm = "beam" | "stem" | "long";
+
 export type StaffBeat = {
   systemIndex: number;
   columnIndex: number;
   notes: readonly ConvertedSystem["columns"][number]["notes"][number][];
   gapPx: number;
+  rhythm: BeatRhythm;
+  beamLeft: boolean;
+  beamRight: boolean;
+  flexWeight: number;
 };
 
 export type StaffMeasure = {
@@ -38,18 +44,49 @@ function gapForDelta(delta: number): number {
   return 24;
 }
 
+function beatDelta(
+  columns: readonly ConvertedSystem["columns"][number][],
+  idx: number,
+): number | null {
+  const cur = columns[idx];
+  const next = columns[idx + 1];
+  if (cur && next) return next.index - cur.index;
+  const prev = columns[idx - 1];
+  return cur && prev ? cur.index - prev.index : null;
+}
+
+function rhythmForDelta(delta: number | null): BeatRhythm {
+  if (delta === null) return "stem";
+  if (delta <= 2) return "beam";
+  if (delta <= 6) return "stem";
+  return "long";
+}
+
+function flexWeightForDelta(delta: number | null): number {
+  if (delta === null || delta <= 2) return 1;
+  if (delta <= 4) return 1.35;
+  if (delta <= 8) return 1.8;
+  return 2.3;
+}
+
 function toMeasureBeats(
   systemIndex: number,
   columns: readonly ConvertedSystem["columns"][number][],
   gapScale: number,
 ): StaffBeat[] {
+  const rhythms = columns.map((_, idx) => rhythmForDelta(beatDelta(columns, idx)));
   return columns.map((col, idx) => {
     const next = columns[idx + 1];
+    const rhythm = rhythms[idx] ?? "stem";
     return {
       systemIndex,
       columnIndex: col.index,
       notes: col.notes,
       gapPx: next ? Math.round(gapForDelta(next.index - col.index) * gapScale) : 0,
+      rhythm,
+      beamLeft: rhythm === "beam" && rhythms[idx - 1] === "beam",
+      beamRight: rhythm === "beam" && rhythms[idx + 1] === "beam",
+      flexWeight: next ? flexWeightForDelta(next.index - col.index) : 1,
     };
   });
 }
@@ -62,9 +99,12 @@ function chunkMeasure(
 ): StaffMeasure[] {
   const chunks: StaffMeasure[] = [];
   for (let start = 0; start < beats.length; start += maxBeats) {
-    const slice = beats
-      .slice(start, start + maxBeats)
-      .map((beat, idx, arr) => (idx === arr.length - 1 ? { ...beat, gapPx: 0 } : beat));
+    const slice = beats.slice(start, start + maxBeats).map((beat, idx, arr) => ({
+      ...beat,
+      gapPx: idx === arr.length - 1 ? 0 : beat.gapPx,
+      beamLeft: idx === 0 ? false : beat.beamLeft,
+      beamRight: idx === arr.length - 1 ? false : beat.beamRight,
+    }));
     chunks.push({ number, systemIndex, continued: start > 0, beats: slice });
   }
   return chunks;

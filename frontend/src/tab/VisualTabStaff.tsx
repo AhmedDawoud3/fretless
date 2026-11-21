@@ -1,9 +1,10 @@
 import { type CSSProperties, type RefObject, useEffect, useMemo, useRef, useState } from "react";
-import type { ConvertedSystem, TabMode } from "../api/client";
+import type { ConvertedSystem, PlaybackEvent, TabMode } from "../api/client";
 import { formatVirtualFret } from "../notation/virtualFret";
 import { cellKey } from "./cells";
+import { isMeasureLooped, type MeasureLoop, type MeasureRange } from "./measureLoop";
 import { scrollWithinContainer } from "./scrollContainer";
-import { TabPanelActions, useTabPanelView } from "./TabViewControls";
+import { joinClasses, TabPanelActions, useTabPanelView } from "./TabViewControls";
 import {
   buildStaffRows,
   STAFF_DENSITIES,
@@ -20,6 +21,10 @@ type VisualTabStaffProps = {
   fretDivisor: 1 | 2;
   activeKey: string | null;
   onPick: (key: string) => void;
+  events?: readonly PlaybackEvent[];
+  loopRange?: MeasureLoop | null;
+  onSelectMeasure?: (range: MeasureRange) => void;
+  onClearLoop?: () => void;
 };
 
 const STRING_LANES = [0, 1, 2, 3, 4, 5] as const;
@@ -36,6 +41,23 @@ function noteClassName(position: number, divisor: 1 | 2): string {
   if (position === 0) return "vtab-note vtab-note-open";
   if (divisor === 2 && position % 2 === 1) return "vtab-note vtab-note-quarter";
   return "vtab-note";
+}
+
+function beatColumnStyle(beat: StaffBeat): CSSProperties {
+  return beat.gapPx > 0
+    ? { flexGrow: beat.flexWeight, marginRight: `${beat.gapPx}px` }
+    : { flexGrow: beat.flexWeight };
+}
+
+function BeatRhythmView({ beat }: { beat: StaffBeat }) {
+  const stemClass = beat.rhythm === "long" ? "vtab-stem vtab-stem-long" : "vtab-stem";
+  return (
+    <span className="vtab-rhythm" aria-hidden="true">
+      {beat.beamLeft && <span className="vtab-beam-l" />}
+      <span className={stemClass} />
+      {beat.beamRight && <span className="vtab-beam-r" />}
+    </span>
+  );
 }
 
 function StaffColumn({
@@ -61,7 +83,7 @@ function StaffColumn({
       className={active ? "vtab-col vtab-col-active" : "vtab-col"}
       aria-pressed={active}
       aria-label={`System ${beat.systemIndex + 1}, column ${beat.columnIndex}`}
-      style={beat.gapPx > 0 ? { marginRight: `${beat.gapPx}px` } : undefined}
+      style={beatColumnStyle(beat)}
       onClick={onPick}
     >
       {labels.map((_, idx) => {
@@ -76,18 +98,67 @@ function StaffColumn({
             />
           );
         }
+        const cell = formatCell(note.position, note.name, mode, fretDivisor);
         const tech = techniques?.[`${note.course}:${beat.columnIndex}`] ?? "";
         return (
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: fixed 6 string/course lanes per column
             key={idx}
             className={noteClassName(note.position, fretDivisor)}
+            title={`Course ${note.course} · ${cell}${tech} (${note.name})`}
           >
-            {`${formatCell(note.position, note.name, mode, fretDivisor)}${tech}`}
+            {`${cell}${tech}`}
           </span>
         );
       })}
+      <BeatRhythmView beat={beat} />
     </button>
+  );
+}
+
+function measureRange(
+  measure: StaffMeasure,
+  eventIndexByKey: ReadonlyMap<string, number>,
+): MeasureRange | null {
+  const indices = measure.beats
+    .map((b) => eventIndexByKey.get(cellKey(b.systemIndex, b.columnIndex)))
+    .filter((idx): idx is number => idx !== undefined);
+  if (indices.length === 0) return null;
+  return {
+    number: measure.number,
+    startEvent: Math.min(...indices),
+    endEvent: Math.max(...indices),
+  };
+}
+
+function MeasureHeader({
+  measure,
+  range,
+  isLooped,
+  onSelectMeasure,
+}: {
+  measure: StaffMeasure;
+  range: MeasureRange | null;
+  isLooped: boolean;
+  onSelectMeasure?: (range: MeasureRange) => void;
+}) {
+  if (!measure.continued && range && onSelectMeasure) {
+    return (
+      <button
+        type="button"
+        className={isLooped ? "vtab-measure-no vtab-measure-no-loop" : "vtab-measure-no"}
+        aria-label={`Loop measure ${measure.number}`}
+        aria-pressed={isLooped}
+        onClick={() => onSelectMeasure(range)}
+      >
+        {measure.number}
+      </button>
+    );
+  }
+  return (
+    <span className="vtab-measure-no" aria-hidden="true">
+      {measure.continued ? "" : measure.number}
+    </span>
   );
 }
 
@@ -99,7 +170,11 @@ function StaffMeasureView({
   fretDivisor,
   activeKey,
   isFinal,
+  justifyGrow,
+  eventIndexByKey,
+  loopRange,
   onPick,
+  onSelectMeasure,
 }: {
   measure: StaffMeasure;
   labels: readonly string[];
@@ -108,13 +183,34 @@ function StaffMeasureView({
   fretDivisor: 1 | 2;
   activeKey: string | null;
   isFinal: boolean;
+  justifyGrow: boolean;
+  eventIndexByKey: ReadonlyMap<string, number>;
+  loopRange: MeasureLoop | null;
   onPick: (key: string) => void;
+  onSelectMeasure?: (range: MeasureRange) => void;
 }) {
+  const range = measureRange(measure, eventIndexByKey);
+  const isLooped = isMeasureLooped(loopRange, measure.number);
+  const isActive =
+    activeKey !== null &&
+    measure.beats.some((b) => cellKey(b.systemIndex, b.columnIndex) === activeKey);
+
   return (
-    <div className={isFinal ? "vtab-measure vtab-measure-end" : "vtab-measure"}>
-      <span className="vtab-measure-no" aria-hidden="true">
-        {measure.continued ? "" : measure.number}
-      </span>
+    <div
+      className={joinClasses(
+        "vtab-measure",
+        isFinal && "vtab-measure-end",
+        isActive && "vtab-measure-active",
+        isLooped && "vtab-measure-loop",
+      )}
+      style={justifyGrow ? { flexGrow: measure.beats.length } : undefined}
+    >
+      <MeasureHeader
+        measure={measure}
+        range={range}
+        isLooped={isLooped}
+        onSelectMeasure={onSelectMeasure}
+      />
       <div className="vtab-measure-beats">
         {measure.beats.map((beat) => {
           const key = cellKey(beat.systemIndex, beat.columnIndex);
@@ -143,7 +239,11 @@ function StaffRowView({
   fretDivisor,
   activeKey,
   isLastRow,
+  maxBeats,
+  eventIndexByKey,
+  loopRange,
   onPick,
+  onSelectMeasure,
 }: {
   row: StaffRow;
   techniques: Readonly<Record<string, string>> | undefined;
@@ -151,8 +251,15 @@ function StaffRowView({
   fretDivisor: 1 | 2;
   activeKey: string | null;
   isLastRow: boolean;
+  maxBeats: number;
+  eventIndexByKey: ReadonlyMap<string, number>;
+  loopRange: MeasureLoop | null;
   onPick: (key: string) => void;
+  onSelectMeasure?: (range: MeasureRange) => void;
 }) {
+  const rowBeats = row.measures.reduce((sum, m) => sum + m.beats.length, 0);
+  const justifyGrow = !(isLastRow && rowBeats < maxBeats * 0.55);
+
   return (
     <div className="vtab-row">
       <div className="vtab-gutter" aria-hidden="true">
@@ -181,7 +288,11 @@ function StaffRowView({
               fretDivisor={fretDivisor}
               activeKey={activeKey}
               isFinal={isLastRow && idx === row.measures.length - 1}
+              justifyGrow={justifyGrow}
+              eventIndexByKey={eventIndexByKey}
+              loopRange={loopRange}
               onPick={onPick}
+              onSelectMeasure={onSelectMeasure}
             />
           ))}
         </div>
@@ -204,51 +315,93 @@ function useStaffAutoScroll(
   }, [activeKey, follow, staffRef]);
 }
 
+function LoopPill({
+  loopRange,
+  onClearLoop,
+}: {
+  loopRange: MeasureLoop | null;
+  onClearLoop?: () => void;
+}) {
+  if (!loopRange) return null;
+  const label =
+    loopRange.startMeasure === loopRange.endMeasure
+      ? `Loop m.${loopRange.startMeasure}`
+      : `Loop m.${loopRange.startMeasure}–${loopRange.endMeasure}`;
+  return (
+    <span className="vtab-loop-badge">
+      <span>{label}</span>
+      {onClearLoop && (
+        <button
+          type="button"
+          className="vtab-loop-clear"
+          aria-label="Clear loop"
+          onClick={onClearLoop}
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
+}
+
 function VisualTabToolbar({
   density,
   onDensity,
   view,
+  loopRange,
+  onClearLoop,
 }: {
   density: StaffDensity;
   onDensity: (d: StaffDensity) => void;
   view: ReturnType<typeof useTabPanelView>;
+  loopRange: MeasureLoop | null;
+  onClearLoop?: () => void;
 }) {
   return (
     <div className="vtab-toolbar" role="toolbar" aria-label="Visual tab controls">
-      <fieldset className="tab-density" aria-label="Staff spacing">
-        {DENSITY_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={density === key}
-            onClick={() => onDensity(key)}
-          >
-            {STAFF_DENSITIES[key].label}
-          </button>
-        ))}
-      </fieldset>
+      <div className="vtab-toolbar-left">
+        <fieldset className="tab-density" aria-label="Staff spacing">
+          {DENSITY_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={density === key}
+              onClick={() => onDensity(key)}
+            >
+              {STAFF_DENSITIES[key].label}
+            </button>
+          ))}
+        </fieldset>
+        <LoopPill loopRange={loopRange} onClearLoop={onClearLoop} />
+      </div>
       <TabPanelActions
         scope="visual tab"
         zoom={view.zoom}
         follow={view.follow}
         expanded={view.expanded}
+        paper={view.paper}
         onOut={view.zoomOut}
         onReset={view.resetZoom}
         onIn={view.zoomIn}
         onToggleFollow={view.toggleFollow}
         onToggleExpand={view.toggleExpanded}
+        onTogglePaper={view.togglePaper}
       />
     </div>
   );
 }
 
-/** Interactive 6-string tab staff with numbered measures, rhythmic spacing, and view controls. */
+/** Songsterr-style engraved 6-string tab staff with rhythm stems, A-B measure loops, and view controls. */
 export function VisualTabStaff({
   systems,
   mode,
   fretDivisor,
   activeKey,
   onPick,
+  events = [],
+  loopRange = null,
+  onSelectMeasure,
+  onClearLoop,
 }: VisualTabStaffProps) {
   const staffRef = useRef<HTMLElement | null>(null);
   const [density, setDensity] = useState<StaffDensity>("normal");
@@ -263,16 +416,30 @@ export function VisualTabStaff({
     () => new Map(systems.map((s) => [s.index, s.techniques])),
     [systems],
   );
+  const eventIndexByKey = useMemo(
+    () => new Map(events.map((ev, idx) => [cellKey(ev.system, ev.column), idx])),
+    [events],
+  );
 
   useStaffAutoScroll(staffRef, activeKey, view.follow);
 
   if (rows.length === 0) return null;
   return (
     <div className="vtab-shell">
-      <VisualTabToolbar density={density} onDensity={setDensity} view={view} />
+      <VisualTabToolbar
+        density={density}
+        onDensity={setDensity}
+        view={view}
+        loopRange={loopRange}
+        onClearLoop={onClearLoop}
+      />
       <section
         ref={staffRef}
-        className={view.expanded ? "vtab-staff vtab-staff-expanded" : "vtab-staff"}
+        className={joinClasses(
+          "vtab-staff",
+          view.expanded && "vtab-staff-expanded",
+          view.paper && "vtab-sheet-paper",
+        )}
         aria-label="Interactive visual tab"
         style={{ "--vtab-zoom": String(view.zoom / 100) } as CSSProperties}
       >
@@ -285,7 +452,11 @@ export function VisualTabStaff({
             fretDivisor={fretDivisor}
             activeKey={activeKey}
             isLastRow={idx === rows.length - 1}
+            maxBeats={preset.maxBeats}
+            eventIndexByKey={eventIndexByKey}
+            loopRange={loopRange}
             onPick={onPick}
+            onSelectMeasure={onSelectMeasure}
           />
         ))}
       </section>

@@ -9,21 +9,28 @@ export function clampZoom(pct: number): number {
   return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(pct)));
 }
 
-/** Shared zoom, auto-follow, and height-expand state for tab viewers. */
+export function joinClasses(...parts: (string | false | null | undefined)[]): string {
+  return parts.filter(Boolean).join(" ");
+}
+
+/** Shared zoom, auto-follow, paper theme, and height-expand state for tab viewers. */
 export function useTabPanelView() {
   const [zoom, setZoom] = useState(ZOOM_DEFAULT);
   const [follow, setFollow] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [paper, setPaper] = useState(false);
 
   return {
     zoom,
     follow,
     expanded,
+    paper,
     zoomOut: () => setZoom((z) => clampZoom(z - ZOOM_STEP)),
     zoomIn: () => setZoom((z) => clampZoom(z + ZOOM_STEP)),
     resetZoom: () => setZoom(ZOOM_DEFAULT),
     toggleFollow: () => setFollow((v) => !v),
     toggleExpanded: () => setExpanded((v) => !v),
+    togglePaper: () => setPaper((v) => !v),
   };
 }
 
@@ -72,33 +79,40 @@ export function TabZoomControls({
   );
 }
 
-/** Zoom, Follow-playback, and Expand-height controls shared by visual and ASCII tab panels. */
+/** Zoom, Follow, Paper, and Expand controls shared by visual and ASCII tab panels. */
 export function TabPanelActions({
   scope,
   zoom,
   follow,
   expanded,
+  paper,
   onOut,
   onReset,
   onIn,
   onToggleFollow,
   onToggleExpand,
+  onTogglePaper,
 }: {
   scope: string;
   zoom: number;
   follow: boolean;
   expanded: boolean;
+  paper: boolean;
   onOut: () => void;
   onReset: () => void;
   onIn: () => void;
   onToggleFollow: () => void;
   onToggleExpand: () => void;
+  onTogglePaper: () => void;
 }) {
   return (
     <div className="tab-panel-actions">
       <TabZoomControls scope={scope} zoom={zoom} onOut={onOut} onReset={onReset} onIn={onIn} />
       <button type="button" className="tab-tool-btn" aria-pressed={follow} onClick={onToggleFollow}>
         Follow
+      </button>
+      <button type="button" className="tab-tool-btn" aria-pressed={paper} onClick={onTogglePaper}>
+        Paper
       </button>
       <button
         type="button"
