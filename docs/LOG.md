@@ -732,3 +732,19 @@ Quality & checks:
   - Added backend and frontend transpose tests in `tests/tab/test_tab_alterations.py`, `tests/tab/test_tab_convert.py`, `tests/test_api_tab.py`, `frontend/src/tab/tabPage.test.tsx`, and `frontend/src/transcribe/audioPage.test.tsx`.
   - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
   - `just check` passed (`ruff format --check` 122 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 343 passed, `vitest run` 80 test files / 507 passed).
+
+## 2026-11-21: compound-path vector sheet PDF import and 24-TET quarter-tone tab preservation
+
+- Why: Fontless vector-outlined scores such as `اول همسة` (`pdfmake` / SVG compound paths) failed PDF import because `_vector_noteheads` checked only top-level `drawing["rect"]` (matching 5 volta digits `e|-20|` instead of the 1,207 noteheads), tall beamed note stems were mistaken for barlines, tight key-signature flats (`< 14 pt` before the first note) were dropped, and quarter-tone accidentals (`Ed`, `Bd`, `F+`) were rounded to semitones in tab conversion.
+- Backend (`src/fretless/tab/` & `src/fretless/api/`):
+  - Added `src/fretless/tab/pdf_vector_glyphs.py` (`split_subpaths`, `_pair_outer_with_holes`, `extract_page_vector_glyphs`) to split compound vector drawings into connected subpaths, pair inner holes strictly within the same drawing, and classify filled/half/whole noteheads, treble clefs, and 5 accidental shapes (flat, half-flat, natural, sharp, half-sharp) using scale-invariant `dy` ratios with `hole.cy` vertical anchoring.
+  - Updated `src/fretless/tab/pdf_geometry.py` (`_staff_bars`, `group_staves`) so vertical segments count as barlines only when both endpoints align with staff top/bottom lines (filtering out note stems).
+  - Updated `src/fretless/tab/sheet_import.py` and `sheet_tracks.py` (`page_sheet_glyphs`, `_is_key_sig_acc`, `_sheet_candidates`) to fall back to compound vector glyph extraction when no notation font heads are present, accept key-signature accidentals up to `first_note_x`, and emit exact `.5` quarter-tone cells when needed.
+  - Preserved `.5` virtual frets end-to-end across `model.py` (`TabNote.half`), `lines.py`, `columns.py` (`line_tab_notes`, `line_techniques`, `build_columns`), `parse.py`, `render.py`, `events.py` (`note_pitch`), `convert.py`, and `api/tab_mappers.py`.
+- Frontend (`frontend/src/tab/`):
+  - `importLibrary.ts`: bumped `pdfLibraryKey` to `pdf:v2:...` to bust stale cached PDF entries in `localStorage`.
+  - `tabEdit.ts`: updated `writeAtColumn` regex to replace `.5` tokens cleanly when editing guitar notes.
+- Quality & verification:
+  - `just format`, `crapper --no-coverage --threshold 9` (`CC <= 9` across Python & TypeScript), and `dryer --threshold 0.8` (`No duplicate candidates found.`).
+  - `just check` passed (`ruff format --check` 123 files, `ruff check`, `biome` 301 files, `ty check`, `tsc -b`, `pytest` 348 passed including synthetic compound-vector and real `اول همسة` tests, `vitest run` 80 test files / 508 passed).
+  - FastAPI smoke check (`POST /api/tab/import-pdf` -> `POST /api/tab/convert`) on `اول همسة` returned HTTP `200`, `74` systems, `1,207` notes in / `1,206` notes out, `46` quarter-tone notes, and detected `Nahawand` / `Bayati` on `G`.
