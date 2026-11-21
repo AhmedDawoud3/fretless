@@ -3,13 +3,17 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from fretless.guitar import GUITAR_TUNINGS, fretted_pitch
+from fretless.guitar import GUITAR_TUNINGS
+from fretless.maqam_detect import detect_maqam_from_pitches
 from fretless.pitch import NoteName, name_to_pitch
+from fretless.tab.convert import convert
+from fretless.tab.events import note_pitch
 from fretless.tab.model import TabSystem
 from fretless.tab.parse import parse_tab
 from fretless.tab.pdf_geometry import Staff
 from fretless.tab.pdf_import import import_pdf_bytes
 from fretless.tab.sheet_import import _canonical_code, _Glyph, _staff_pitches, is_any_music_font
+from fretless.tuning import TUNINGS
 
 STANDARD = GUITAR_TUNINGS["standard"].strings
 
@@ -38,7 +42,7 @@ def _column_pitches(text: str) -> list[list[int]]:
     out: list[list[int]] = []
     for sys in systems:
         for col in sys.columns:
-            pitches = sorted(fretted_pitch(STANDARD[n.line - 1], 0, n.fret) for n in col.notes)
+            pitches = sorted(note_pitch(STANDARD[n.line - 1], 0, n) for n in col.notes)
             out.append(pitches)
     return out
 
@@ -145,6 +149,27 @@ def test_import_sheet_music_on_real_pdfs_when_present() -> None:
         assert both.track_index == 2
         assert len(_column_pitches(both.text)) >= 120
 
+    awel_path = (
+        tabs_dir
+        / "انفراد بالنوتة الموسيقية لرائعة روائع فريد الاطرش,,اول همسة_تدوين ماهر الغمرى.pdf"
+    )
+    if awel_path.exists():
+        awel = import_pdf_bytes(awel_path.read_bytes(), filename=awel_path.name)
+        assert awel.kind == "sheet"
+        systems = [b for b in parse_tab(awel.text).blocks if isinstance(b, TabSystem)]
+        assert len(systems) >= 70
+        pitches = _column_pitches(awel.text)
+        assert sum(len(col) for col in pitches) >= 1200
+        # Opening phrase in G Nahawand: D4, D4, Eb4, F4, G4, A4, Bb4, C5, D5.
+        assert pitches[:9] == [[100], [100], [102], [106], [110], [114], [116], [120], [124]]
+        assert ".5" in awel.text
+        flat_pitches = [p for col in pitches for p in col]
+        assert sum(p % 2 for p in flat_pitches) >= 40
+        converted = convert(parse_tab(awel.text), STANDARD, 0, TUNINGS["cc"])
+        assert len(converted.alterations) >= 0
+        detected = detect_maqam_from_pitches(flat_pitches)
+        assert any(m.maqam_name in {"Nahawand", "Bayati"} and m.root_name == "G" for m in detected)
+
 
 def test_multitrack_sheet_pdf_groups_connected_staves_into_tracks_and_combined() -> None:
     doc = pymupdf.Document()
@@ -192,3 +217,88 @@ def test_multitrack_sheet_pdf_groups_connected_staves_into_tracks_and_combined()
     assert _canonical_code(ord("œ"), allow_legacy=True) == 0xE0A4
     assert _canonical_code(ord("#"), allow_legacy=True) == 0xE262
     assert _canonical_code(ord("#"), allow_legacy=False) is None
+
+
+def _draw_box_poly(
+    shape: pymupdf.Shape, x0: float, y0: float, x1: float, y1: float, steps: int = 4
+) -> None:
+    pts = [
+        pymupdf.Point(x0, y0),
+        pymupdf.Point(x1, y0),
+        pymupdf.Point(x1, y1),
+        pymupdf.Point(x0, y1),
+    ]
+    if steps > 4:
+        extra = [pymupdf.Point(x0, y1 - (y1 - y0) * i / (steps - 3)) for i in range(1, steps - 3)]
+        pts.extend(extra)
+    shape.draw_polyline([*pts, pts[0]])
+
+
+def _draw_compound_flat(
+    shape: pymupdf.Shape, cx: float, hole_cy: float, dy: float, half_flat: bool
+) -> None:
+    w = (1.25 if half_flat else 0.90) * dy
+    h = 2.50 * dy
+    x0, x1 = cx - w / 2.0, cx + w / 2.0
+    y0 = hole_cy - 0.74 * h
+    _draw_box_poly(shape, x0, y0, x1, y0 + h)
+    shape.draw_oval(
+        pymupdf.Rect(cx - 0.18 * dy, hole_cy - 0.25 * dy, cx + 0.18 * dy, hole_cy + 0.25 * dy)
+    )
+
+
+def _draw_compound_quad_accidental(
+    shape: pymupdf.Shape, cx: float, hole_cy: float, dy: float, sharp: bool
+) -> None:
+    w = (1.10 if sharp else 0.70) * dy
+    h = 2.80 * dy
+    _draw_box_poly(shape, cx - w / 2.0, hole_cy - h / 2.0, cx + w / 2.0, hole_cy + h / 2.0)
+    _draw_box_poly(shape, cx - 0.16 * dy, hole_cy - 0.30 * dy, cx + 0.16 * dy, hole_cy + 0.30 * dy)
+
+
+def test_import_compound_vector_sheet_preserves_quarter_tones_and_ignores_stems() -> None:
+    doc = pymupdf.Document()
+    page = doc.new_page()
+    y0, dy = 120.0, 6.0  # y_bot = 144.0 (E4), step_y = 3.0
+    _draw_five_line_staff(page, y0=y0, dy=dy, x0=50.0, x1=450.0)
+    # Tall note stem extending past both staff edges must NOT become a barline; x=300 IS a barline.
+    lines = page.new_shape()
+    lines.draw_line(pymupdf.Point(200.0, y0 - 10.0), pymupdf.Point(200.0, y0 + 4.0 * dy + 3.0))
+    lines.draw_line(pymupdf.Point(300.0, y0), pymupdf.Point(300.0, y0 + 4.0 * dy))
+    lines.finish(width=0.8)
+    lines.commit()
+
+    # One compound filled drawing holding clef, key-sig flat, inline accidentals, and noteheads.
+    shape = page.new_shape()
+    # Treble clef (w=2.3*dy, h=6.0*dy) on left.
+    _draw_box_poly(shape, 58.0, y0 - 6.0, 58.0 + 2.3 * dy, y0 - 6.0 + 6.0 * dy)
+    # Key-sig Bb4 (12pt left of first note at x=104 -> tests tight key-sig gap!).
+    _draw_compound_flat(shape, 92.0, y0 + 2.0 * dy, dy, half_flat=False)
+    # 1) Filled notehead E4 (104) at x=104
+    shape.draw_oval(pymupdf.Rect(104.0 - 3.9, 144.0 - 3.0, 104.0 + 3.9, 144.0 + 3.0))
+    # 2) Hollow half notehead Bb4 (116, from key sig) at x=140 (outer + inner oval in same drawing)
+    shape.draw_oval(pymupdf.Rect(140.0 - 3.9, 132.0 - 3.0, 140.0 + 3.9, 132.0 + 3.0))
+    shape.draw_oval(pymupdf.Rect(140.0 - 2.6, 132.0 - 2.0, 140.0 + 2.6, 132.0 + 2.0))
+    # 3) Sharp F#4 (108) + notehead at x=180
+    _draw_compound_quad_accidental(shape, 171.0, 141.0, dy, sharp=True)
+    shape.draw_oval(pymupdf.Rect(180.0 - 3.9, 141.0 - 3.0, 180.0 + 3.9, 141.0 + 3.0))
+    # 4) Natural F4 (106) + notehead at x=220
+    _draw_compound_quad_accidental(shape, 211.0, 141.0, dy, sharp=False)
+    shape.draw_oval(pymupdf.Rect(220.0 - 3.9, 141.0 - 3.0, 220.0 + 3.9, 141.0 + 3.0))
+    # 5) Half-flat Ed4 (103) + hollow whole notehead at x=260
+    _draw_compound_flat(shape, 251.0, 144.0, dy, half_flat=True)
+    shape.draw_oval(pymupdf.Rect(260.0 - 5.7, 144.0 - 3.0, 260.0 + 5.7, 144.0 + 3.0))
+    shape.draw_oval(pymupdf.Rect(260.0 - 2.5, 144.0 - 2.2, 260.0 + 2.5, 144.0 + 2.2))
+    # 6) After barline (x=300): half-sharp F+4 (107) + notehead at x=340
+    _draw_box_poly(shape, 329.0, 141.0 - 7.8, 333.2, 141.0 + 7.8, steps=26)
+    shape.draw_oval(pymupdf.Rect(340.0 - 3.9, 141.0 - 3.0, 340.0 + 3.9, 141.0 + 3.0))
+    shape.finish(color=None, fill=(0, 0, 0))
+    shape.commit()
+
+    imported = import_pdf_bytes(doc.tobytes(), filename="compound-vector.pdf")
+    assert imported.kind == "sheet"
+    systems = [b for b in parse_tab(imported.text).blocks if isinstance(b, TabSystem)]
+    assert len(systems) == 1
+    assert len(systems[0].bars) == 1
+    assert ".5" in imported.text
+    assert _column_pitches(imported.text) == [[104], [116], [108], [106], [103], [107]]

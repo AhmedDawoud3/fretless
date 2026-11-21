@@ -99,3 +99,12 @@ def test_document_round_trip_keeps_systems_and_text() -> None:
     system = RenderSystem(LABELS, 6, (3,), (RenderCell(2, 1, "12"),))
     text = "Intro\n" + render_system(system) + "\nEnd"
     assert render_document(parse_tab(text).blocks) == text
+
+
+def test_half_fret_notes_render_and_round_trip() -> None:
+    tab = TabSystem(4, 8, (4,), (Column(1, (TabNote(1, 2, half=True), TabNote(3, 0))),), LABELS)
+    text = render_system(to_render_system(tab))
+    assert "2.5" in text
+    (parsed,) = parse_tab(text).blocks
+    assert isinstance(parsed, TabSystem)
+    assert parsed.columns[0].notes == (TabNote(1, 2, half=True), TabNote(3, 0))

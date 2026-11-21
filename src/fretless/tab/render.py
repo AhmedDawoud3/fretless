@@ -8,7 +8,7 @@ from fretless.tab.widen import widen
 def to_render_system(system: TabSystem) -> RenderSystem:
     """A system that prints every note's fret number where it was."""
     cells = tuple(
-        RenderCell(note.line, column.index, str(note.fret))
+        RenderCell(note.line, column.index, f"{note.fret}.5" if note.half else str(note.fret))
         for column in system.columns
         for note in column.notes
     )

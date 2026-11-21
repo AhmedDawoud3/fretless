@@ -90,24 +90,51 @@ def _fits_staff_run(run: list[tuple[float, float, float]], y: float) -> bool:
     return abs((y - run[-1][0]) - dy) <= 0.8
 
 
-def _staff_from_run(
-    run: list[tuple[float, float, float]], vert: list[tuple[float, float, float]], line_count: int
-) -> Staff | None:
+def _staff_run_bounds(
+    run: list[tuple[float, float, float]], line_count: int
+) -> tuple[tuple[float, ...], float, float] | None:
     if len(run) != line_count:
         return None
     x0 = max(item[1] for item in run)
     x1 = min(item[2] for item in run)
     if x1 - x0 <= 150.0:
         return None
-    y0, y_end = run[0][0], run[-1][0]
-    bars = tuple(
-        sorted(
-            bx
-            for bx, by0, by1 in vert
-            if x0 + 6.0 < bx < x1 - 4.0 and by0 <= y0 + 2.0 and by1 >= y_end - 2.0
-        )
+    return tuple(item[0] for item in run), x0, x1
+
+
+def _matches_staff_bar(
+    bx: float,
+    by0: float,
+    by1: float,
+    bounds: tuple[float, float, float, float],
+    staff_tops: tuple[float, ...],
+    staff_bots: tuple[float, ...],
+) -> bool:
+    x0, x1, y0, y_end = bounds
+    return (
+        x0 + 6.0 < bx < x1 - 4.0
+        and by0 <= y0 + 2.0
+        and by1 >= y_end - 2.0
+        and any(abs(by0 - ty) <= 2.5 for ty in staff_tops)
+        and any(abs(by1 - by) <= 2.5 for by in staff_bots)
     )
-    return Staff(tuple(item[0] for item in run), x0, x1, dedup_bars(bars))
+
+
+def _staff_bars(
+    ys: tuple[float, ...],
+    x0: float,
+    x1: float,
+    vert: list[tuple[float, float, float]],
+    staff_tops: tuple[float, ...],
+    staff_bots: tuple[float, ...],
+) -> tuple[float, ...]:
+    bounds = (x0, x1, ys[0], ys[-1])
+    bars = sorted(
+        bx
+        for bx, by0, by1 in vert
+        if _matches_staff_bar(bx, by0, by1, bounds, staff_tops, staff_bots)
+    )
+    return dedup_bars(tuple(bars))
 
 
 def group_staves(
@@ -126,7 +153,13 @@ def group_staves(
             runs[-1] = [entry]
         else:
             runs.append([entry])
-    return [staff for run in runs if (staff := _staff_from_run(run, vert, line_count)) is not None]
+    bounds = [b for run in runs if (b := _staff_run_bounds(run, line_count)) is not None]
+    staff_tops = tuple(ys[0] for ys, _, _ in bounds)
+    staff_bots = tuple(ys[-1] for ys, _, _ in bounds)
+    return [
+        Staff(ys, x0, x1, _staff_bars(ys, x0, x1, vert, staff_tops, staff_bots))
+        for ys, x0, x1 in bounds
+    ]
 
 
 def _staves_connected(top: Staff, bot: Staff, vert: list[tuple[float, float, float]]) -> bool:

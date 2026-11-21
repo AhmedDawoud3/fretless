@@ -39,6 +39,10 @@ def test_techniques_and_dead_notes_are_content() -> None:
     assert parse_tab_line(r"e|--10-12h14p12-x-/-\-~-|") is not None
 
 
+def test_quarter_tone_virtual_frets_are_parsed_as_tab_lines() -> None:
+    assert parse_tab_line("e|-1.5-11.5-|") == TabLine("e", "-1.5-11.5-")
+
+
 @pytest.mark.parametrize(
     "text",
     [

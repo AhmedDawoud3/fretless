@@ -1,11 +1,12 @@
 """Read notes and bars out of the content of tab lines and group notes into columns."""
 
 import re
+from collections.abc import Sequence
 
 from fretless.tab.model import Column, TabNote
 
 _MAX_FRET = 24
-_DIGITS = re.compile(r"\d+")
+_TOKEN = re.compile(r"\d+(?:\.5)?")
 _TECHNIQUE_CHARS = frozenset("hp/\\br~")
 
 
@@ -27,22 +28,31 @@ def split_frets(digits: str) -> list[tuple[int, int]]:
     return frets
 
 
+def line_tab_notes(content: str) -> list[tuple[int, int, bool]]:
+    """(index, fret, half) of every note in one line's content; supports `.5` virtual frets."""
+    out: list[tuple[int, int, bool]] = []
+    for run in _TOKEN.finditer(content):
+        token = run.group()
+        is_half = token.endswith(".5")
+        parts = split_frets(token.removesuffix(".5"))
+        last = len(parts) - 1
+        for idx, (offset, fret) in enumerate(parts):
+            out.append((run.start() + offset, fret, is_half and idx == last))
+    return out
+
+
 def line_notes(content: str) -> list[tuple[int, int]]:
     """(index, fret) of every note in one line's content; symbols and dead notes are dropped."""
-    return [
-        (run.start() + offset, fret)
-        for run in _DIGITS.finditer(content)
-        for offset, fret in split_frets(run.group())
-    ]
+    return [(index, fret) for index, fret, _ in line_tab_notes(content)]
 
 
 def line_techniques(content: str) -> dict[int, str]:
     """Map starting offset to trailing technique symbol (`h`, `p`, `/`, `\\`, `b`, `~`)."""
     out: dict[int, str] = {}
-    for run in _DIGITS.finditer(content):
+    for run in _TOKEN.finditer(content):
         end = run.end()
         if end < len(content) and content[end] in _TECHNIQUE_CHARS:
-            parts = split_frets(run.group())
+            parts = split_frets(run.group().removesuffix(".5"))
             if parts:
                 out[run.start() + parts[-1][0]] = content[end]
     return out
@@ -52,10 +62,19 @@ def bar_offsets(content: str) -> tuple[int, ...]:
     return tuple(i for i, char in enumerate(content) if char == "|")
 
 
-def build_columns(per_line: list[list[tuple[int, int]]]) -> tuple[Column, ...]:
+def _to_tab_note(line: int, item: tuple[int, int] | tuple[int, int, bool]) -> tuple[int, TabNote]:
+    if len(item) == 3:
+        return item[0], TabNote(line, item[1], half=item[2])
+    return item[0], TabNote(line, item[1])
+
+
+def build_columns(
+    per_line: Sequence[Sequence[tuple[int, int] | tuple[int, int, bool]]],
+) -> tuple[Column, ...]:
     """Group notes that start at the same index into columns; `per_line` runs top line first."""
     by_index: dict[int, list[TabNote]] = {}
     for line, notes in enumerate(per_line, start=1):
-        for index, fret in notes:
-            by_index.setdefault(index, []).append(TabNote(line, fret))
+        for item in notes:
+            index, note = _to_tab_note(line, item)
+            by_index.setdefault(index, []).append(note)
     return tuple(Column(index, tuple(notes)) for index, notes in sorted(by_index.items()))

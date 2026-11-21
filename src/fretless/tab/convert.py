@@ -3,7 +3,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from fretless.guitar import fretted_pitch
 from fretless.pitch import STEPS_PER_OCTAVE
 from fretless.tab import alterations as note
 from fretless.tab.convert_model import (
@@ -14,7 +13,7 @@ from fretless.tab.convert_model import (
     PlacedNote,
     PlacedSystem,
 )
-from fretless.tab.events import GUITAR_LINES, Event, extract_events
+from fretless.tab.events import GUITAR_LINES, Event, extract_events, note_pitch
 from fretless.tab.model import TabDocument, TabSystem, TextBlock
 from fretless.tab.options import Option, options
 from fretless.tab.path import best_path
@@ -135,8 +134,7 @@ def _system(
         targets = [
             (
                 n.line,
-                (fretted_pitch(strings[n.line - 1], capo, n.fret) + transpose_steps)
-                % STEPS_PER_OCTAVE,
+                (note_pitch(strings[n.line - 1], capo, n) + transpose_steps) % STEPS_PER_OCTAVE,
             )
             for n in column.notes
         ]

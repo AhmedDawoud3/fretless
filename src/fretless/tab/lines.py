@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 # label (a string name such as e, B, Eb, D#, or nothing), a separator, then the rest
 _LINE = re.compile(r"^\s*(?P<label>[A-Ga-g][#b]?)?\s*[|:](?P<rest>.*)$")
-# dashes, digits, bars and technique symbols h p / \ b r ~ ^ t s ( ) = and dead notes x X
-_CONTENT = re.compile(r"^[-0-9|hpbrtsxX/\\~^()=]*$")
+# dashes, digits, optional .5 quarter-tone frets, bars and technique symbols
+_CONTENT = re.compile(r"^[-0-9.|hpbrtsxX/\\~^()=]*$")
 _MIN_DASHES = 2
 
 

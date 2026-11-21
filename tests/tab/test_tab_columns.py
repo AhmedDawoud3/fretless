@@ -1,6 +1,13 @@
 import pytest
 
-from fretless.tab.columns import bar_offsets, build_columns, line_notes, split_frets
+from fretless.tab.columns import (
+    bar_offsets,
+    build_columns,
+    line_notes,
+    line_tab_notes,
+    line_techniques,
+    split_frets,
+)
 from fretless.tab.model import Column, TabNote
 
 
@@ -49,3 +56,15 @@ def test_build_columns_groups_same_index_across_lines() -> None:
         Column(2, (TabNote(1, 0), TabNote(2, 1), TabNote(4, 2))),
         Column(6, (TabNote(1, 3),)),
     )
+
+
+def test_line_tab_notes_and_techniques_support_half_frets() -> None:
+    assert line_tab_notes("--0.5-1.5-11.5-35.5-2--") == [
+        (2, 0, True),
+        (6, 1, True),
+        (10, 11, True),
+        (15, 3, False),
+        (16, 5, True),
+        (20, 2, False),
+    ]
+    assert line_techniques("--1.5h2-11.5~--") == {2: "h", 8: "~"}

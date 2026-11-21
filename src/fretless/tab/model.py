@@ -8,6 +8,7 @@ from itertools import pairwise
 class TabNote:
     line: int  # 1 = top line (highest string / course)
     fret: int  # fret number as written in the tab
+    half: bool = False  # True for virtual quarter-tone frets like 1.5
 
     def __post_init__(self) -> None:
         if self.fret < 0:

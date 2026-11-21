@@ -14,12 +14,12 @@ from fretless.tab.pdf_geometry import (
     group_systems,
     merge_y_buckets,
 )
+from fretless.tab.pdf_vector_glyphs import Glyph
 from fretless.tab.sheet_import import (
     _clef_diatonic,
-    _Glyph,
-    _page_glyphs,
     _staff_pitches,
     extract_nonmusic_line,
+    page_sheet_glyphs,
     render_pitch_groups,
 )
 
@@ -33,7 +33,7 @@ _VOCAL_KEYWORDS = ("vocal", "voice", "choir", "singer", "soprano", "alto", "teno
 class PageSheetData:
     page: pymupdf.Page
     systems: list[list[Staff]]
-    glyphs: list[_Glyph]
+    glyphs: list[Glyph]
 
 
 def _collect_pages(doc: pymupdf.Document) -> list[PageSheetData]:
@@ -42,7 +42,9 @@ def _collect_pages(doc: pymupdf.Document) -> list[PageSheetData]:
         horz, vert = collect_segments(page)
         staves = group_staves(merge_y_buckets(horz), vert, line_count=5)
         if staves:
-            pages.append(PageSheetData(page, group_systems(staves, vert), _page_glyphs(page)))
+            pages.append(
+                PageSheetData(page, group_systems(staves, vert), page_sheet_glyphs(page, staves))
+            )
     return pages
 
 

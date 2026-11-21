@@ -3,7 +3,7 @@
 import re
 from itertools import groupby
 
-from fretless.tab.columns import bar_offsets, build_columns, line_notes, line_techniques
+from fretless.tab.columns import bar_offsets, build_columns, line_tab_notes, line_techniques
 from fretless.tab.lines import TabLine, parse_tab_line
 from fretless.tab.model import Block, TabDocument, TabSystem, TextBlock
 
@@ -59,7 +59,7 @@ def _merge_text(blocks: list[Block]) -> list[Block]:
 def _system(tab_lines: list[TabLine]) -> TabSystem:
     contents = [line.content for line in tab_lines]
     bars = sorted({bar for content in contents for bar in bar_offsets(content)})
-    columns = build_columns([line_notes(content) for content in contents])
+    columns = build_columns([line_tab_notes(content) for content in contents])
     techniques = tuple(
         (line_no, col_idx, symbol)
         for line_no, content in enumerate(contents, start=1)

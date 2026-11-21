@@ -256,3 +256,12 @@ def test_transpose_placed_systems_shifts_pitches_preserves_bars_and_techniques()
     assert placed_sys.bars == (6,)
     assert [n.pitch for c in placed_sys.columns for n in c.notes] == [72, 74]  # C3, D3
     assert [sym for _, col, sym in placed_sys.techniques if col == 1] == ["h"]
+
+
+def test_quarter_tone_guitar_virtual_fret_converts_to_exact_oud_quarter_tone() -> None:
+    # e|-1.5-| is F+4 (E4=104 + 2 + 1 = 107). On C-C tuning (course 1 = C4 = 96), position = 11.
+    result = run(tab(e="-1.5-"))
+    notes = column_notes(result)
+    assert len(notes) == 1
+    assert notes[0].pitch == 107
+    assert notes[0].position % 2 == 1

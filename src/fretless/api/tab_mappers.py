@@ -15,11 +15,10 @@ from fretless.api.tab_schemas import (
     SummaryOut,
 )
 from fretless.audio.arrange import AudioArrangement
-from fretless.guitar import fretted_pitch
 from fretless.maqam_detect import detect_maqam_from_pitches
 from fretless.tab.convert_model import Alteration, Converted, PlacedNote, PlacedSystem
-from fretless.tab.events import GUITAR_LINES
-from fretless.tab.model import TabDocument, TabSystem
+from fretless.tab.events import GUITAR_LINES, note_pitch
+from fretless.tab.model import TabDocument, TabNote, TabSystem
 from fretless.tab.oud_render import Mode, ascii_name, course_labels, render_converted
 from fretless.tab.playback import GAP_TICKS, PlaybackEvent, playback
 from fretless.tuning import Tuning
@@ -96,9 +95,9 @@ def summary_from_count(notes_in: int, converted: Converted) -> SummaryOut:
     )
 
 
-def _guitar_note_out(strings: tuple[int, ...], capo: int, line: int, fret: int) -> PlacedNoteOut:
-    pitch = fretted_pitch(strings[line - 1], capo, fret)
-    return PlacedNoteOut(course=line, position=fret, pitch=pitch, name=ascii_name(pitch))
+def _guitar_note_out(strings: tuple[int, ...], capo: int, note: TabNote) -> PlacedNoteOut:
+    pitch = note_pitch(strings[note.line - 1], capo, note)
+    return PlacedNoteOut(course=note.line, position=note.fret, pitch=pitch, name=ascii_name(pitch))
 
 
 def _guitar_system_out(
@@ -108,11 +107,11 @@ def _guitar_system_out(
         index=number,
         width=system.width,
         bars=list(system.bars),
-        labels=[ascii_name(fretted_pitch(s, capo, 0)) for s in strings],
+        labels=[ascii_name(note_pitch(s, capo, TabNote(1, 0))) for s in strings],
         columns=[
             PlacedColumnOut(
                 index=c.index,
-                notes=[_guitar_note_out(strings, capo, n.line, n.fret) for n in c.notes],
+                notes=[_guitar_note_out(strings, capo, n) for n in c.notes],
             )
             for c in system.columns
         ],
